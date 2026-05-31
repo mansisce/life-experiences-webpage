@@ -184,6 +184,13 @@ h3 {
   margin-top: 32px;
 }
 
+.section-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
 .button {
   display: inline-flex;
   min-height: 46px;
