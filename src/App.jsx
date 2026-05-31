@@ -34,10 +34,18 @@ const experiences = [
 ];
 
 const interests = [
+  ["Little human", "Most of my time goes into raising, observing, and gently shaping her thoughts and everyday world."],
   ["Food", "Trying nourishing recipes that are practical, flavorful, and easy to repeat."],
   ["Health", "Testing small routines around movement, hydration, sleep, strength, and energy."],
   ["Work", "Learning through frontend architecture, automation, release systems, and better team practices."],
   ["Reflection", "Collecting lessons from everyday decisions, career chapters, and personal experiments."],
+];
+
+const littleHumanLessons = [
+  ["Language", "Helping her name feelings, ask questions, and turn tiny observations into confidence."],
+  ["Values", "Teaching kindness, courage, patience, curiosity, and the quiet strength of trying again."],
+  ["Routines", "Building everyday rhythms around food, sleep, play, learning, and calm transitions."],
+  ["Wonder", "Protecting the imagination and joy that make childhood feel expansive."],
 ];
 
 const recipes = [
@@ -211,7 +219,7 @@ function HomePage() {
           </p>
           <ul className="quick-facts" aria-label="Quick personal facts">
             <li>
-              <span>Currently</span> Frontend engineering, release automation, and healthier routines
+              <span>Currently</span> Raising a little human, frontend engineering, release automation, and healthier routines
             </li>
             <li>
               <span>Learning through</span> React systems, leadership, notes, feedback, and experiments
@@ -248,6 +256,25 @@ function HomePage() {
               <h3>{title}</h3>
               <p>{body}</p>
             </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="section split">
+        <div>
+          <p className="eyebrow">Where my time goes</p>
+          <h2>Building a little human</h2>
+          <p>
+            A lot of my life is spent shaping her world: the words she hears, the questions she asks, the way she sees
+            herself, and the kind of thoughts she learns to trust.
+          </p>
+        </div>
+        <div className="habit-board" aria-label="Little human lessons">
+          {littleHumanLessons.map(([title, body]) => (
+            <div key={title}>
+              <strong>{title}</strong>
+              <span>{body}</span>
+            </div>
           ))}
         </div>
       </section>

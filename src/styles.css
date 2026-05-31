@@ -354,7 +354,7 @@ dd {
 }
 
 .interest-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .interest:nth-child(2) .icon,
@@ -370,6 +370,11 @@ dd {
 .interest:nth-child(4) .icon,
 .interest:nth-child(4) h3 {
   color: #806014;
+}
+
+.interest:nth-child(5) .icon,
+.interest:nth-child(5) h3 {
+  color: var(--leaf);
 }
 
 .habit-board {
