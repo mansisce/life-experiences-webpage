@@ -96,6 +96,18 @@ a {
   text-shadow: 0 1px 16px rgba(0, 0, 0, 0.45);
 }
 
+.text-link {
+  display: inline-flex;
+  margin-top: 18px;
+  color: var(--blue);
+  font-weight: 900;
+  text-decoration: none;
+}
+
+.text-link:hover {
+  text-decoration: underline;
+}
+
 .hero {
   position: relative;
   min-height: 92vh;

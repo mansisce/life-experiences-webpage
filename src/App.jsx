@@ -155,6 +155,14 @@ const bolnaNotes = [
   ["Demo attachment", "Add links later for a recording, GitHub repo, write-up, or hosted demo."],
 ];
 
+const aiProjects = [
+  {
+    title: "Vedantu Ananya",
+    body: "A hosted AI learning experiment connected to the education and assistant-building direction I am exploring.",
+    link: "https://vedantu-ananya-nine.vercel.app/",
+  },
+];
+
 function getRoute() {
   const route = window.location.hash.replace("#", "") || "/";
   return route.startsWith("/") ? route : "/";
@@ -604,6 +612,21 @@ function AiLearningPage() {
             <article key={title}>
               <h3>{title}</h3>
               <p>{body}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="section">
+        <SectionHeading eyebrow="AI builds" title="Projects and demos I am attaching here" />
+        <div className="learning-grid">
+          {aiProjects.map((project) => (
+            <article key={project.title}>
+              <h3>{project.title}</h3>
+              <p>{project.body}</p>
+              <a className="text-link" href={project.link} target="_blank" rel="noreferrer">
+                Open project
+              </a>
             </article>
           ))}
         </div>
