@@ -376,6 +376,21 @@ dd {
   grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
+.interest:first-child {
+  background: var(--ink);
+  color: var(--white);
+  box-shadow: var(--shadow);
+}
+
+.interest:first-child p {
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.interest:first-child .icon,
+.interest:first-child h3 {
+  color: #ffd77f;
+}
+
 .interest:nth-child(2) .icon,
 .interest:nth-child(2) h3 {
   color: var(--tomato);
@@ -394,6 +409,26 @@ dd {
 .interest:nth-child(5) .icon,
 .interest:nth-child(5) h3 {
   color: var(--leaf);
+}
+
+.little-human-feature {
+  position: relative;
+  overflow: hidden;
+  background: #fff7df;
+}
+
+.little-human-feature::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(255, 215, 127, 0.4), rgba(255, 255, 255, 0)),
+    radial-gradient(circle at 86% 18%, rgba(185, 76, 54, 0.14), transparent 28%);
+  pointer-events: none;
+}
+
+.little-human-feature > * {
+  position: relative;
 }
 
 .habit-board {

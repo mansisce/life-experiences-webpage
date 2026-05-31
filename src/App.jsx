@@ -297,7 +297,7 @@ function HomePage() {
         </div>
       </section>
 
-      <section className="section split">
+      <section className="section split little-human-feature">
         <div>
           <p className="eyebrow">Where my time goes</p>
           <h2>Building a little human</h2>
