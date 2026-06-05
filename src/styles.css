@@ -318,6 +318,7 @@ h3 {
 .habit-board div,
 .learning-grid article,
 .note-stack article,
+.resume-card,
 .resume-panel {
   border: 1px solid var(--line);
   border-radius: 8px;
@@ -347,7 +348,8 @@ dt {
 .interest,
 .recipe-list article,
 .learning-grid article,
-.note-stack article {
+.note-stack article,
+.resume-card {
   padding: 22px;
 }
 
@@ -366,6 +368,7 @@ dt {
 .work-grid p,
 .learning-grid p,
 .note-stack p,
+.resume-card p,
 .resume-panel p,
 dd {
   margin: 0;
@@ -492,6 +495,156 @@ dd {
   font-weight: 900;
 }
 
+.resume-intro {
+  padding-bottom: clamp(36px, 5vw, 64px);
+}
+
+.hero-resume-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.72fr);
+  gap: clamp(24px, 5vw, 64px);
+  align-items: start;
+  box-shadow: var(--shadow);
+}
+
+.resume-contact {
+  display: grid;
+  gap: 18px;
+  margin: 0;
+}
+
+.resume-contact a {
+  color: var(--blue);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.skill-cloud,
+.project-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.skill-cloud span,
+.project-tags span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 38px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--white);
+  padding: 8px 14px;
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.resume-timeline {
+  display: grid;
+  gap: 18px;
+}
+
+.visual-timeline {
+  position: relative;
+  display: grid;
+  gap: 28px;
+  padding: 8px 0;
+}
+
+.visual-timeline::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 3px;
+  border-radius: 999px;
+  background: linear-gradient(var(--leaf), var(--turmeric), var(--tomato));
+  transform: translateX(-50%);
+}
+
+.timeline-node {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 88px minmax(0, 1fr);
+  align-items: center;
+  gap: 22px;
+}
+
+.timeline-node.left .timeline-card {
+  grid-column: 1;
+}
+
+.timeline-node.right .timeline-card {
+  grid-column: 3;
+}
+
+.timeline-marker {
+  z-index: 1;
+  grid-column: 2;
+  display: grid;
+  width: 76px;
+  height: 76px;
+  place-items: center;
+  justify-self: center;
+  border: 3px solid var(--paper);
+  border-radius: 50%;
+  background: var(--ink);
+  color: #ffd77f;
+  box-shadow: var(--shadow);
+  font-weight: 900;
+}
+
+.timeline-card {
+  position: relative;
+  background: var(--white);
+}
+
+.timeline-node.left .timeline-card::after,
+.timeline-node.right .timeline-card::after {
+  content: "";
+  position: absolute;
+  top: 36px;
+  width: 22px;
+  height: 3px;
+  background: var(--line);
+}
+
+.timeline-node.left .timeline-card::after {
+  right: -22px;
+}
+
+.timeline-node.right .timeline-card::after {
+  left: -22px;
+}
+
+.resume-card-header {
+  display: grid;
+  grid-template-columns: minmax(120px, 0.28fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+  margin-bottom: 18px;
+}
+
+.resume-card-header time {
+  color: var(--leaf);
+  font-weight: 900;
+}
+
+.resume-list {
+  display: grid;
+  gap: 8px;
+  margin: 0 0 18px;
+  padding-left: 20px;
+  color: var(--muted);
+}
+
+.resume-year {
+  margin-top: 12px !important;
+  color: var(--leaf) !important;
+  font-weight: 900;
+}
+
 .resume {
   padding-top: 0;
 }
@@ -547,7 +700,9 @@ dd {
 
   .intro-grid,
   .split,
-  .resume-panel {
+  .resume-panel,
+  .hero-resume-card,
+  .resume-card-header {
     grid-template-columns: 1fr;
   }
 
@@ -557,6 +712,35 @@ dd {
   .learning-grid,
   .question-list {
     grid-template-columns: 1fr 1fr;
+  }
+
+  .visual-timeline::before {
+    left: 38px;
+  }
+
+  .timeline-node,
+  .timeline-node.left,
+  .timeline-node.right {
+    grid-template-columns: 76px minmax(0, 1fr);
+    gap: 16px;
+  }
+
+  .timeline-node.left .timeline-card,
+  .timeline-node.right .timeline-card {
+    grid-column: 2;
+  }
+
+  .timeline-marker {
+    grid-column: 1;
+    width: 68px;
+    height: 68px;
+  }
+
+  .timeline-node.left .timeline-card::after,
+  .timeline-node.right .timeline-card::after {
+    left: -16px;
+    right: auto;
+    width: 16px;
   }
 }
 

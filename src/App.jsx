@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 const pageLinks = [
   ["Home", "#/"],
   ["Little Human", "#/little-human"],
+  ["Resume", "#/resume"],
   ["React Lab", "#/react"],
   ["AI Learning", "#/ai"],
 ];
@@ -102,6 +103,89 @@ const workLessons = [
   {
     title: "Leadership",
     body: "Team leadership, SME responsibilities, application architecture, mentoring, and cross-functional collaboration.",
+  },
+];
+
+const resumeSkills = [
+  "React Microfrontends & UI Architecture",
+  "GitHub Actions & Release Automation",
+  "Portfolio & Release Management",
+  "Cross-team Delivery Leadership",
+  "AI-driven Workflow Optimization",
+  "GitHub Copilot & AI Agents",
+  "AI-driven Issue Prediction",
+  "IBM ICA Testcase POC",
+  "React",
+  "Angular",
+  "Node API development",
+  "Code Review",
+  "HTML5",
+  "CSS",
+  "BackboneJS",
+  "PHP",
+  "LAMP Stack",
+];
+
+const resumeExperience = [
+  {
+    period: "2018 - Present",
+    company: "IBM Consulting",
+    role: "Frontend and React SME | Team Leader | Application Architect",
+    highlights: [
+      "Frontend Engineer focused on portfolio and release management, release automation, and GitHub Actions.",
+      "Led React microfrontend work across enterprise servicing portals and OneApp experiences.",
+      "Worked on AI-driven workflow optimization, issue prediction, GitHub Copilot, AI agents, and IBM ICA testcase POC.",
+    ],
+    projects: [
+      "American Express Client",
+      "ISP Intuitive Servicing Portal | Sep 2024 - May 2026",
+      "GSCT-Fraud Servicing | Mar 2023 - Aug 2024",
+      "Corporate Card | AtWork Insights Hub | Sep 2022 - Feb 2023",
+      "Value Generation Project | Oct 2018 - Aug 2022",
+    ],
+  },
+  {
+    period: "2012 - 2018",
+    company: "Aditi Technologies",
+    role: "React | Angular | Node API dev | Team Leader | Code Reviewer",
+    highlights: [
+      "Built frontend and API experiences across client-facing applications.",
+      "Contributed as team lead and code reviewer across React, Angular, and Node work.",
+    ],
+    projects: [
+      "Visa Inc Pvt Limited",
+      "CloudView Visa Cloud & Helpservice for CloudView",
+      "TLCM - Visa Token Lifecycle Management",
+      "VDCS - Visa Digital Conf",
+    ],
+  },
+  {
+    period: "2011 - 2012",
+    company: "Tavant Technologies",
+    role: "HTML5 | CSS | BackboneJS | Mobile WebApp dev | Responsive UI",
+    highlights: ["Worked across responsive UI, HTML5, CSS, BackboneJS, and mobile web application development."],
+    projects: [
+      "Zynga Client",
+      "Ladbrokes Client | Gaming and Betting",
+      "Quikr Client - Quikr Cars",
+      "Blue Nile Client - https://www.bluenile.com/",
+      "Harman Client | Harman Connected Cars",
+    ],
+  },
+  {
+    period: "2007 - 2011",
+    company: "Tally India Pvt Limited",
+    role: "PHP Developer | LAMP Stack Developer | Facebook Game Dev",
+    highlights: ["Joined as a PHP developer and built early experience in LAMP stack and game/web development."],
+    projects: ["LAMP Stack Developer", "PHP Developer", "Facebook Game Dev"],
+  },
+];
+
+const resumeEducation = [
+  {
+    degree: "Bachelor of Engineering (B.E.) in Information Science",
+    school: "Visvesvaraya Technological University (VTU) | Sapthagiri College of Engineering, Bangalore",
+    year: "2006",
   },
 ];
 
@@ -499,6 +583,109 @@ function LittleHumanPage() {
   );
 }
 
+function ResumePage() {
+  return (
+    <main>
+      <PageHero
+        eyebrow="Resume converted from PDF"
+        title="Frontend engineer, release automation lead, and AI workflow learner"
+        copy="A readable web version of my resume: frontend architecture, React microfrontends, release systems, team leadership, enterprise clients, and the AI experiments I am now folding into my work."
+        actions={
+          <>
+            <ScrollButton target="resume-experience">Experience</ScrollButton>
+            <ScrollButton target="resume-skills" variant="secondary">
+              Skills
+            </ScrollButton>
+          </>
+        }
+      />
+
+      <section className="section resume-intro">
+        <div className="resume-card hero-resume-card">
+          <div>
+            <p className="eyebrow">Mansi Gupta</p>
+            <h2>Frontend Engineer | Portfolio & Release Management | Release Automation | GitHub Actions</h2>
+            <p>
+              Frontend and React SME with experience across IBM Consulting, American Express, Visa, Aditi, Tavant,
+              Tally, and multiple client delivery contexts.
+            </p>
+          </div>
+          <dl className="resume-contact">
+            <div>
+              <dt>Email</dt>
+              <dd>
+                <a href="mailto:mansisce@gmail.com">mansisce@gmail.com</a>
+              </dd>
+            </div>
+            <div>
+              <dt>Education</dt>
+              <dd>B.E. Information Science, VTU, 2006</dd>
+            </div>
+            <div>
+              <dt>Current themes</dt>
+              <dd>React microfrontends, release automation, AI agents, workflow optimization</dd>
+            </div>
+          </dl>
+        </div>
+      </section>
+
+      <section id="resume-skills" className="section band">
+        <SectionHeading eyebrow="Skills" title="Technical and leadership strengths" />
+        <div className="skill-cloud">
+          {resumeSkills.map((skill) => (
+            <span key={skill}>{skill}</span>
+          ))}
+        </div>
+      </section>
+
+      <section id="resume-experience" className="section">
+        <SectionHeading eyebrow="Experience" title="Center timeline from my resume" />
+        <div className="visual-timeline" aria-label="Resume experience timeline">
+          {resumeExperience.map((item, index) => (
+            <article className={`timeline-node ${index % 2 === 0 ? "left" : "right"}`} key={`${item.company}-${item.period}`}>
+              <div className="timeline-marker">
+                <span>{item.period.split(" ")[0]}</span>
+              </div>
+              <div className="resume-card timeline-card">
+                <div className="resume-card-header">
+                  <time>{item.period}</time>
+                  <div>
+                    <h3>{item.company}</h3>
+                    <p>{item.role}</p>
+                  </div>
+                </div>
+                <ul className="resume-list">
+                  {item.highlights.map((highlight) => (
+                    <li key={highlight}>{highlight}</li>
+                  ))}
+                </ul>
+                <div className="project-tags" aria-label={`${item.company} projects`}>
+                  {item.projects.map((project) => (
+                    <span key={project}>{project}</span>
+                  ))}
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="section band">
+        <SectionHeading eyebrow="Education" title="Academic foundation" />
+        <div className="learning-grid">
+          {resumeEducation.map((item) => (
+            <article key={item.degree}>
+              <h3>{item.degree}</h3>
+              <p>{item.school}</p>
+              <p className="resume-year">{item.year}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    </main>
+  );
+}
+
 function ReactLabPage() {
   return (
     <main>
@@ -657,6 +844,7 @@ function App() {
   const [route, setRoute] = useState(getRoute);
   const page = useMemo(() => {
     if (route === "/little-human") return <LittleHumanPage />;
+    if (route === "/resume") return <ResumePage />;
     if (route === "/react") return <ReactLabPage />;
     if (route === "/ai") return <AiLearningPage />;
     return <HomePage />;
