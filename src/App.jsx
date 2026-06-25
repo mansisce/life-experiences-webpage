@@ -1514,6 +1514,7 @@ function WeekendPicks() {
   const [sourceFilters, setSourceFilters] = useState([]); // empty = show all
   const [ageFilter, setAgeFilter] = useState(null); // null = use profile age
   const [starredEvents, setStarredEvents] = useLocalStorage("wknd_starred", []);
+  const [deprioritized, setDeprioritized] = useLocalStorage("wknd_deprioritized", []);
   const [eventNotes, setEventNotes] = useLocalStorage("wknd_notes", {});
   const [noteEditing, setNoteEditing] = useState(null);
   const [noteDraft, setNoteDraft] = useState("");
@@ -1664,6 +1665,9 @@ function WeekendPicks() {
   function toggleStar(id) {
     setStarredEvents(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]);
   }
+  function toggleDeprioritize(id) {
+    setDeprioritized(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]);
+  }
   function saveNote(id) {
     setEventNotes(prev => ({ ...prev, [id]: noteDraft }));
     setNoteEditing(null);
@@ -1705,7 +1709,13 @@ function WeekendPicks() {
   // Reset visible count when filtered list changes
   useEffect(() => { setVisibleCount(6); }, [filteredRecommendations.length]);
 
-  const visibleEvents = filteredRecommendations.slice(0, visibleCount);
+  const displayedRecommendations = useMemo(() => {
+    const normal = filteredRecommendations.filter(e => !deprioritized.includes(e.id));
+    const bottom = filteredRecommendations.filter(e => deprioritized.includes(e.id));
+    return [...normal, ...bottom];
+  }, [filteredRecommendations, deprioritized]);
+
+  const visibleEvents = displayedRecommendations.slice(0, visibleCount);
 
   function eventDateLabel(e) {
     return e.date === "sat" ? satLabel : e.date === "sun" ? sunLabel : e.date;
@@ -2400,6 +2410,18 @@ function WeekendPicks() {
                     Not for us
                   </button>
                   <button
+                    onClick={() => toggleDeprioritize(event.id)}
+                    title={deprioritized.includes(event.id) ? "Restore to top" : "Move to bottom"}
+                    style={{
+                      padding: "7px 14px", fontWeight: 600, fontSize: "0.78rem",
+                      background: deprioritized.includes(event.id) ? "#f1f5f9" : "transparent",
+                      color: "var(--muted)",
+                      border: "1.5px solid var(--line)", borderRadius: 8, cursor: "pointer",
+                    }}
+                  >
+                    {deprioritized.includes(event.id) ? "↑ Restore" : "↓ Bottom"}
+                  </button>
+                  <button
                     onClick={() => toggleStar(event.id)}
                     title={starredEvents.includes(event.id) ? "Unstar" : "Star this pick"}
                     style={{
@@ -2449,7 +2471,7 @@ function WeekendPicks() {
               </div>
             );
           })}
-          {visibleCount < filteredRecommendations.length && (
+          {visibleCount < displayedRecommendations.length && (
             <button
               onClick={() => setVisibleCount((c) => Math.min(c + 6, filteredRecommendations.length))}
               style={{
@@ -2459,7 +2481,7 @@ function WeekendPicks() {
                 textDecoration: "underline", textUnderlineOffset: 3,
               }}
             >
-              Show more ({filteredRecommendations.length - visibleCount} remaining)
+              Show more ({displayedRecommendations.length - visibleCount} remaining)
             </button>
           )}
         </div>
