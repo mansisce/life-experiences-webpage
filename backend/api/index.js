@@ -232,6 +232,76 @@ app.get("/events/instagram", async (req, res) => {
   }
 });
 
+// ─── GET /events/curate — all events (catalogue + IG) with curation status ──────
+
+app.get("/events/curate", async (_req, res) => {
+  const s = driver.session();
+  try {
+    // Neo4j catalogue events
+    const result = await s.run(`
+      MATCH (e:Event)-[:BY]->(p:Provider), (e)-[:IN_AREA]->(a:Area), (e)-[:FROM_SOURCE]->(src:Source)
+      OPTIONAL MATCH (e)-[:HAS_TAG]->(t:Tag)
+      RETURN e, p.name AS provider, a.name AS area, src.name AS source, collect(t.name) AS tags
+    `);
+    const catalogue = result.records.map(r => {
+      const e = r.get("e").properties;
+      return {
+        ...e, id: e.id, provider: r.get("provider"), area: r.get("area"),
+        source: r.get("source"), tags: r.get("tags"),
+        _curation: e.curationStatus ? {
+          status: e.curationStatus, starred: e.curationStarred || false,
+          note: e.curationNote || "", fixes: e.curationFixes ? JSON.parse(e.curationFixes) : {}
+        } : null
+      };
+    });
+
+    // IG events from file
+    let igEvents = [];
+    try {
+      const raw = JSON.parse(await fs.readFile(IG_STORE, "utf8"));
+      igEvents = (raw.events || []).map(e => ({ ...e, _catalogueType: "instagram" }));
+    } catch { /* no file */ }
+
+    res.json({ catalogue, igEvents, total: catalogue.length + igEvents.length });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  } finally { s.close(); }
+});
+
+// ─── POST /events/curate/:id — save curation for an event ────────────────────
+
+app.post("/events/curate/:id", async (req, res) => {
+  const { status, starred, note, fixes } = req.body;
+  const id = req.params.id;
+  const s = driver.session();
+  try {
+    // MERGE the event (handles IG events not yet in Neo4j)
+    if (req.body._igEvent) {
+      const ev = req.body._igEvent;
+      await s.run(
+        `MERGE (e:Event {id: $id})
+         SET e.name = $name, e.source = "Instagram", e.date = $date, e.time = $time,
+             e.venue = $venue, e.cost = $cost, e.instagramAccount = $account
+         MERGE (src:Source {name: "Instagram"}) MERGE (e)-[:FROM_SOURCE]->(src)`,
+        { id, name: ev.name || id, date: ev.date || "", time: ev.time || "",
+          venue: ev.venue || "", cost: ev.price || "", account: ev.instagramAccount || "" }
+      );
+    }
+    await s.run(
+      `MATCH (e:Event {id: $id})
+       SET e.curationStatus = $status,
+           e.curationStarred = $starred,
+           e.curationNote = $note,
+           e.curationFixes = $fixes`,
+      { id, status: status || null, starred: starred || false,
+        note: note || "", fixes: fixes ? JSON.stringify(fixes) : "{}" }
+    );
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  } finally { s.close(); }
+});
+
 // ─── POST /events/parse — extract event from Instagram caption / freeform text ─
 //
 // Body: { text: "...", url?: "https://instagram.com/p/..." }
