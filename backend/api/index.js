@@ -232,6 +232,80 @@ app.get("/events/instagram", async (req, res) => {
   }
 });
 
+// ─── Helper: ensure Instagram event exists in Neo4j ───────────────────────────
+
+async function mergeIgEvent(session, id, meta) {
+  await session.run(
+    `MERGE (e:Event {id: $id})
+     ON CREATE SET e.name = $name, e.source = "Instagram", e.date = $date,
+                   e.time = $time, e.venue = $venue, e.cost = $cost,
+                   e.instagramAccount = $account, e.registrationUrl = $url
+     MERGE (src:Source {name: "Instagram"})
+     MERGE (e)-[:FROM_SOURCE]->(src)`,
+    {
+      id,
+      name: meta.name || id,
+      date: meta.date || "",
+      time: meta.time || "",
+      venue: meta.venue || "",
+      cost: meta.price || meta.cost || "",
+      account: meta.instagramAccount || "",
+      url: meta.registrationUrl || "",
+    }
+  );
+}
+
+// ─── POST /events/:id/star — toggle star ──────────────────────────────────────
+
+app.post("/events/:id/star", async (req, res) => {
+  const { starred, eventMeta } = req.body;
+  const s = driver.session();
+  try {
+    if (eventMeta) await mergeIgEvent(s, req.params.id, eventMeta);
+    await s.run(
+      `MERGE (e:Event {id: $id}) SET e.starred = $starred, e.starredAt = datetime()`,
+      { id: req.params.id, starred: !!starred }
+    );
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  } finally { s.close(); }
+});
+
+// ─── POST /events/:id/note — save curator note ────────────────────────────────
+
+app.post("/events/:id/note", async (req, res) => {
+  const { note, eventMeta } = req.body;
+  const s = driver.session();
+  try {
+    if (eventMeta) await mergeIgEvent(s, req.params.id, eventMeta);
+    await s.run(
+      `MERGE (e:Event {id: $id}) SET e.note = $note`,
+      { id: req.params.id, note: note || "" }
+    );
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  } finally { s.close(); }
+});
+
+// ─── POST /events/:id/deprioritize — move to bottom ──────────────────────────
+
+app.post("/events/:id/deprioritize", async (req, res) => {
+  const { deprioritized, eventMeta } = req.body;
+  const s = driver.session();
+  try {
+    if (eventMeta) await mergeIgEvent(s, req.params.id, eventMeta);
+    await s.run(
+      `MERGE (e:Event {id: $id}) SET e.deprioritized = $deprioritized`,
+      { id: req.params.id, deprioritized: !!deprioritized }
+    );
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  } finally { s.close(); }
+});
+
 // ─── GET /events/curate — all events (catalogue + IG) with curation status ──────
 
 app.get("/events/curate", async (_req, res) => {
@@ -382,12 +456,13 @@ app.get("/events/:id/url", async (req, res) => {
 // ─── POST /events/:id/like ────────────────────────────────────────────────────
 
 app.post("/events/:id/like", async (req, res) => {
-  const { userId = "default" } = req.body;
+  const { userId = "default", eventMeta } = req.body;
   const s = driver.session();
   try {
+    if (eventMeta) await mergeIgEvent(s, req.params.id, eventMeta);
     await s.run(
       `MERGE (u:User {id: $userId})
-       WITH u MATCH (e:Event {id: $id})
+       WITH u MERGE (e:Event {id: $id})
        MERGE (u)-[r:LIKED]->(e)
        SET r.at = datetime()`,
       { userId, id: req.params.id }
@@ -401,12 +476,13 @@ app.post("/events/:id/like", async (req, res) => {
 // ─── POST /events/:id/dismiss ─────────────────────────────────────────────────
 
 app.post("/events/:id/dismiss", async (req, res) => {
-  const { userId = "default" } = req.body;
+  const { userId = "default", eventMeta } = req.body;
   const s = driver.session();
   try {
+    if (eventMeta) await mergeIgEvent(s, req.params.id, eventMeta);
     await s.run(
       `MERGE (u:User {id: $userId})
-       WITH u MATCH (e:Event {id: $id})
+       WITH u MERGE (e:Event {id: $id})
        MERGE (u)-[r:DISMISSED]->(e)
        SET r.at = datetime()`,
       { userId, id: req.params.id }
@@ -420,12 +496,13 @@ app.post("/events/:id/dismiss", async (req, res) => {
 // ─── POST /events/:id/register ────────────────────────────────────────────────
 
 app.post("/events/:id/register", async (req, res) => {
-  const { userId = "default" } = req.body;
+  const { userId = "default", eventMeta } = req.body;
   const s = driver.session();
   try {
+    if (eventMeta) await mergeIgEvent(s, req.params.id, eventMeta);
     await s.run(
       `MERGE (u:User {id: $userId})
-       WITH u MATCH (e:Event {id: $id})
+       WITH u MERGE (e:Event {id: $id})
        MERGE (u)-[r:REGISTERED]->(e)
        SET r.at = datetime()`,
       { userId, id: req.params.id }
@@ -433,7 +510,7 @@ app.post("/events/:id/register", async (req, res) => {
     // Also like it (registration is the strongest signal)
     await s.run(
       `MERGE (u:User {id: $userId})
-       WITH u MATCH (e:Event {id: $id})
+       WITH u MERGE (e:Event {id: $id})
        MERGE (u)-[r:LIKED]->(e)
        SET r.at = datetime()`,
       { userId, id: req.params.id }

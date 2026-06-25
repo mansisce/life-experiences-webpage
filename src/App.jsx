@@ -1662,14 +1662,19 @@ function WeekendPicks() {
   function toggleSourceFilter(src) {
     setSourceFilters(prev => prev.includes(src) ? prev.filter(s => s !== src) : [...prev, src]);
   }
-  function toggleStar(id) {
-    setStarredEvents(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]);
+  function toggleStar(id, ev) {
+    const nowStarred = !starredEvents.includes(id);
+    setStarredEvents(prev => nowStarred ? [...prev, id] : prev.filter(s => s !== id));
+    apiCall(`/events/${id}/star`, "POST", { starred: nowStarred, eventMeta: getEventMeta(ev) });
   }
-  function toggleDeprioritize(id) {
-    setDeprioritized(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]);
+  function toggleDeprioritize(id, ev) {
+    const nowDeprior = !deprioritized.includes(id);
+    setDeprioritized(prev => nowDeprior ? [...prev, id] : prev.filter(s => s !== id));
+    apiCall(`/events/${id}/deprioritize`, "POST", { deprioritized: nowDeprior, eventMeta: getEventMeta(ev) });
   }
-  function saveNote(id) {
+  function saveNote(id, ev) {
     setEventNotes(prev => ({ ...prev, [id]: noteDraft }));
+    apiCall(`/events/${id}/note`, "POST", { note: noteDraft, eventMeta: getEventMeta(ev) });
     setNoteEditing(null);
   }
 
@@ -1764,18 +1769,25 @@ function WeekendPicks() {
     triggerCustomSync(merged, true);
   }
 
-  async function handleLike(id, url) {
+  function getEventMeta(ev) {
+    if (!ev || ev.source !== "Instagram") return undefined;
+    return { name: ev.name, date: ev.date, time: ev.time, venue: ev.venue,
+             cost: ev.cost, price: ev.price, instagramAccount: ev.instagramAccount,
+             registrationUrl: ev.registrationUrl };
+  }
+
+  async function handleLike(id, url, ev) {
     if (!liked.includes(id)) {
       setLiked([...liked, id]);
-      await apiCall(`/events/${id}/like`, "POST");
+      await apiCall(`/events/${id}/like`, "POST", { eventMeta: getEventMeta(ev) });
     }
     window.open(url, "_blank", "noopener");
   }
 
-  async function handleDismiss(id) {
+  async function handleDismiss(id, ev) {
     if (!dismissed.includes(id)) {
       setDismissed([...dismissed, id]);
-      await apiCall(`/events/${id}/dismiss`, "POST");
+      await apiCall(`/events/${id}/dismiss`, "POST", { eventMeta: getEventMeta(ev) });
     }
   }
 
@@ -2389,7 +2401,7 @@ function WeekendPicks() {
                     </a>
                   ) : null}
                   <button
-                    onClick={() => handleLike(event.id, event.registrationUrl)}
+                    onClick={() => handleLike(event.id, event.registrationUrl, event)}
                     style={{
                       padding: "7px 16px", fontWeight: 600, fontSize: "0.78rem",
                       background: liked.includes(event.id) ? "#f0f7f3" : "transparent",
@@ -2400,7 +2412,7 @@ function WeekendPicks() {
                     {liked.includes(event.id) ? "✓ Saved" : "Looks good →"}
                   </button>
                   <button
-                    onClick={() => handleDismiss(event.id)}
+                    onClick={() => handleDismiss(event.id, event)}
                     style={{
                       padding: "7px 16px", fontWeight: 600, fontSize: "0.78rem",
                       background: "transparent", color: "var(--muted)",
@@ -2410,7 +2422,7 @@ function WeekendPicks() {
                     Not for us
                   </button>
                   <button
-                    onClick={() => toggleDeprioritize(event.id)}
+                    onClick={() => toggleDeprioritize(event.id, event)}
                     title={deprioritized.includes(event.id) ? "Restore to top" : "Move to bottom"}
                     style={{
                       padding: "7px 14px", fontWeight: 600, fontSize: "0.78rem",
@@ -2422,7 +2434,7 @@ function WeekendPicks() {
                     {deprioritized.includes(event.id) ? "↑ Restore" : "↓ Bottom"}
                   </button>
                   <button
-                    onClick={() => toggleStar(event.id)}
+                    onClick={() => toggleStar(event.id, event)}
                     title={starredEvents.includes(event.id) ? "Unstar" : "Star this pick"}
                     style={{
                       padding: "7px 12px", fontWeight: 600, fontSize: "0.85rem",
@@ -2460,11 +2472,11 @@ function WeekendPicks() {
                       autoFocus
                       value={noteDraft}
                       onChange={e => setNoteDraft(e.target.value)}
-                      onKeyDown={e => { if (e.key === "Enter") saveNote(event.id); if (e.key === "Escape") setNoteEditing(null); }}
+                      onKeyDown={e => { if (e.key === "Enter") saveNote(event.id, event); if (e.key === "Escape") setNoteEditing(null); }}
                       placeholder="e.g. outdoor · bring snacks · sold out as of Jun 25"
                       style={{ flex: 1, padding: "6px 10px", borderRadius: 6, border: "1.5px solid var(--line)", fontSize: "0.8rem" }}
                     />
-                    <button onClick={() => saveNote(event.id)} style={{ padding: "6px 12px", background: "var(--leaf)", color: "#fff", border: "none", borderRadius: 6, fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}>Save</button>
+                    <button onClick={() => saveNote(event.id, event)} style={{ padding: "6px 12px", background: "var(--leaf)", color: "#fff", border: "none", borderRadius: 6, fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}>Save</button>
                     <button onClick={() => setNoteEditing(null)} style={{ padding: "6px 10px", background: "var(--band)", border: "none", borderRadius: 6, fontSize: "0.78rem", cursor: "pointer" }}>✕</button>
                   </div>
                 )}
