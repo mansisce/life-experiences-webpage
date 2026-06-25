@@ -1639,11 +1639,15 @@ function WeekendPicks() {
   const { sat: satLabel, sun: sunLabel, satDate, sunDate } = getWeekendDates();
   const satISO = satDate.toISOString().slice(0, 10);
   const sunISO = sunDate.toISOString().slice(0, 10);
+  const todayISO = new Date().toISOString().slice(0, 10);
+  const todayLabel = new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
 
   const filteredRecommendations = useMemo(() => {
     return sortedRecommendations.filter(e => {
       // Date filter
-      if (dateFilter === "sat") {
+      if (dateFilter === "today") {
+        if (e.date !== todayISO) return false;
+      } else if (dateFilter === "sat") {
         if (e.date !== "sat" && e.date !== satISO) return false;
       } else if (dateFilter === "sun") {
         if (e.date !== "sun" && e.date !== sunISO) return false;
@@ -1658,7 +1662,7 @@ function WeekendPicks() {
       }
       return true;
     });
-  }, [sortedRecommendations, dateFilter, timeFilter, satISO, sunISO]);
+  }, [sortedRecommendations, dateFilter, timeFilter, todayISO, satISO, sunISO]);
 
   // Reset visible count when filtered list changes
   useEffect(() => { setVisibleCount(6); }, [filteredRecommendations.length]);
@@ -1973,6 +1977,7 @@ function WeekendPicks() {
           <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", minWidth: 36 }}>Date</span>
           {[
             { key: "any", label: "Any" },
+            { key: "today", label: `Today · ${todayLabel}` },
             { key: "sat", label: satLabel },
             { key: "sun", label: sunLabel },
           ].map(({ key, label }) => (
@@ -2145,7 +2150,7 @@ function WeekendPicks() {
                   </div>
 
                   <p style={{ margin: "0 0 4px", fontWeight: 800, fontSize: "1rem", color: "var(--ink)" }}>{event.name}</p>
-                  {(event.date || event.time) && (
+                  {(event.date || event.time) ? (
                     <p style={{ margin: "0 0 4px", fontSize: "0.82rem", fontWeight: 700, color: color, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                       <span>📅 {eventDateLabel(event)}{event.time ? ` · ${event.time}` : ""}</span>
                       {event.source === "Instagram" && (
@@ -2163,6 +2168,10 @@ function WeekendPicks() {
                           recurring · check venue
                         </span>
                       )}
+                    </p>
+                  ) : (
+                    <p style={{ margin: "0 0 4px", fontSize: "0.78rem", fontWeight: 600, color: "#b45309", background: "#fef3c7", display: "inline-flex", alignItems: "center", gap: 5, padding: "2px 10px", borderRadius: 8 }}>
+                      ⚠ Date not confirmed — check with organiser
                     </p>
                   )}
                   <p style={{ margin: "0 0 8px", fontSize: "0.8rem", color: "var(--muted)" }}>
