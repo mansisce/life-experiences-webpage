@@ -1509,8 +1509,9 @@ function WeekendPicks() {
   const [igResult, setIgResult] = useState(null); // parsed event preview
   const [igError, setIgError] = useState("");
   const [visibleCount, setVisibleCount] = useState(6);
-  const [dateFilter, setDateFilter] = useState("any");
-  const [timeFilter, setTimeFilter] = useState("any");
+  const [dateFilters, setDateFilters] = useState([]); // empty = show all
+  const [timeFilters, setTimeFilters] = useState([]); // empty = show all
+  const [syncError, setSyncError] = useState("");
   const [customAccounts, setCustomAccounts] = useLocalStorage("wknd_ig_accounts", []);
   const [accountInput, setAccountInput] = useState("");
   const [customSyncing, setCustomSyncing] = useState(false);
@@ -1642,27 +1643,41 @@ function WeekendPicks() {
   const todayISO = new Date().toISOString().slice(0, 10);
   const todayLabel = new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
 
+  function toggleDateFilter(key) {
+    setDateFilters(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+  }
+  function toggleTimeFilter(key) {
+    setTimeFilters(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+  }
+
   const filteredRecommendations = useMemo(() => {
     return sortedRecommendations.filter(e => {
-      // Date filter
-      if (dateFilter === "today") {
-        if (e.date !== todayISO) return false;
-      } else if (dateFilter === "sat") {
-        if (e.date !== "sat" && e.date !== satISO) return false;
-      } else if (dateFilter === "sun") {
-        if (e.date !== "sun" && e.date !== sunISO) return false;
+      // Date filter — any selected date is a match
+      if (dateFilters.length > 0) {
+        const matchesDate = dateFilters.some(f => {
+          if (f === "today") return e.date === todayISO;
+          if (f === "sat") return e.date === "sat" || e.date === satISO;
+          if (f === "sun") return e.date === "sun" || e.date === sunISO;
+          return false;
+        });
+        if (!matchesDate) return false;
       }
-      // Time filter
-      if (timeFilter !== "any") {
+      // Time filter — any selected slot is a match
+      if (timeFilters.length > 0) {
         const h = parseStartHour(e.time);
-        if (h === null) return true; // no time info — keep
-        if (timeFilter === "morning" && h >= 12) return false;
-        if (timeFilter === "afternoon" && (h < 12 || h >= 17)) return false;
-        if (timeFilter === "evening" && h < 17) return false;
+        if (h !== null) {
+          const matchesTime = timeFilters.some(f => {
+            if (f === "morning") return h < 12;
+            if (f === "afternoon") return h >= 12 && h < 17;
+            if (f === "evening") return h >= 17;
+            return false;
+          });
+          if (!matchesTime) return false;
+        }
       }
       return true;
     });
-  }, [sortedRecommendations, dateFilter, timeFilter, todayISO, satISO, sunISO]);
+  }, [sortedRecommendations, dateFilters, timeFilters, todayISO, satISO, sunISO]);
 
   // Reset visible count when filtered list changes
   useEffect(() => { setVisibleCount(6); }, [filteredRecommendations.length]);
@@ -1674,11 +1689,16 @@ function WeekendPicks() {
   }
 
   async function triggerCustomSync(accounts, showSyncing = true) {
-    if (!apiOnline || !accounts.length) return;
+    if (!accounts.length) return;
+    setSyncError("");
+    if (!apiOnline) {
+      setSyncError("Backend is offline — start it with: cd backend/api && node index.js");
+      return;
+    }
     if (showSyncing) setCustomSyncing(true);
     try {
       await apiCall("/events/instagram/sync-custom", "POST", { accounts });
-      // Poll for updated events after ~3 min (Apify takes ~2–3 min)
+      // Refresh events after ~3 min (Apify takes ~2–3 min)
       if (showSyncing) {
         setTimeout(async () => {
           const data = await apiCall(`/events/instagram?age=${age}`);
@@ -1686,25 +1706,29 @@ function WeekendPicks() {
             const live = await apiCall(`/events/live?age=${age}`);
             const liveArr = live?.events || [];
             const seen = new Set();
-            const combined = [...(data.events), ...liveArr].filter(e => seen.has(e.id) ? false : seen.add(e.id));
+            const combined = [...data.events, ...liveArr].filter(e => seen.has(e.id) ? false : seen.add(e.id));
             if (combined.length) setLiveEvents(combined);
           }
           setCustomSyncing(false);
         }, 3 * 60 * 1000);
       }
-    } catch {
+    } catch (e) {
+      setSyncError(e.message || "Sync failed");
       setCustomSyncing(false);
     }
   }
 
   function handleSaveAccounts() {
-    const parsed = accountInput
-      .split(/[\s,]+/)
-      .map(s => s.trim())
-      .filter(Boolean);
-    setCustomAccounts(parsed);
+    const newParsed = accountInput.trim()
+      ? accountInput.split(/[\s,@]+/).map(s => s.trim()).filter(Boolean)
+      : [];
+    const merged = newParsed.length
+      ? [...new Set([...customAccounts, ...newParsed])]
+      : customAccounts;
+    if (!merged.length) return;
+    setCustomAccounts(merged);
     setAccountInput("");
-    triggerCustomSync(parsed, true);
+    triggerCustomSync(merged, true);
   }
 
   async function handleLike(id, url) {
@@ -1972,45 +1996,61 @@ function WeekendPicks() {
 
       {/* ── Filters: date + time ──────────────────────────────────────────── */}
       <div style={{ marginBottom: 16, display: "flex", flexDirection: "column", gap: 10 }}>
-        {/* Date chips */}
+        {/* Date chips — multiselect */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", minWidth: 36 }}>Date</span>
+          {dateFilters.length > 0 && (
+            <button onClick={() => setDateFilters([])}
+              style={{ padding: "4px 10px", borderRadius: 20, fontSize: "0.72rem", fontWeight: 600, cursor: "pointer", border: "1.5px solid var(--line)", background: "var(--band)", color: "var(--muted)" }}>
+              Clear ✕
+            </button>
+          )}
           {[
-            { key: "any", label: "Any" },
             { key: "today", label: `Today · ${todayLabel}` },
             { key: "sat", label: satLabel },
             { key: "sun", label: sunLabel },
-          ].map(({ key, label }) => (
-            <button key={key} onClick={() => setDateFilter(key)}
-              style={{
-                padding: "4px 12px", borderRadius: 20, fontSize: "0.75rem", fontWeight: 600, cursor: "pointer",
-                border: `1.5px solid ${dateFilter === key ? "var(--leaf)" : "var(--line)"}`,
-                background: dateFilter === key ? "var(--leaf)" : "var(--white)",
-                color: dateFilter === key ? "#fff" : "var(--ink)",
-              }}>
-              {label}
-            </button>
-          ))}
+          ].map(({ key, label }) => {
+            const on = dateFilters.includes(key);
+            return (
+              <button key={key} onClick={() => toggleDateFilter(key)}
+                style={{
+                  padding: "4px 12px", borderRadius: 20, fontSize: "0.75rem", fontWeight: 600, cursor: "pointer",
+                  border: `1.5px solid ${on ? "var(--leaf)" : "var(--line)"}`,
+                  background: on ? "var(--leaf)" : "var(--white)",
+                  color: on ? "#fff" : "var(--ink)",
+                }}>
+                {label}
+              </button>
+            );
+          })}
         </div>
-        {/* Time chips */}
+        {/* Time chips — multiselect */}
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
           <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", minWidth: 36 }}>Time</span>
-          {[
-            { key: "any", label: "Any" },
-            { key: "morning", label: "Morning  ☀️  before 12" },
-            { key: "afternoon", label: "Afternoon  🌤  12–5" },
-            { key: "evening", label: "Evening  🌆  after 5" },
-          ].map(({ key, label }) => (
-            <button key={key} onClick={() => setTimeFilter(key)}
-              style={{
-                padding: "4px 12px", borderRadius: 20, fontSize: "0.75rem", fontWeight: 600, cursor: "pointer",
-                border: `1.5px solid ${timeFilter === key ? "var(--leaf)" : "var(--line)"}`,
-                background: timeFilter === key ? "var(--leaf)" : "var(--white)",
-                color: timeFilter === key ? "#fff" : "var(--ink)",
-              }}>
-              {label}
+          {timeFilters.length > 0 && (
+            <button onClick={() => setTimeFilters([])}
+              style={{ padding: "4px 10px", borderRadius: 20, fontSize: "0.72rem", fontWeight: 600, cursor: "pointer", border: "1.5px solid var(--line)", background: "var(--band)", color: "var(--muted)" }}>
+              Clear ✕
             </button>
-          ))}
+          )}
+          {[
+            { key: "morning", label: "Morning ☀️ before 12" },
+            { key: "afternoon", label: "Afternoon 🌤 12–5" },
+            { key: "evening", label: "Evening 🌆 after 5" },
+          ].map(({ key, label }) => {
+            const on = timeFilters.includes(key);
+            return (
+              <button key={key} onClick={() => toggleTimeFilter(key)}
+                style={{
+                  padding: "4px 12px", borderRadius: 20, fontSize: "0.75rem", fontWeight: 600, cursor: "pointer",
+                  border: `1.5px solid ${on ? "var(--leaf)" : "var(--line)"}`,
+                  background: on ? "var(--leaf)" : "var(--white)",
+                  color: on ? "#fff" : "var(--ink)",
+                }}>
+                {label}
+              </button>
+            );
+          })}
         </div>
 
         {/* Instagram accounts panel */}
@@ -2046,22 +2086,30 @@ function WeekendPicks() {
               <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
                 <textarea
                   rows={2}
-                  placeholder={"@attagalatta, @rangashankara, @craftymeets"}
+                  placeholder="@attagalatta, @rangashankara, @craftymeets"
                   value={accountInput}
-                  onChange={e => setAccountInput(e.target.value)}
+                  onChange={e => { setAccountInput(e.target.value); setSyncError(""); }}
                   style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: "1.5px solid var(--line)", fontSize: "0.8rem", resize: "none", fontFamily: "inherit", color: "var(--ink)", background: "var(--white)" }}
                 />
-                <button onClick={handleSaveAccounts} disabled={!accountInput.trim() || customSyncing}
+                <button
+                  onClick={handleSaveAccounts}
+                  disabled={(!accountInput.trim() && !customAccounts.length) || customSyncing}
                   style={{
-                    padding: "8px 14px", background: customSyncing ? "var(--band)" : "#c13584",
-                    color: customSyncing ? "var(--muted)" : "#fff", border: "none", borderRadius: 8,
-                    fontWeight: 700, fontSize: "0.8rem", cursor: "pointer", whiteSpace: "nowrap",
+                    padding: "8px 14px",
+                    background: customSyncing ? "var(--band)" : ((!accountInput.trim() && !customAccounts.length) ? "var(--band)" : "#c13584"),
+                    color: customSyncing || (!accountInput.trim() && !customAccounts.length) ? "var(--muted)" : "#fff",
+                    border: "none", borderRadius: 8, fontWeight: 700, fontSize: "0.8rem", cursor: "pointer", whiteSpace: "nowrap",
                   }}>
-                  {customSyncing ? "Syncing…" : "Fetch →"}
+                  {customSyncing ? "Syncing…" : accountInput.trim() ? "Fetch →" : "Re-sync →"}
                 </button>
               </div>
+              {syncError && (
+                <p style={{ margin: 0, fontSize: "0.72rem", color: "#b45309", background: "#fef3c7", padding: "6px 10px", borderRadius: 6 }}>
+                  ⚠ {syncError}
+                </p>
+              )}
               <p style={{ margin: 0, fontSize: "0.7rem", color: "var(--muted)" }}>
-                Comma-separated handles. Takes ~3 min to fetch via Instagram. Saved across sessions.
+                Add handles and tap Fetch, or tap Re-sync to refresh saved ones. Takes ~3 min via Instagram.
               </p>
             </div>
           )}
@@ -2080,10 +2128,10 @@ function WeekendPicks() {
 
       {filteredRecommendations.length === 0 ? (
         <div style={{ textAlign: "center", padding: "40px 0", color: "var(--muted)" }}>
-          {dateFilter !== "any" || timeFilter !== "any" ? (
+          {dateFilters.length > 0 || timeFilters.length > 0 ? (
             <>
               <p style={{ fontSize: "1.1rem", fontWeight: 700 }}>No events match this filter.</p>
-              <button onClick={() => { setDateFilter("any"); setTimeFilter("any"); }}
+              <button onClick={() => { setDateFilters([]); setTimeFilters([]); }}
                 style={{ padding: "10px 22px", background: "var(--leaf)", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: "0.88rem", cursor: "pointer" }}>
                 Clear filters
               </button>
