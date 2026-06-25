@@ -1781,7 +1781,7 @@ function WeekendPicks() {
       setLiked([...liked, id]);
       await apiCall(`/events/${id}/like`, "POST", { eventMeta: getEventMeta(ev) });
     }
-    window.open(url, "_blank", "noopener");
+    if (url) window.open(url, "_blank", "noopener");
   }
 
   async function handleDismiss(id, ev) {
@@ -1796,12 +1796,12 @@ function WeekendPicks() {
     setLiked([...liked, event.id]);
     setJustRegistered(event);
 
-    // Get best deep link from API, fall back to static url
-    const urlData = await apiCall(`/events/${event.id}/url`);
-    const deepUrl = urlData?.url || event.registrationUrl || event.url;
+    // Get best deep link from API (may 404 for IG events not yet in Neo4j — that's fine)
+    const urlData = await apiCall(`/events/${event.id}/url`).catch(() => null);
+    const deepUrl = urlData?.url || event.registrationUrl || event.url || event.instagramUrl;
 
-    await apiCall(`/events/${event.id}/register`, "POST");
-    window.open(deepUrl, "_blank", "noopener");
+    await apiCall(`/events/${event.id}/register`, "POST", { eventMeta: getEventMeta(event) });
+    if (deepUrl) window.open(deepUrl, "_blank", "noopener");
   }
 
   function handleReset() {
