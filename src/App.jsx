@@ -1509,6 +1509,12 @@ function WeekendPicks() {
   const [igResult, setIgResult] = useState(null); // parsed event preview
   const [igError, setIgError] = useState("");
   const [visibleCount, setVisibleCount] = useState(6);
+  const [dateFilter, setDateFilter] = useState("any");
+  const [timeFilter, setTimeFilter] = useState("any");
+  const [customAccounts, setCustomAccounts] = useLocalStorage("wknd_ig_accounts", []);
+  const [accountInput, setAccountInput] = useState("");
+  const [customSyncing, setCustomSyncing] = useState(false);
+  const [accountsPanelOpen, setAccountsPanelOpen] = useState(false);
 
   const { schoolKey, age, pincode } = profile;
 
@@ -1599,20 +1605,102 @@ function WeekendPicks() {
     : staticRecommendations
   );
 
-  // Reset visible count whenever the list changes
-  useEffect(() => { setVisibleCount(6); }, [recommendations.length]);
+  // Kick off custom account sync on mount if accounts saved
+  useEffect(() => {
+    if (customAccounts.length > 0 && apiOnline) {
+      triggerCustomSync(customAccounts, false);
+    }
+  }, [apiOnline]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sort: Instagram first, then Urbanaut, then everything else
+  function parseStartHour(time) {
+    if (!time) return null;
+    const m = time.match(/(\d+):\d+\s*(AM|PM)/i);
+    if (!m) return null;
+    let h = parseInt(m[1]);
+    const period = m[2].toUpperCase();
+    if (period === "PM" && h !== 12) h += 12;
+    if (period === "AM" && h === 12) h = 0;
+    return h;
+  }
+
+  // Sort: custom-account Instagram first, then other Instagram, then Urbanaut, then rest
   const sortedRecommendations = useMemo(() => {
-    const tier = (e) => e.source === "Instagram" ? 0 : e.source === "Urbanaut" ? 1 : 2;
+    const customSet = new Set(customAccounts.map(u => u.replace(/^@/, "").trim().toLowerCase()));
+    const tier = (e) => {
+      if (e.source === "Instagram" && customSet.has((e.instagramAccount || "").toLowerCase())) return 0;
+      if (e.source === "Instagram") return 1;
+      if (e.source === "Urbanaut") return 2;
+      return 3;
+    };
     return [...recommendations].sort((a, b) => tier(a) - tier(b));
-  }, [recommendations]);
+  }, [recommendations, customAccounts]);
 
-  const visibleEvents = sortedRecommendations.slice(0, visibleCount);
+  // Apply date + time filters
+  const { sat: satLabel, sun: sunLabel, satDate, sunDate } = getWeekendDates();
+  const satISO = satDate.toISOString().slice(0, 10);
+  const sunISO = sunDate.toISOString().slice(0, 10);
 
-  const { sat: satLabel, sun: sunLabel } = getWeekendDates();
+  const filteredRecommendations = useMemo(() => {
+    return sortedRecommendations.filter(e => {
+      // Date filter
+      if (dateFilter === "sat") {
+        if (e.date !== "sat" && e.date !== satISO) return false;
+      } else if (dateFilter === "sun") {
+        if (e.date !== "sun" && e.date !== sunISO) return false;
+      }
+      // Time filter
+      if (timeFilter !== "any") {
+        const h = parseStartHour(e.time);
+        if (h === null) return true; // no time info — keep
+        if (timeFilter === "morning" && h >= 12) return false;
+        if (timeFilter === "afternoon" && (h < 12 || h >= 17)) return false;
+        if (timeFilter === "evening" && h < 17) return false;
+      }
+      return true;
+    });
+  }, [sortedRecommendations, dateFilter, timeFilter, satISO, sunISO]);
+
+  // Reset visible count when filtered list changes
+  useEffect(() => { setVisibleCount(6); }, [filteredRecommendations.length]);
+
+  const visibleEvents = filteredRecommendations.slice(0, visibleCount);
+
   function eventDateLabel(e) {
     return e.date === "sat" ? satLabel : e.date === "sun" ? sunLabel : e.date;
+  }
+
+  async function triggerCustomSync(accounts, showSyncing = true) {
+    if (!apiOnline || !accounts.length) return;
+    if (showSyncing) setCustomSyncing(true);
+    try {
+      await apiCall("/events/instagram/sync-custom", "POST", { accounts });
+      // Poll for updated events after ~3 min (Apify takes ~2–3 min)
+      if (showSyncing) {
+        setTimeout(async () => {
+          const data = await apiCall(`/events/instagram?age=${age}`);
+          if (data?.events?.length) {
+            const live = await apiCall(`/events/live?age=${age}`);
+            const liveArr = live?.events || [];
+            const seen = new Set();
+            const combined = [...(data.events), ...liveArr].filter(e => seen.has(e.id) ? false : seen.add(e.id));
+            if (combined.length) setLiveEvents(combined);
+          }
+          setCustomSyncing(false);
+        }, 3 * 60 * 1000);
+      }
+    } catch {
+      setCustomSyncing(false);
+    }
+  }
+
+  function handleSaveAccounts() {
+    const parsed = accountInput
+      .split(/[\s,]+/)
+      .map(s => s.trim())
+      .filter(Boolean);
+    setCustomAccounts(parsed);
+    setAccountInput("");
+    triggerCustomSync(parsed, true);
   }
 
   async function handleLike(id, url) {
@@ -1878,6 +1966,103 @@ function WeekendPicks() {
         </div>
       )}
 
+      {/* ── Filters: date + time ──────────────────────────────────────────── */}
+      <div style={{ marginBottom: 16, display: "flex", flexDirection: "column", gap: 10 }}>
+        {/* Date chips */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", minWidth: 36 }}>Date</span>
+          {[
+            { key: "any", label: "Any" },
+            { key: "sat", label: satLabel },
+            { key: "sun", label: sunLabel },
+          ].map(({ key, label }) => (
+            <button key={key} onClick={() => setDateFilter(key)}
+              style={{
+                padding: "4px 12px", borderRadius: 20, fontSize: "0.75rem", fontWeight: 600, cursor: "pointer",
+                border: `1.5px solid ${dateFilter === key ? "var(--leaf)" : "var(--line)"}`,
+                background: dateFilter === key ? "var(--leaf)" : "var(--white)",
+                color: dateFilter === key ? "#fff" : "var(--ink)",
+              }}>
+              {label}
+            </button>
+          ))}
+        </div>
+        {/* Time chips */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", minWidth: 36 }}>Time</span>
+          {[
+            { key: "any", label: "Any" },
+            { key: "morning", label: "Morning  ☀️  before 12" },
+            { key: "afternoon", label: "Afternoon  🌤  12–5" },
+            { key: "evening", label: "Evening  🌆  after 5" },
+          ].map(({ key, label }) => (
+            <button key={key} onClick={() => setTimeFilter(key)}
+              style={{
+                padding: "4px 12px", borderRadius: 20, fontSize: "0.75rem", fontWeight: 600, cursor: "pointer",
+                border: `1.5px solid ${timeFilter === key ? "var(--leaf)" : "var(--line)"}`,
+                background: timeFilter === key ? "var(--leaf)" : "var(--white)",
+                color: timeFilter === key ? "#fff" : "var(--ink)",
+              }}>
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Instagram accounts panel */}
+        <div style={{ borderTop: "1px solid var(--line)", paddingTop: 10, marginTop: 2 }}>
+          <button onClick={() => setAccountsPanelOpen(p => !p)}
+            style={{ background: "none", border: "none", cursor: "pointer", padding: 0, display: "flex", alignItems: "center", gap: 6, color: "var(--muted)", fontSize: "0.78rem", fontWeight: 600 }}>
+            <span style={{ fontSize: "0.85rem" }}>📸</span>
+            Follow accounts
+            {customAccounts.length > 0 && (
+              <span style={{ background: "#c13584", color: "#fff", borderRadius: 20, padding: "1px 8px", fontSize: "0.68rem", fontWeight: 700 }}>
+                {customAccounts.length}
+              </span>
+            )}
+            {customSyncing && <span style={{ fontSize: "0.7rem", color: "#c13584", fontWeight: 700 }}>· syncing…</span>}
+            <span style={{ marginLeft: 2 }}>{accountsPanelOpen ? "▲" : "▼"}</span>
+          </button>
+
+          {accountsPanelOpen && (
+            <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+              {customAccounts.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                  {customAccounts.map(a => (
+                    <span key={a} style={{ fontSize: "0.72rem", padding: "3px 10px", borderRadius: 20, background: "#fce4f3", color: "#c13584", fontWeight: 600 }}>
+                      {a.startsWith("@") ? a : `@${a}`}
+                      <button onClick={() => {
+                        const next = customAccounts.filter(x => x !== a);
+                        setCustomAccounts(next);
+                      }} style={{ background: "none", border: "none", cursor: "pointer", color: "#c13584", padding: "0 0 0 4px", fontSize: "0.7rem" }}>✕</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+                <textarea
+                  rows={2}
+                  placeholder={"@attagalatta, @rangashankara, @craftymeets"}
+                  value={accountInput}
+                  onChange={e => setAccountInput(e.target.value)}
+                  style={{ flex: 1, padding: "8px 10px", borderRadius: 8, border: "1.5px solid var(--line)", fontSize: "0.8rem", resize: "none", fontFamily: "inherit", color: "var(--ink)", background: "var(--white)" }}
+                />
+                <button onClick={handleSaveAccounts} disabled={!accountInput.trim() || customSyncing}
+                  style={{
+                    padding: "8px 14px", background: customSyncing ? "var(--band)" : "#c13584",
+                    color: customSyncing ? "var(--muted)" : "#fff", border: "none", borderRadius: 8,
+                    fontWeight: 700, fontSize: "0.8rem", cursor: "pointer", whiteSpace: "nowrap",
+                  }}>
+                  {customSyncing ? "Syncing…" : "Fetch →"}
+                </button>
+              </div>
+              <p style={{ margin: 0, fontSize: "0.7rem", color: "var(--muted)" }}>
+                Comma-separated handles. Takes ~3 min to fetch via Instagram. Saved across sessions.
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Event cards */}
       {dismissed.length > 0 && (
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, padding: "8px 14px", background: "var(--band)", borderRadius: 8 }}>
@@ -1888,13 +2073,25 @@ function WeekendPicks() {
         </div>
       )}
 
-      {recommendations.length === 0 ? (
+      {filteredRecommendations.length === 0 ? (
         <div style={{ textAlign: "center", padding: "40px 0", color: "var(--muted)" }}>
-          <p style={{ fontSize: "1.1rem", fontWeight: 700 }}>You've seen everything this weekend.</p>
-          <p style={{ fontSize: "0.88rem", marginBottom: 16 }}>Reset to start fresh.</p>
-          <button onClick={() => setDismissed([])} style={{ padding: "10px 22px", background: "var(--leaf)", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: "0.88rem", cursor: "pointer" }}>
-            Show all events
-          </button>
+          {dateFilter !== "any" || timeFilter !== "any" ? (
+            <>
+              <p style={{ fontSize: "1.1rem", fontWeight: 700 }}>No events match this filter.</p>
+              <button onClick={() => { setDateFilter("any"); setTimeFilter("any"); }}
+                style={{ padding: "10px 22px", background: "var(--leaf)", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: "0.88rem", cursor: "pointer" }}>
+                Clear filters
+              </button>
+            </>
+          ) : (
+            <>
+              <p style={{ fontSize: "1.1rem", fontWeight: 700 }}>You've seen everything this weekend.</p>
+              <p style={{ fontSize: "0.88rem", marginBottom: 16 }}>Reset to start fresh.</p>
+              <button onClick={() => setDismissed([])} style={{ padding: "10px 22px", background: "var(--leaf)", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: "0.88rem", cursor: "pointer" }}>
+                Show all events
+              </button>
+            </>
+          )}
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -2067,9 +2264,9 @@ function WeekendPicks() {
               </div>
             );
           })}
-          {visibleCount < sortedRecommendations.length && (
+          {visibleCount < filteredRecommendations.length && (
             <button
-              onClick={() => setVisibleCount((c) => Math.min(c + 6, sortedRecommendations.length))}
+              onClick={() => setVisibleCount((c) => Math.min(c + 6, filteredRecommendations.length))}
               style={{
                 background: "none", border: "none", cursor: "pointer",
                 color: "var(--leaf)", fontWeight: 700, fontSize: "0.88rem",
@@ -2077,7 +2274,7 @@ function WeekendPicks() {
                 textDecoration: "underline", textUnderlineOffset: 3,
               }}
             >
-              Show more ({sortedRecommendations.length - visibleCount} remaining)
+              Show more ({filteredRecommendations.length - visibleCount} remaining)
             </button>
           )}
         </div>
