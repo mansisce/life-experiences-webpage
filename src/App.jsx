@@ -1511,6 +1511,12 @@ function WeekendPicks() {
   const [visibleCount, setVisibleCount] = useState(6);
   const [dateFilters, setDateFilters] = useState([]); // empty = show all
   const [timeFilters, setTimeFilters] = useState([]); // empty = show all
+  const [sourceFilters, setSourceFilters] = useState([]); // empty = show all
+  const [ageFilter, setAgeFilter] = useState(null); // null = use profile age
+  const [starredEvents, setStarredEvents] = useLocalStorage("wknd_starred", []);
+  const [eventNotes, setEventNotes] = useLocalStorage("wknd_notes", {});
+  const [noteEditing, setNoteEditing] = useState(null);
+  const [noteDraft, setNoteDraft] = useState("");
   const [syncError, setSyncError] = useState("");
   const [customAccounts, setCustomAccounts] = useLocalStorage("wknd_ig_accounts", []);
   const [accountInput, setAccountInput] = useState("");
@@ -1652,6 +1658,16 @@ function WeekendPicks() {
   function toggleTimeFilter(key) {
     setTimeFilters(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
   }
+  function toggleSourceFilter(src) {
+    setSourceFilters(prev => prev.includes(src) ? prev.filter(s => s !== src) : [...prev, src]);
+  }
+  function toggleStar(id) {
+    setStarredEvents(prev => prev.includes(id) ? prev.filter(s => s !== id) : [...prev, id]);
+  }
+  function saveNote(id) {
+    setEventNotes(prev => ({ ...prev, [id]: noteDraft }));
+    setNoteEditing(null);
+  }
 
   const filteredRecommendations = useMemo(() => {
     return sortedRecommendations.filter(e => {
@@ -1678,9 +1694,13 @@ function WeekendPicks() {
           if (!matchesTime) return false;
         }
       }
+      // Source filter
+      if (sourceFilters.length > 0 && !sourceFilters.includes(e.source)) return false;
+      // Age filter — override profile age
+      if (ageFilter !== null && (e.ageMin ?? 0) > ageFilter) return false;
       return true;
     });
-  }, [sortedRecommendations, dateFilters, timeFilters, todayISO, satISO, sunISO]);
+  }, [sortedRecommendations, dateFilters, timeFilters, sourceFilters, ageFilter, todayISO, satISO, sunISO]);
 
   // Reset visible count when filtered list changes
   useEffect(() => { setVisibleCount(6); }, [filteredRecommendations.length]);
@@ -2056,6 +2076,62 @@ function WeekendPicks() {
           })}
         </div>
 
+        {/* Age filter chips */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+          <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", minWidth: 36 }}>Age</span>
+          {ageFilter !== null && (
+            <button onClick={() => setAgeFilter(null)}
+              style={{ padding: "4px 10px", borderRadius: 20, fontSize: "0.72rem", fontWeight: 600, cursor: "pointer", border: "1.5px solid var(--line)", background: "var(--band)", color: "var(--muted)" }}>
+              Clear ✕
+            </button>
+          )}
+          {[2, 3, 4, 5, 6, 7, 8].map(n => {
+            const on = ageFilter === n;
+            return (
+              <button key={n} onClick={() => setAgeFilter(on ? null : n)}
+                style={{
+                  padding: "4px 12px", borderRadius: 20, fontSize: "0.75rem", fontWeight: 600, cursor: "pointer",
+                  border: `1.5px solid ${on ? "var(--leaf)" : "var(--line)"}`,
+                  background: on ? "var(--leaf)" : "var(--white)",
+                  color: on ? "#fff" : "var(--ink)",
+                }}>
+                {n}+
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Source filter chips */}
+        {(() => {
+          const sources = [...new Set(sortedRecommendations.map(e => e.source).filter(Boolean))];
+          if (sources.length < 2) return null;
+          return (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <span style={{ fontSize: "0.7rem", fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: "0.05em", minWidth: 36 }}>From</span>
+              {sourceFilters.length > 0 && (
+                <button onClick={() => setSourceFilters([])}
+                  style={{ padding: "4px 10px", borderRadius: 20, fontSize: "0.72rem", fontWeight: 600, cursor: "pointer", border: "1.5px solid var(--line)", background: "var(--band)", color: "var(--muted)" }}>
+                  Clear ✕
+                </button>
+              )}
+              {sources.map(src => {
+                const on = sourceFilters.includes(src);
+                return (
+                  <button key={src} onClick={() => toggleSourceFilter(src)}
+                    style={{
+                      padding: "4px 12px", borderRadius: 20, fontSize: "0.75rem", fontWeight: 600, cursor: "pointer",
+                      border: `1.5px solid ${on ? "var(--leaf)" : "var(--line)"}`,
+                      background: on ? "var(--leaf)" : "var(--white)",
+                      color: on ? "#fff" : "var(--ink)",
+                    }}>
+                    {src}
+                  </button>
+                );
+              })}
+            </div>
+          );
+        })()}
+
         {/* Instagram accounts panel */}
         <div style={{ borderTop: "1px solid var(--line)", paddingTop: 10, marginTop: 2 }}>
           <button onClick={() => setAccountsPanelOpen(p => !p)}
@@ -2131,12 +2207,12 @@ function WeekendPicks() {
 
       {filteredRecommendations.length === 0 ? (
         <div style={{ textAlign: "center", padding: "40px 0", color: "var(--muted)" }}>
-          {dateFilters.length > 0 || timeFilters.length > 0 ? (
+          {dateFilters.length > 0 || timeFilters.length > 0 || sourceFilters.length > 0 || ageFilter !== null ? (
             <>
               <p style={{ fontSize: "1.1rem", fontWeight: 700 }}>No events match this filter.</p>
-              <button onClick={() => { setDateFilters([]); setTimeFilters([]); }}
+              <button onClick={() => { setDateFilters([]); setTimeFilters([]); setSourceFilters([]); setAgeFilter(null); }}
                 style={{ padding: "10px 22px", background: "var(--leaf)", color: "#fff", border: "none", borderRadius: 8, fontWeight: 700, fontSize: "0.88rem", cursor: "pointer" }}>
-                Clear filters
+                Clear all filters
               </button>
             </>
           ) : (
@@ -2200,7 +2276,10 @@ function WeekendPicks() {
                     </span>
                   </div>
 
-                  <p style={{ margin: "0 0 4px", fontWeight: 800, fontSize: "1rem", color: "var(--ink)" }}>{event.name}</p>
+                  <p style={{ margin: "0 0 4px", fontWeight: 800, fontSize: "1rem", color: "var(--ink)", display: "flex", alignItems: "center", gap: 6 }}>
+                    {event.name}
+                    {starredEvents.includes(event.id) && <span style={{ color: "#f59e0b", fontSize: "0.95rem" }}>★</span>}
+                  </p>
                   {(event.date || event.time) ? (
                     <p style={{ margin: "0 0 4px", fontSize: "0.82rem", fontWeight: 700, color: color, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                       <span>📅 {eventDateLabel(event)}{event.time ? ` · ${event.time}` : ""}</span>
@@ -2320,7 +2399,53 @@ function WeekendPicks() {
                   >
                     Not for us
                   </button>
+                  <button
+                    onClick={() => toggleStar(event.id)}
+                    title={starredEvents.includes(event.id) ? "Unstar" : "Star this pick"}
+                    style={{
+                      padding: "7px 12px", fontWeight: 600, fontSize: "0.85rem",
+                      background: starredEvents.includes(event.id) ? "#fef9c3" : "transparent",
+                      color: starredEvents.includes(event.id) ? "#f59e0b" : "var(--muted)",
+                      border: `1.5px solid ${starredEvents.includes(event.id) ? "#f59e0b" : "var(--line)"}`,
+                      borderRadius: 8, cursor: "pointer",
+                    }}
+                  >
+                    {starredEvents.includes(event.id) ? "★" : "☆"}
+                  </button>
+                  <button
+                    onClick={() => { setNoteEditing(event.id); setNoteDraft(eventNotes[event.id] || ""); }}
+                    title="Add note"
+                    style={{
+                      padding: "7px 12px", fontWeight: 600, fontSize: "0.78rem",
+                      background: eventNotes[event.id] ? "#fef3c7" : "transparent",
+                      color: eventNotes[event.id] ? "#92400e" : "var(--muted)",
+                      border: `1.5px solid ${eventNotes[event.id] ? "#fcd34d" : "var(--line)"}`,
+                      borderRadius: 8, cursor: "pointer",
+                    }}
+                  >
+                    ✏
+                  </button>
                 </div>
+                {/* Note display + inline edit */}
+                {eventNotes[event.id] && noteEditing !== event.id && (
+                  <p style={{ margin: "8px 0 0", fontSize: "0.78rem", color: "#92400e", background: "#fef3c7", padding: "4px 10px", borderRadius: 6, display: "inline-block" }}>
+                    📝 {eventNotes[event.id]}
+                  </p>
+                )}
+                {noteEditing === event.id && (
+                  <div style={{ marginTop: 10, display: "flex", gap: 8, alignItems: "flex-start" }}>
+                    <input
+                      autoFocus
+                      value={noteDraft}
+                      onChange={e => setNoteDraft(e.target.value)}
+                      onKeyDown={e => { if (e.key === "Enter") saveNote(event.id); if (e.key === "Escape") setNoteEditing(null); }}
+                      placeholder="e.g. outdoor · bring snacks · sold out as of Jun 25"
+                      style={{ flex: 1, padding: "6px 10px", borderRadius: 6, border: "1.5px solid var(--line)", fontSize: "0.8rem" }}
+                    />
+                    <button onClick={() => saveNote(event.id)} style={{ padding: "6px 12px", background: "var(--leaf)", color: "#fff", border: "none", borderRadius: 6, fontWeight: 700, fontSize: "0.78rem", cursor: "pointer" }}>Save</button>
+                    <button onClick={() => setNoteEditing(null)} style={{ padding: "6px 10px", background: "var(--band)", border: "none", borderRadius: 6, fontSize: "0.78rem", cursor: "pointer" }}>✕</button>
+                  </div>
+                )}
               </div>
             );
           })}
