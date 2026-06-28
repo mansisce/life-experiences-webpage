@@ -22,6 +22,7 @@ import { fileURLToPath } from "url";
 import { fetchLiveEvents, clearCache } from "./live-events.js";
 import { parseEventFromText } from "./parse-event.js";
 import { syncInstagramEvents, syncCustomAccounts } from "./ig-sync.js";
+import { handleWhatsAppMessage } from "./whatsapp-chat.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const IG_STORE = path.join(__dirname, "data", "ig-events.json");
@@ -582,6 +583,21 @@ app.post("/events/instagram/sync-custom", async (req, res) => {
   syncCustomAccounts(accounts).catch(e =>
     console.error("[sync-custom] failed:", e.message)
   );
+});
+
+// ─── POST /chat — WhatsApp AI chat handler ────────────────────────────────────
+
+app.post("/chat", async (req, res) => {
+  const { message, sessionId, from } = req.body || {};
+  if (!message) return res.status(400).json({ error: "message required" });
+  if (!process.env.GROQ_API_KEY) return res.status(503).json({ error: "GROQ_API_KEY not set" });
+  try {
+    const result = await handleWhatsAppMessage({ message, sessionId: sessionId || from || "default", neo4jDriver: driver });
+    res.json(result);
+  } catch (e) {
+    console.error("[/chat]", e);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ─── Start ────────────────────────────────────────────────────────────────────
