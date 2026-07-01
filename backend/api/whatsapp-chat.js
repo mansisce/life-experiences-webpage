@@ -21,7 +21,11 @@ import { parseEventFromText } from "./parse-event.js";
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const IG_STORE  = path.join(__dirname, "data", "ig-events.json");
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+let groq = null;
+function getGroq() {
+  if (!groq) groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  return groq;
+}
 
 // ── In-memory session context (survives server restart only if you add Redis) ──
 const sessions = {};
@@ -40,7 +44,7 @@ Classify the message into exactly one of these intents:
 Reply with ONLY the intent word, nothing else.`;
 
 async function detectIntent(message) {
-  const resp = await groq.chat.completions.create({
+  const resp = await getGroq().chat.completions.create({
     model: "llama-3.3-70b-versatile",
     max_tokens: 10,
     messages: [
@@ -190,7 +194,7 @@ async function handleReminder(neo4jDriver) {
 }
 
 async function handleGeneral(message) {
-  const resp = await groq.chat.completions.create({
+  const resp = await getGroq().chat.completions.create({
     model: "llama-3.3-70b-versatile",
     max_tokens: 200,
     messages: [
