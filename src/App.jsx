@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import RewardsApp from "./rewards/RewardsApp.jsx";
 
 const pageLinks = [
   ["Home", "#/"],
@@ -6,6 +7,7 @@ const pageLinks = [
   ["Resume", "#/resume"],
   ["React Lab", "#/react"],
   ["AI Learning", "#/ai"],
+  ["Rewards", "#/rewards"],
 ];
 
 const homeNavItems = [
@@ -1475,7 +1477,7 @@ const AREA_COLORS = {
   "Music & Movement": "#5a3a7a",
 };
 
-const API_BASE = "http://localhost:3001";
+const API_BASE = "/api";
 
 async function apiCall(path, method = "GET", body) {
   try {
@@ -5007,6 +5009,7 @@ function App() {
     if (route === "/react") return <ReactLabPage />;
     if (route === "/ai") return <AiLearningPage />;
     if (route === "/curator") return <CuratorPage />;
+    if (route === "/rewards") return <RewardsApp />;
     return <HomePage />;
   }, [route]);
 

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useReducer, useState } from "react";
 
-const API = "http://localhost:3001/rewards";
+const API = "/api/rewards";
 
 // ─── Auth Context ─────────────────────────────────────────────────────────────
 
