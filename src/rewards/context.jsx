@@ -61,6 +61,7 @@ function reducer(state, action) {
   switch (action.type) {
     case "SET_GOALS": return { ...state, goals: action.goals, loading: false };
     case "SET_CATEGORIES": return { ...state, categories: action.categories };
+    case "SET_REWARDS": return { ...state, rewards: action.rewards };
     case "SET_LOADING": return { ...state, loading: action.loading };
     case "SET_ERROR": return { ...state, error: action.error };
     default: return state;
@@ -68,17 +69,19 @@ function reducer(state, action) {
 }
 
 export function GoalsProvider({ children }) {
-  const [state, dispatch] = useReducer(reducer, { goals: [], categories: [], loading: true, error: null });
+  const [state, dispatch] = useReducer(reducer, { goals: [], categories: [], rewards: [], loading: true, error: null });
 
   async function loadGoals() {
     dispatch({ type: "SET_LOADING", loading: true });
     try {
-      const [gr, cr] = await Promise.all([
+      const [gr, cr, rr] = await Promise.all([
         fetch(`${API}/goals`).then(r => r.json()),
         fetch(`${API}/categories`).then(r => r.json()),
+        fetch(`${API}/rewards`).then(r => r.json()),
       ]);
       dispatch({ type: "SET_GOALS", goals: Array.isArray(gr) ? gr : [] });
       dispatch({ type: "SET_CATEGORIES", categories: Array.isArray(cr) ? cr : [] });
+      dispatch({ type: "SET_REWARDS", rewards: Array.isArray(rr) ? rr : [] });
     } catch (e) {
       dispatch({ type: "SET_ERROR", error: e.message });
       dispatch({ type: "SET_LOADING", loading: false });
@@ -118,8 +121,29 @@ export function GoalsProvider({ children }) {
     await loadGoals();
   }
 
-  async function addReward(goalId, data) {
-    await fetch(`${API}/goals/${goalId}/rewards`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+  async function createReward(data) {
+    const r = await fetch(`${API}/rewards`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+    if (!r.ok) throw new Error((await r.json()).error);
+    await loadGoals();
+  }
+
+  async function updateReward(id, data) {
+    await fetch(`${API}/rewards/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) });
+    await loadGoals();
+  }
+
+  async function deleteReward(id) {
+    await fetch(`${API}/rewards/${id}`, { method: "DELETE" });
+    await loadGoals();
+  }
+
+  async function linkReward(rewardId, { goalId, milestoneId }) {
+    await fetch(`${API}/rewards/${rewardId}/link`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ goalId, milestoneId }) });
+    await loadGoals();
+  }
+
+  async function unlinkReward(rewardId, { goalId, milestoneId }) {
+    await fetch(`${API}/rewards/${rewardId}/link`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ goalId, milestoneId }) });
     await loadGoals();
   }
 
@@ -145,7 +169,7 @@ export function GoalsProvider({ children }) {
   }
 
   return (
-    <GoalsContext.Provider value={{ ...state, loadGoals, createGoal, updateGoal, deleteGoal, logDay, addMilestone, deleteMilestone, addReward, claimReward, receiveReward, addCategory, getGoalDetail }}>
+    <GoalsContext.Provider value={{ ...state, loadGoals, createGoal, updateGoal, deleteGoal, logDay, addMilestone, deleteMilestone, createReward, updateReward, deleteReward, linkReward, unlinkReward, claimReward, receiveReward, addCategory, getGoalDetail }}>
       {children}
     </GoalsContext.Provider>
   );

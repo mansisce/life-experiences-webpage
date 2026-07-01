@@ -387,10 +387,36 @@ router.delete("/milestones/:id", async (req, res) => {
   } finally { s.close(); }
 });
 
-// ─── Rewards ──────────────────────────────────────────────────────────────────
+// ─── Rewards (standalone CRUD) ────────────────────────────────────────────────
 
-router.post("/goals/:id/rewards", async (req, res) => {
-  const { title, description = "", costValue, milestoneId } = req.body;
+// List all rewards with linked goal info
+router.get("/rewards", async (req, res) => {
+  const s = req.neo4j.session();
+  try {
+    const result = await s.run(`
+      MATCH (r:Reward)
+      OPTIONAL MATCH (g:Goal)-[:HAS_REWARD]->(r)
+      OPTIONAL MATCH (m:Milestone)-[:HAS_REWARD]->(r)
+      OPTIONAL MATCH (mg:Goal)-[:HAS_MILESTONE]->(m)
+      RETURN r,
+             collect(DISTINCT {id: g.id, title: g.title}) AS linkedGoals,
+             collect(DISTINCT {id: m.id, title: m.title, goalId: mg.id, goalTitle: mg.title}) AS linkedMilestones
+      ORDER BY r.createdAt DESC
+    `);
+    const rewards = result.records.map(rec => ({
+      ...rec.get("r").properties,
+      linkedGoals: rec.get("linkedGoals").filter(g => g.id),
+      linkedMilestones: rec.get("linkedMilestones").filter(m => m.id),
+    }));
+    res.json(rewards);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  } finally { s.close(); }
+});
+
+// Create standalone reward
+router.post("/rewards", async (req, res) => {
+  const { title, description = "", costValue, categoryId } = req.body;
   if (!title) return res.status(400).json({ error: "title required" });
   const s = req.neo4j.session();
   try {
@@ -400,18 +426,88 @@ router.post("/goals/:id/rewards", async (req, res) => {
                costValue: $costValue, status: 'locked', createdAt: datetime()})`,
       { rid, title, description, costValue: costValue || null }
     );
+    if (categoryId) {
+      await s.run(
+        `MATCH (r:Reward {id: $rid}), (c:Category {id: $cid}) MERGE (r)-[:FROM_CATEGORY]->(c)`,
+        { rid, cid: categoryId }
+      );
+    }
+    res.json({ ok: true, id: rid });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  } finally { s.close(); }
+});
+
+// Update reward
+router.put("/rewards/:id", async (req, res) => {
+  const { title, description, costValue } = req.body;
+  const s = req.neo4j.session();
+  try {
+    await s.run(
+      `MATCH (r:Reward {id: $id})
+       SET r.title = COALESCE($title, r.title),
+           r.description = COALESCE($description, r.description),
+           r.costValue = COALESCE($costValue, r.costValue),
+           r.updatedAt = datetime()`,
+      { id: req.params.id, title: title || null, description: description || null, costValue: costValue || null }
+    );
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  } finally { s.close(); }
+});
+
+// Delete reward
+router.delete("/rewards/:id", async (req, res) => {
+  const s = req.neo4j.session();
+  try {
+    await s.run(`MATCH (r:Reward {id: $id}) DETACH DELETE r`, { id: req.params.id });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  } finally { s.close(); }
+});
+
+// Link reward to a goal (or milestone)
+router.post("/rewards/:id/link", async (req, res) => {
+  const { goalId, milestoneId } = req.body;
+  if (!goalId && !milestoneId) return res.status(400).json({ error: "goalId or milestoneId required" });
+  const s = req.neo4j.session();
+  try {
     if (milestoneId) {
       await s.run(
         `MATCH (m:Milestone {id: $mid}), (r:Reward {id: $rid}) MERGE (m)-[:HAS_REWARD]->(r)`,
-        { mid: milestoneId, rid }
+        { mid: milestoneId, rid: req.params.id }
       );
     } else {
       await s.run(
         `MATCH (g:Goal {id: $gid}), (r:Reward {id: $rid}) MERGE (g)-[:HAS_REWARD]->(r)`,
-        { gid: req.params.id, rid }
+        { gid: goalId, rid: req.params.id }
       );
     }
-    res.json({ ok: true, id: rid });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  } finally { s.close(); }
+});
+
+// Unlink reward from a goal (or milestone)
+router.delete("/rewards/:id/link", async (req, res) => {
+  const { goalId, milestoneId } = req.body;
+  const s = req.neo4j.session();
+  try {
+    if (milestoneId) {
+      await s.run(
+        `MATCH (m:Milestone {id: $mid})-[rel:HAS_REWARD]->(r:Reward {id: $rid}) DELETE rel`,
+        { mid: milestoneId, rid: req.params.id }
+      );
+    } else if (goalId) {
+      await s.run(
+        `MATCH (g:Goal {id: $gid})-[rel:HAS_REWARD]->(r:Reward {id: $rid}) DELETE rel`,
+        { gid: goalId, rid: req.params.id }
+      );
+    }
+    res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
   } finally { s.close(); }

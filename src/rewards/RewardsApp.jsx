@@ -4,9 +4,11 @@ import AuthGate from "./AuthGate.jsx";
 import Dashboard from "./Dashboard.jsx";
 import GoalDetail from "./GoalDetail.jsx";
 import GoalForm from "./GoalForm.jsx";
+import RewardsList from "./RewardsList.jsx";
 
 function RewardsInner() {
   const { verified, loading, logout } = useAuth();
+  const [tab, setTab] = useState("goals");       // "goals" | "rewards"
   const [view, setView] = useState("dashboard"); // "dashboard" | "detail"
   const [selectedGoalId, setSelectedGoalId] = useState(null);
   const [showNewGoal, setShowNewGoal] = useState(false);
@@ -29,16 +31,37 @@ function RewardsInner() {
       </div>
 
       <GoalsProvider>
-        {view === "dashboard" && (
+        {/* Tab bar — only show on top-level views, not inside goal detail */}
+        {view !== "detail" && (
+          <div style={tabBar}>
+            <button onClick={() => setTab("goals")} style={{ ...tabBtn, ...(tab === "goals" ? tabActive : {}) }}>
+              🎯 Goals
+            </button>
+            <button onClick={() => setTab("rewards")} style={{ ...tabBtn, ...(tab === "rewards" ? tabActive : {}) }}>
+              🎁 Rewards
+            </button>
+          </div>
+        )}
+
+        {tab === "goals" && view === "dashboard" && (
           <Dashboard
             onSelectGoal={(id) => { setSelectedGoalId(id); setView("detail"); }}
             onNewGoal={() => setShowNewGoal(true)}
           />
         )}
-        {view === "detail" && selectedGoalId && (
-          <GoalDetail goalId={selectedGoalId} onBack={() => setView("dashboard")} />
+
+        {tab === "goals" && view === "detail" && selectedGoalId && (
+          <GoalDetail
+            goalId={selectedGoalId}
+            onBack={() => { setView("dashboard"); setSelectedGoalId(null); }}
+          />
         )}
-        {showNewGoal && <GoalForm onClose={() => setShowNewGoal(false)} onSaved={() => setShowNewGoal(false)} />}
+
+        {tab === "rewards" && <RewardsList />}
+
+        {showNewGoal && (
+          <GoalForm onClose={() => setShowNewGoal(false)} onSaved={() => setShowNewGoal(false)} />
+        )}
       </GoalsProvider>
     </div>
   );
@@ -52,5 +75,8 @@ export default function RewardsApp() {
   );
 }
 
-const topBar = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.75rem", paddingBottom: "1.25rem", borderBottom: "1px solid var(--border, #333)" };
+const topBar = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem", paddingBottom: "1.25rem", borderBottom: "1px solid var(--border, #333)" };
 const lockBtn = { background: "none", border: "1px solid var(--border, #444)", borderRadius: "0.4rem", cursor: "pointer", fontSize: "1rem", padding: "0.35rem 0.6rem", color: "var(--muted, #888)" };
+const tabBar = { display: "flex", gap: "0.4rem", marginBottom: "1.5rem", borderBottom: "1px solid var(--border, #333)", paddingBottom: "0" };
+const tabBtn = { padding: "0.55rem 1.25rem", borderRadius: "0.5rem 0.5rem 0 0", border: "none", background: "none", color: "var(--muted, #888)", cursor: "pointer", fontSize: "0.95rem", fontWeight: 500, marginBottom: "-1px", borderBottom: "2px solid transparent" };
+const tabActive = { color: "var(--fg, #f0f0f0)", borderBottom: "2px solid var(--accent, #7c3aed)", fontWeight: 700 };
