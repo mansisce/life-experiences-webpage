@@ -1,0 +1,102 @@
+{
+  "name": "WhatsApp Bot — Simple",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "WhatsApp Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://modern-pandas-share.loca.lt/chat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "bypass-tunnel-reminder", "value": "true" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "={{ $json.body.entry[0].changes[0].value.messages[0].text.body }}"
+            },
+            {
+              "name": "sessionId",
+              "value": "={{ $json.body.entry[0].changes[0].value.messages[0].from }}"
+            },
+            {
+              "name": "from",
+              "value": "={{ $json.body.entry[0].changes[0].value.messages[0].from }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-chat",
+      "name": "Call Chat API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v19.0/{{ $('WhatsApp Webhook').item.json.body.entry[0].changes[0].value.metadata.phone_number_id }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.WHATSAPP_TOKEN }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('WhatsApp Webhook').item.json.body.entry[0].changes[0].value.messages[0].from }}\",\n  \"type\": \"text\",\n  \"text\": { \"body\": \"{{ $json.reply }}\" }\n}",
+        "options": {}
+      },
+      "id": "node-send",
+      "name": "Send WhatsApp Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "OK",
+        "options": { "responseCode": 200 }
+      },
+      "id": "node-ack",
+      "name": "Ack Meta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 460]
+    }
+  ],
+  "connections": {
+    "WhatsApp Webhook": {
+      "main": [[{ "node": "Call Chat API", "type": "main", "index": 0 }]]
+    },
+    "Call Chat API": {
+      "main": [
+        [
+          { "node": "Send WhatsApp Reply", "type": "main", "index": 0 },
+          { "node": "Ack Meta", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

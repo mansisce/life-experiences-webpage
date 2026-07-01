@@ -23,6 +23,7 @@ import { fetchLiveEvents, clearCache } from "./live-events.js";
 import { parseEventFromText } from "./parse-event.js";
 import { syncInstagramEvents, syncCustomAccounts } from "./ig-sync.js";
 import { handleWhatsAppMessage } from "./whatsapp-chat.js";
+import rewardsRouter from "./rewards.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const IG_STORE = path.join(__dirname, "data", "ig-events.json");
@@ -40,6 +41,10 @@ const driver = neo4j.driver(
 
 app.use(cors());
 app.use(express.json());
+
+// Attach neo4j driver to all reward routes
+app.use("/rewards", (req, _res, next) => { req.neo4j = driver; next(); });
+app.use("/rewards", rewardsRouter);
 
 // ─── Health ───────────────────────────────────────────────────────────────────
 
@@ -600,8 +605,11 @@ app.post("/chat", async (req, res) => {
   }
 });
 
-// ─── Start ────────────────────────────────────────────────────────────────────
+// ─── Export for Vercel ───────────────────────────────────────────────────────
+export default app;
 
+// ─── Start (local dev only) ───────────────────────────────────────────────────
+if (process.env.NODE_ENV !== "production" || process.env.LOCAL_DEV) {
 app.listen(PORT, () => {
   console.log(`\n🚀  Weekend Picks API running on http://localhost:${PORT}`);
 
@@ -627,3 +635,4 @@ app.listen(PORT, () => {
   console.log(`    GET  /schools`);
   console.log(`    GET  /health\n`);
 });
+}

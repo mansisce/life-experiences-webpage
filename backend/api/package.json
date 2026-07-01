@@ -1,0 +1,19 @@
+{
+  "name": "weekend-api",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "node index.js",
+    "seed": "node seed.js",
+    "scrape": "node scraper.js"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.24.1",
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "groq-sdk": "^1.3.0",
+    "neo4j-driver": "^5.20.0",
+    "node-cron": "^4.5.0",
+    "playwright": "^1.48.0"
+  }
+}
