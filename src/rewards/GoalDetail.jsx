@@ -3,7 +3,7 @@ import { useGoals } from "./context.jsx";
 import DailyLogModal from "./DailyLogModal.jsx";
 
 export default function GoalDetail({ goalId, onBack }) {
-  const { getGoalDetail, addMilestone, deleteMilestone, addReward, claimReward, receiveReward, updateGoal } = useGoals();
+  const { getGoalDetail, addMilestone, deleteMilestone, addReward, claimReward, receiveReward, updateGoal, createGoal } = useGoals();
   const [goal, setGoal] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showLog, setShowLog] = useState(false);
@@ -34,6 +34,20 @@ export default function GoalDetail({ goalId, onBack }) {
     ...(goal.milestones || []).flatMap(m => m.rewards || []),
   ].filter(r => r.status === "earned" || r.status === "claimed" || r.status === "received");
 
+  async function handleRepeat() {
+    const today = new Date().toISOString().slice(0, 10);
+    await createGoal({
+      title: goal.title,
+      description: goal.description || "",
+      type: goal.type,
+      targetDays: goal.targetDays ? Number(goal.targetDays) : undefined,
+      categoryId: goal.category?.id,
+      breakResetDays: Number(goal.breakResetDays) || 1,
+      startDate: today,
+    });
+    onBack();
+  }
+
   async function handleAddReward(e) {
     e.preventDefault();
     await addReward(goalId, { ...rewardForm, costValue: rewardForm.costValue ? Number(rewardForm.costValue) : null, milestoneId: rewardForm.milestoneId || null });
@@ -62,12 +76,15 @@ export default function GoalDetail({ goalId, onBack }) {
             <h2 style={{ margin: "0.5rem 0 0.25rem", color: "var(--fg, #f0f0f0)" }}>{goal.title}</h2>
             {goal.description && <p style={{ margin: 0, color: "var(--muted, #888)", fontSize: "0.9rem" }}>{goal.description}</p>}
           </div>
-          <button
-            onClick={() => setShowLog(true)}
-            style={{ ...logBtn, opacity: todayLogged ? 0.6 : 1 }}
-          >
-            {todayLogged ? "✓ Logged today" : "+ Log today"}
-          </button>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", alignItems: "flex-end" }}>
+            <button
+              onClick={() => setShowLog(true)}
+              style={{ ...logBtn, opacity: todayLogged ? 0.6 : 1 }}
+            >
+              {todayLogged ? "✓ Logged today" : "+ Log today"}
+            </button>
+            <button onClick={handleRepeat} style={repeatBtn}>↩ Repeat goal</button>
+          </div>
         </div>
 
         {/* Stats */}
@@ -247,6 +264,7 @@ const headerCard = { background: "var(--card, #1a1a2e)", border: "1px solid var(
 const catBadge = { fontSize: "0.78rem", color: "var(--muted, #888)", background: "var(--border, #222)", padding: "0.2rem 0.6rem", borderRadius: 99 };
 const statsRow = { display: "flex", gap: "1.5rem", justifyContent: "flex-start", flexWrap: "wrap", marginTop: "1.25rem", paddingTop: "1.25rem", borderTop: "1px solid var(--border, #333)" };
 const logBtn = { padding: "0.55rem 1.1rem", borderRadius: "0.5rem", background: "var(--accent, #7c3aed)", color: "#fff", border: "none", cursor: "pointer", fontWeight: 600, fontSize: "0.9rem", whiteSpace: "nowrap" };
+const repeatBtn = { padding: "0.4rem 0.9rem", borderRadius: "0.5rem", background: "none", border: "1px solid var(--border, #444)", color: "var(--muted, #888)", cursor: "pointer", fontSize: "0.82rem", whiteSpace: "nowrap" };
 const smallBtn = { background: "none", border: "1px solid var(--border, #444)", color: "var(--muted, #888)", borderRadius: "0.4rem", cursor: "pointer", fontSize: "0.8rem", padding: "0.3rem 0.7rem" };
 const saveBtn = { padding: "0.5rem 1rem", borderRadius: "0.4rem", background: "var(--accent, #7c3aed)", color: "#fff", border: "none", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600 };
 const tinyBtn = { background: "none", border: "1px solid var(--border, #444)", color: "var(--muted, #888)", borderRadius: "0.3rem", cursor: "pointer", fontSize: "0.75rem", padding: "0.2rem 0.5rem" };
