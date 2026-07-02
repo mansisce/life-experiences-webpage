@@ -2,17 +2,14 @@ import { useEffect } from "react";
 import { useGoals } from "./context.jsx";
 
 export default function Dashboard({ onSelectGoal, onNewGoal }) {
-  const { goals, loading, loadGoals } = useGoals();
+  const { goals, rewards, loading, loadGoals } = useGoals();
 
   useEffect(() => { loadGoals(); }, []);
 
   const active = goals.filter(g => g.status === "active");
   const today = new Date().toISOString().slice(0, 10);
   const needsLog = active.filter(g => !g.logs?.some(l => l.date === today));
-  const totalEarned = goals.flatMap(g => [
-    ...(g.rewards || []),
-    ...(g.milestones || []).flatMap(m => m.rewards || [])
-  ]).filter(r => ["earned", "claimed", "received"].includes(r.status)).length;
+  const totalEarned = rewards.filter(r => ["earned", "claimed", "received"].includes(r.status)).length;
 
   if (loading) return <p style={{ color: "var(--muted, #888)", padding: "1rem" }}>Loading...</p>;
 
@@ -67,7 +64,11 @@ function GoalCard({ goal, onClick, highlight }) {
     <div onClick={onClick} style={{ ...goalCard, borderColor: highlight ? "var(--accent, #7c3aed)55" : "var(--border, #333)", cursor: "pointer" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          {goal.category && <span style={catTag}>{goal.category.icon} {goal.category.name}</span>}
+          <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap" }}>
+            {(goal.categories || (goal.category ? [goal.category] : [])).map(c => (
+              <span key={c.id} style={catTag}>{c.icon} {c.name}</span>
+            ))}
+          </div>
           <p style={{ margin: "0.3rem 0 0.5rem", fontWeight: 600, color: "var(--fg, #f0f0f0)", lineHeight: 1.3, fontSize: "0.95rem" }}>{goal.title}</p>
         </div>
         <div style={{ textAlign: "right", flexShrink: 0, marginLeft: "0.75rem" }}>

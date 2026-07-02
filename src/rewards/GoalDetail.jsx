@@ -72,7 +72,11 @@ export default function GoalDetail({ goalId, onBack }) {
       <div style={headerCard}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap" }}>
           <div>
-            {goal.category && <span style={catBadge}>{goal.category.icon} {goal.category.name}</span>}
+            <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+              {(goal.categories || (goal.category ? [goal.category] : [])).map(c => (
+                <span key={c.id} style={catBadge}>{c.icon} {c.name}</span>
+              ))}
+            </div>
             <h2 style={{ margin: "0.5rem 0 0.25rem", color: "var(--fg, #f0f0f0)" }}>{goal.title}</h2>
             {goal.description && <p style={{ margin: 0, color: "var(--muted, #888)", fontSize: "0.9rem" }}>{goal.description}</p>}
           </div>

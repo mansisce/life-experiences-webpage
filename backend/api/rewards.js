@@ -137,15 +137,16 @@ router.get("/goals", async (req, res) => {
       MATCH (g:Goal)
       OPTIONAL MATCH (g)-[:BELONGS_TO]->(cat:Category)
       OPTIONAL MATCH (g)-[:HAS_LOG]->(l:DailyLog)
-      RETURN g, cat,
-             collect(DISTINCT l) AS logs
+      RETURN g,
+             collect(DISTINCT cat) AS categories,
+             collect(DISTINCT l)   AS logs
       ORDER BY g.createdAt DESC
     `);
     const goals = result.records.map(r => {
       const g = r.get("g").properties;
-      const cat = r.get("cat")?.properties || null;
+      const categories = r.get("categories").map(c => c.properties).filter(Boolean);
       const logs = r.get("logs").map(l => l.properties);
-      return { ...g, category: cat, streak: computeStreak(logs, g), logs };
+      return { ...g, categories, category: categories[0] || null, streak: computeStreak(logs, g), logs };
     });
     res.json(goals);
   } catch (e) {
@@ -156,7 +157,7 @@ router.get("/goals", async (req, res) => {
 router.post("/goals", async (req, res) => {
   const {
     title, description = "", type = "fixed", targetDays,
-    startDate, categoryId, breakResetDays = 1
+    startDate, categoryIds = [], breakResetDays = 1
   } = req.body;
   if (!title) return res.status(400).json({ error: "title required" });
   const s = req.neo4j.session();
@@ -171,11 +172,11 @@ router.post("/goals", async (req, res) => {
        })`,
       { id, title, description, type, targetDays: targetDays || null, start, breakResetDays }
     );
-    if (categoryId) {
+    for (const catId of categoryIds) {
       await s.run(
         `MATCH (g:Goal {id: $id}), (c:Category {id: $catId})
          MERGE (g)-[:BELONGS_TO]->(c)`,
-        { id, catId: categoryId }
+        { id, catId }
       );
     }
     // Auto-generate milestones for fixed goals
@@ -203,12 +204,13 @@ router.get("/goals/:id", async (req, res) => {
     const gResult = await s.run(
       `MATCH (g:Goal {id: $id})
        OPTIONAL MATCH (g)-[:BELONGS_TO]->(cat:Category)
-       RETURN g, cat`,
+       RETURN g, collect(cat) AS cats`,
       { id: req.params.id }
     );
     if (!gResult.records.length) return res.status(404).json({ error: "Not found" });
     const g = gResult.records[0].get("g").properties;
-    const cat = gResult.records[0].get("cat")?.properties || null;
+    const categories = gResult.records[0].get("cats").map(c => c?.properties).filter(Boolean);
+    const cat = categories[0] || null;
 
     const logsResult = await s.run(
       `MATCH (g:Goal {id: $id})-[:HAS_LOG]->(l:DailyLog) RETURN l ORDER BY l.date`,
@@ -233,14 +235,14 @@ router.get("/goals/:id", async (req, res) => {
     );
     const rewards = rwResult.records.map(r => r.get("r").properties);
 
-    res.json({ ...g, category: cat, logs, milestones, rewards, streak: computeStreak(logs, g) });
+    res.json({ ...g, categories, category: cat, logs, milestones, rewards, streak: computeStreak(logs, g) });
   } catch (e) {
     res.status(500).json({ error: e.message });
   } finally { s.close(); }
 });
 
 router.put("/goals/:id", async (req, res) => {
-  const { title, description, status, breakResetDays, targetDays } = req.body;
+  const { title, description, status, breakResetDays, targetDays, categoryIds } = req.body;
   const s = req.neo4j.session();
   try {
     await s.run(
@@ -254,6 +256,15 @@ router.put("/goals/:id", async (req, res) => {
       { id: req.params.id, title: title || null, description: description || null,
         status: status || null, breakResetDays: breakResetDays || null, targetDays: targetDays || null }
     );
+    if (Array.isArray(categoryIds)) {
+      await s.run(`MATCH (g:Goal {id: $id})-[r:BELONGS_TO]->() DELETE r`, { id: req.params.id });
+      for (const catId of categoryIds) {
+        await s.run(
+          `MATCH (g:Goal {id: $id}), (c:Category {id: $catId}) MERGE (g)-[:BELONGS_TO]->(c)`,
+          { id: req.params.id, catId }
+        );
+      }
+    }
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: e.message });
