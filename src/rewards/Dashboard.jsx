@@ -12,7 +12,7 @@ export default function Dashboard({ onSelectGoal, onNewGoal }) {
   const totalEarned = goals.flatMap(g => [
     ...(g.rewards || []),
     ...(g.milestones || []).flatMap(m => m.rewards || [])
-  ]).filter(r => r.status === "earned").length;
+  ]).filter(r => ["earned", "claimed", "received"].includes(r.status)).length;
 
   if (loading) return <p style={{ color: "var(--muted, #888)", padding: "1rem" }}>Loading...</p>;
 
