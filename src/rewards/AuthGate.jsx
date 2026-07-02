@@ -64,7 +64,7 @@ const styles = {
   card: { background: "var(--card, #1a1a2e)", border: "1px solid var(--border, #333)", borderRadius: "1rem", padding: "2.5rem", maxWidth: 380, width: "100%", textAlign: "center" },
   icon: { fontSize: "2.5rem", marginBottom: "1rem" },
   title: { margin: "0 0 0.5rem", fontSize: "1.3rem", color: "var(--fg, #f0f0f0)" },
-  sub: { margin: "0 0 1.5rem", fontSize: "0.9rem", color: "var(--muted, #999)", lineHeight: 1.5 },
+  sub: { margin: "0 0 1.5rem", fontSize: "0.9rem", color: "#9ca3af", lineHeight: 1.5 },
   form: { display: "flex", flexDirection: "column", gap: "0.75rem" },
   input: { padding: "0.75rem 1rem", borderRadius: "0.5rem", border: "1px solid var(--border, #444)", background: "var(--bg2, #111)", color: "var(--fg, #f0f0f0)", fontSize: "1rem", outline: "none" },
   error: { color: "#f87171", fontSize: "0.85rem", margin: 0 },

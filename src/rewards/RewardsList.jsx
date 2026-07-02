@@ -57,7 +57,7 @@ export default function RewardsList() {
         <div style={emptyState}>
           <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>🎁</div>
           <p style={{ color: "var(--fg, #f0f0f0)", fontWeight: 600, margin: "0 0 0.4rem" }}>No rewards yet</p>
-          <p style={{ color: "var(--muted, #888)", margin: "0 0 1.25rem", fontSize: "0.9rem" }}>
+          <p style={{ color: "#9ca3af", margin: "0 0 1.25rem", fontSize: "0.9rem" }}>
             Add things you want to gift yourself when you hit your goals.
           </p>
           <button onClick={() => setShowForm(true)} style={addBtn}>+ Add first reward</button>
@@ -79,7 +79,7 @@ export default function RewardsList() {
                   </span>
                 </div>
                 {reward.description && (
-                  <p style={{ margin: "0.25rem 0 0", fontSize: "0.85rem", color: "var(--muted, #888)" }}>{reward.description}</p>
+                  <p style={{ margin: "0.25rem 0 0", fontSize: "0.85rem", color: "#9ca3af" }}>{reward.description}</p>
                 )}
 
                 {/* Linked goals */}
@@ -139,17 +139,17 @@ export default function RewardsList() {
 }
 
 const addBtn = { padding: "0.5rem 1.1rem", borderRadius: "0.5rem", background: "var(--accent, #7c3aed)", color: "#fff", border: "none", cursor: "pointer", fontSize: "0.88rem", fontWeight: 600 };
-const filterBtn = { padding: "0.35rem 0.75rem", borderRadius: 99, border: "1px solid var(--border, #444)", background: "none", color: "var(--muted, #888)", cursor: "pointer", fontSize: "0.8rem" };
+const filterBtn = { padding: "0.35rem 0.75rem", borderRadius: 99, border: "1px solid var(--border, #444)", background: "none", color: "#9ca3af", cursor: "pointer", fontSize: "0.8rem" };
 const filterActive = { background: "var(--accent, #7c3aed)22", borderColor: "var(--accent, #7c3aed)", color: "var(--accent, #7c3aed)" };
 const emptyState = { border: "1px dashed var(--border, #444)", borderRadius: "1rem", padding: "2.5rem", textAlign: "center" };
 const rewardCard = { background: "var(--card, #1a1a2e)", border: "1px solid var(--border, #333)", borderLeft: "3px solid", borderRadius: "0.75rem", padding: "1rem 1.1rem" };
-const costBadge = { fontSize: "0.75rem", background: "var(--border, #222)", color: "var(--muted, #aaa)", padding: "0.15rem 0.5rem", borderRadius: 99 };
-const linkedTag = { display: "inline-flex", alignItems: "center", gap: "0.3rem", fontSize: "0.75rem", background: "var(--border, #222)", color: "var(--muted, #aaa)", padding: "0.15rem 0.5rem 0.15rem 0.6rem", borderRadius: 99 };
+const costBadge = { fontSize: "0.75rem", background: "var(--border, #222)", color: "#9ca3af", padding: "0.15rem 0.5rem", borderRadius: 99 };
+const linkedTag = { display: "inline-flex", alignItems: "center", gap: "0.3rem", fontSize: "0.75rem", background: "var(--border, #222)", color: "#9ca3af", padding: "0.15rem 0.5rem 0.15rem 0.6rem", borderRadius: 99 };
 const unlinkBtn = { background: "none", border: "none", color: "#f87171", cursor: "pointer", fontSize: "0.65rem", padding: 0, lineHeight: 1 };
 const linkGoalBtn = { background: "none", border: "none", color: "var(--accent, #7c3aed)", cursor: "pointer", fontSize: "0.78rem", padding: "0.3rem 0 0", display: "block" };
 const smallSelect = { padding: "0.4rem 0.6rem", borderRadius: "0.4rem", border: "1px solid var(--border, #444)", background: "var(--bg2, #111)", color: "var(--fg, #f0f0f0)", fontSize: "0.83rem", outline: "none" };
 const smallSaveBtn = { padding: "0.35rem 0.8rem", borderRadius: "0.4rem", background: "var(--accent, #7c3aed)", color: "#fff", border: "none", cursor: "pointer", fontSize: "0.83rem", fontWeight: 600 };
-const smallCancelBtn = { padding: "0.35rem 0.8rem", borderRadius: "0.4rem", border: "1px solid var(--border, #444)", background: "none", color: "var(--muted, #888)", cursor: "pointer", fontSize: "0.83rem" };
+const smallCancelBtn = { padding: "0.35rem 0.8rem", borderRadius: "0.4rem", border: "1px solid var(--border, #444)", background: "none", color: "#9ca3af", cursor: "pointer", fontSize: "0.83rem" };
 const iconBtn = { background: "none", border: "none", cursor: "pointer", fontSize: "0.9rem", padding: "0.2rem" };
 function actionBtn(color) {
   return { padding: "0.3rem 0.75rem", borderRadius: "0.35rem", background: color + "22", border: `1px solid ${color}`, color, cursor: "pointer", fontSize: "0.8rem", fontWeight: 600 };

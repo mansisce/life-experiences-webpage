@@ -14,7 +14,7 @@ function RewardsInner() {
   const [showNewGoal, setShowNewGoal] = useState(false);
 
   if (loading) {
-    return <div style={{ padding: "3rem", textAlign: "center", color: "var(--muted, #888)" }}>Loading...</div>;
+    return <div style={{ padding: "3rem", textAlign: "center", color: "#9ca3af" }}>Loading...</div>;
   }
 
   if (!verified) return <AuthGate />;
@@ -25,7 +25,7 @@ function RewardsInner() {
       <div style={topBar}>
         <div>
           <h1 style={{ margin: 0, fontSize: "1.4rem", color: "var(--fg, #f0f0f0)" }}>🏆 Reward Goals</h1>
-          <p style={{ margin: "0.2rem 0 0", fontSize: "0.82rem", color: "var(--muted, #888)" }}>Build streaks. Earn rewards. Stay consistent.</p>
+          <p style={{ margin: "0.2rem 0 0", fontSize: "0.82rem", color: "#9ca3af" }}>Build streaks. Earn rewards. Stay consistent.</p>
         </div>
         <button onClick={logout} style={lockBtn} title="Lock">🔒</button>
       </div>
@@ -76,7 +76,7 @@ export default function RewardsApp() {
 }
 
 const topBar = { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.25rem", paddingBottom: "1.25rem", borderBottom: "1px solid var(--border, #333)" };
-const lockBtn = { background: "none", border: "1px solid var(--border, #444)", borderRadius: "0.4rem", cursor: "pointer", fontSize: "1rem", padding: "0.35rem 0.6rem", color: "var(--muted, #888)" };
+const lockBtn = { background: "none", border: "1px solid var(--border, #444)", borderRadius: "0.4rem", cursor: "pointer", fontSize: "1rem", padding: "0.35rem 0.6rem", color: "#9ca3af" };
 const tabBar = { display: "flex", gap: "0.4rem", marginBottom: "1.5rem", borderBottom: "1px solid var(--border, #333)", paddingBottom: "0" };
-const tabBtn = { padding: "0.55rem 1.25rem", borderRadius: "0.5rem 0.5rem 0 0", border: "none", background: "none", color: "var(--muted, #888)", cursor: "pointer", fontSize: "0.95rem", fontWeight: 500, marginBottom: "-1px", borderBottom: "2px solid transparent" };
+const tabBtn = { padding: "0.55rem 1.25rem", borderRadius: "0.5rem 0.5rem 0 0", border: "none", background: "none", color: "#9ca3af", cursor: "pointer", fontSize: "0.95rem", fontWeight: 500, marginBottom: "-1px", borderBottom: "2px solid transparent" };
 const tabActive = { color: "var(--fg, #f0f0f0)", borderBottom: "2px solid var(--accent, #7c3aed)", fontWeight: 700 };

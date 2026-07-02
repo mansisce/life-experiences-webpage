@@ -25,7 +25,7 @@ export default function Dashboard({ onSelectGoal, onNewGoal }) {
     past: group.filter(g => g.status !== "active"),
   })).sort((a, b) => b.active.length - a.active.length);
 
-  if (loading) return <p style={{ color: "var(--muted, #888)", padding: "1rem" }}>Loading...</p>;
+  if (loading) return <p style={{ color: "#9ca3af", padding: "1rem" }}>Loading...</p>;
 
   return (
     <div>
@@ -56,7 +56,7 @@ export default function Dashboard({ onSelectGoal, onNewGoal }) {
         <div style={emptyState}>
           <div style={{ fontSize: "2.5rem", marginBottom: "0.75rem" }}>🌱</div>
           <p style={{ color: "var(--fg, #f0f0f0)", fontWeight: 600, margin: "0 0 0.4rem" }}>No goals yet</p>
-          <p style={{ color: "var(--muted, #888)", margin: "0 0 1.25rem", fontSize: "0.9rem" }}>Set your first goal and start building streaks.</p>
+          <p style={{ color: "#9ca3af", margin: "0 0 1.25rem", fontSize: "0.9rem" }}>Set your first goal and start building streaks.</p>
           <button onClick={onNewGoal} style={addBtn}>+ Create first goal</button>
         </div>
       )}
@@ -126,7 +126,7 @@ function GoalCard({ goal, onClick, highlight, totalRuns }) {
         </div>
         <div style={{ textAlign: "right", flexShrink: 0, marginLeft: "0.75rem" }}>
           <div style={{ fontSize: "1.4rem", fontWeight: 700, color: "#f59e0b" }}>{currentStreak}</div>
-          <div style={{ fontSize: "0.7rem", color: "var(--muted, #888)" }}>day streak</div>
+          <div style={{ fontSize: "0.7rem", color: "#9ca3af" }}>day streak</div>
         </div>
       </div>
       {progress !== null && (
@@ -135,11 +135,11 @@ function GoalCard({ goal, onClick, highlight, totalRuns }) {
         </div>
       )}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <span style={{ fontSize: "0.78rem", color: "var(--muted, #888)" }}>
+        <span style={{ fontSize: "0.78rem", color: "#9ca3af" }}>
           {totalDone} days done{goal.targetDays ? ` / ${goal.targetDays}` : ""}
           {goal.status !== "active" && <span style={{ marginLeft: "0.4rem", color: statusColor || "var(--muted)" }}>· {goal.status}</span>}
         </span>
-        <span style={{ fontSize: "0.75rem", fontWeight: 600, color: todayLogged ? "#4ade80" : highlight ? "#f59e0b" : "var(--muted, #888)" }}>
+        <span style={{ fontSize: "0.75rem", fontWeight: 600, color: todayLogged ? "#4ade80" : highlight ? "#f59e0b" : "#9ca3af" }}>
           {todayLogged ? "✓ done today" : highlight ? "⏳ log today" : ""}
         </span>
       </div>
@@ -152,7 +152,7 @@ function SummaryCard({ icon, label, value, accent }) {
     <div style={summaryCard}>
       <div style={{ fontSize: "1.5rem" }}>{icon}</div>
       <div style={{ fontSize: "1.6rem", fontWeight: 700, color: accent ? "#f59e0b" : "var(--fg, #f0f0f0)" }}>{value}</div>
-      <div style={{ fontSize: "0.75rem", color: "var(--muted, #888)" }}>{label}</div>
+      <div style={{ fontSize: "0.75rem", color: "#9ca3af" }}>{label}</div>
     </div>
   );
 }
@@ -162,10 +162,10 @@ const summaryCard = { background: "var(--card, #1a1a2e)", border: "1px solid var
 const goalGrid = { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "1rem" };
 const goalCard = { background: "var(--card, #1a1a2e)", border: "1px solid", borderRadius: "0.75rem", padding: "1rem", transition: "border-color 0.15s" };
 const stackShadow = { position: "absolute", background: "var(--card, #1a1a2e)", border: "1px solid var(--border, #333)", borderRadius: "0.75rem", height: "100%" };
-const runsBadge = { position: "absolute", top: "0.5rem", right: "0.5rem", fontSize: "0.7rem", background: "var(--border, #333)", color: "var(--muted, #888)", padding: "0.1rem 0.45rem", borderRadius: 99 };
+const runsBadge = { position: "absolute", top: "0.5rem", right: "0.5rem", fontSize: "0.7rem", background: "var(--border, #333)", color: "#9ca3af", padding: "0.1rem 0.45rem", borderRadius: 99 };
 const pastRuns = { display: "flex", gap: "0.35rem", flexWrap: "wrap", marginTop: "0.4rem", paddingLeft: "0.25rem" };
-const pastRunBtn = { background: "none", border: "1px solid var(--border, #333)", color: "var(--muted, #888)", borderRadius: "0.4rem", cursor: "pointer", fontSize: "0.72rem", padding: "0.2rem 0.55rem" };
-const catTag = { fontSize: "0.72rem", color: "var(--muted, #888)", background: "var(--border, #222)", padding: "0.15rem 0.5rem", borderRadius: 99 };
-const sectionTitle = { fontSize: "0.85rem", color: "var(--muted, #888)", textTransform: "uppercase", letterSpacing: "0.07em", margin: "0 0 0.75rem", fontWeight: 700 };
+const pastRunBtn = { background: "none", border: "1px solid var(--border, #333)", color: "#9ca3af", borderRadius: "0.4rem", cursor: "pointer", fontSize: "0.72rem", padding: "0.2rem 0.55rem" };
+const catTag = { fontSize: "0.72rem", color: "#9ca3af", background: "var(--border, #222)", padding: "0.15rem 0.5rem", borderRadius: 99 };
+const sectionTitle = { fontSize: "0.85rem", color: "#9ca3af", textTransform: "uppercase", letterSpacing: "0.07em", margin: "0 0 0.75rem", fontWeight: 700 };
 const addBtn = { padding: "0.5rem 1.1rem", borderRadius: "0.5rem", background: "var(--accent, #7c3aed)", color: "#fff", border: "none", cursor: "pointer", fontSize: "0.88rem", fontWeight: 600 };
 const emptyState = { border: "1px dashed var(--border, #444)", borderRadius: "1rem", padding: "2.5rem", textAlign: "center", marginTop: "0.5rem" };

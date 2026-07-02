@@ -138,12 +138,12 @@ export default function GoalForm({ onClose, onSaved }) {
 const overlay = { position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: "1rem" };
 const card = { background: "var(--card, #1a1a2e)", border: "1px solid var(--border, #333)", borderRadius: "1rem", padding: "2rem", width: "100%", maxWidth: 560, maxHeight: "90vh", overflowY: "auto" };
 const field = { display: "flex", flexDirection: "column", gap: "0.35rem" };
-const label = { fontSize: "0.82rem", color: "var(--muted, #888)", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" };
+const label = { fontSize: "0.82rem", color: "#9ca3af", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em" };
 const input = { padding: "0.6rem 0.85rem", borderRadius: "0.5rem", border: "1px solid var(--border, #444)", background: "var(--bg2, #111)", color: "var(--fg, #f0f0f0)", fontSize: "0.95rem", outline: "none", width: "100%", boxSizing: "border-box" };
 const catGrid = { display: "flex", flexWrap: "wrap", gap: "0.4rem" };
-const catChip = { padding: "0.35rem 0.75rem", borderRadius: 99, border: "1px solid var(--border, #444)", background: "none", color: "var(--muted, #888)", cursor: "pointer", fontSize: "0.82rem" };
+const catChip = { padding: "0.35rem 0.75rem", borderRadius: 99, border: "1px solid var(--border, #444)", background: "none", color: "#9ca3af", cursor: "pointer", fontSize: "0.82rem" };
 const catChipOn = { background: "var(--accent, #7c3aed)22", borderColor: "var(--accent, #7c3aed)", color: "var(--accent, #d8b4fe)" };
-const closeBtn = { background: "none", border: "none", color: "var(--muted, #888)", fontSize: "1.2rem", cursor: "pointer", padding: "0.25rem" };
+const closeBtn = { background: "none", border: "none", color: "#9ca3af", fontSize: "1.2rem", cursor: "pointer", padding: "0.25rem" };
 const cancelBtn = { padding: "0.6rem 1.25rem", borderRadius: "0.5rem", border: "1px solid var(--border, #444)", background: "none", color: "var(--fg, #f0f0f0)", cursor: "pointer", fontSize: "0.95rem" };
 const saveBtn = { padding: "0.6rem 1.5rem", borderRadius: "0.5rem", background: "var(--accent, #7c3aed)", color: "#fff", border: "none", cursor: "pointer", fontSize: "0.95rem", fontWeight: 600 };
 const addCatBtn = { background: "none", border: "none", color: "var(--accent, #7c3aed)", cursor: "pointer", fontSize: "0.8rem", padding: "0.2rem 0", textAlign: "left", marginTop: "0.25rem" };

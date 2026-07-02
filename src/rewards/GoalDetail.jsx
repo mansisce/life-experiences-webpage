@@ -21,7 +21,7 @@ export default function GoalDetail({ goalId, onBack }) {
 
   useEffect(() => { reload(); }, [goalId]);
 
-  if (loading) return <div style={{ padding: "2rem", color: "var(--muted, #888)" }}>Loading...</div>;
+  if (loading) return <div style={{ padding: "2rem", color: "#9ca3af" }}>Loading...</div>;
   if (!goal) return <div style={{ padding: "2rem", color: "#f87171" }}>Goal not found.</div>;
 
   const { currentStreak = 0, longestStreak = 0, totalDone = 0 } = goal.streak || {};
@@ -78,7 +78,7 @@ export default function GoalDetail({ goalId, onBack }) {
               ))}
             </div>
             <h2 style={{ margin: "0.5rem 0 0.25rem", color: "var(--fg, #f0f0f0)" }}>{goal.title}</h2>
-            {goal.description && <p style={{ margin: 0, color: "var(--muted, #888)", fontSize: "0.9rem" }}>{goal.description}</p>}
+            {goal.description && <p style={{ margin: 0, color: "#9ca3af", fontSize: "0.9rem" }}>{goal.description}</p>}
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", alignItems: "flex-end" }}>
             <button
@@ -101,7 +101,7 @@ export default function GoalDetail({ goalId, onBack }) {
 
         {progress !== null && (
           <div style={{ marginTop: "1rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", color: "var(--muted, #888)", marginBottom: "0.35rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", color: "#9ca3af", marginBottom: "0.35rem" }}>
               <span>Progress</span><span>{progress}%</span>
             </div>
             <div style={{ height: 8, background: "var(--border, #333)", borderRadius: 4, overflow: "hidden" }}>
@@ -125,7 +125,7 @@ export default function GoalDetail({ goalId, onBack }) {
             );
           })}
         </div>
-        <div style={{ display: "flex", gap: "1rem", marginTop: "0.6rem", fontSize: "0.77rem", color: "var(--muted, #888)" }}>
+        <div style={{ display: "flex", gap: "1rem", marginTop: "0.6rem", fontSize: "0.77rem", color: "#9ca3af" }}>
           <span>🟢 Done</span><span>🔴 Missed</span><span style={{ border: "1px solid #f59e0b", padding: "0 4px", borderRadius: 2 }}>Today</span>
         </div>
       </Section>
@@ -189,7 +189,7 @@ function MilestoneRow({ milestone, currentStreak, onDelete, onAddReward, onClaim
     <div style={{ ...msCard, borderColor: reached ? "#16a34a55" : "var(--border, #333)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div>
-          <span style={{ fontSize: "0.78rem", color: reached ? "#4ade80" : "var(--muted, #888)" }}>Day {milestone.dayNumber} {reached ? "✓" : ""}</span>
+          <span style={{ fontSize: "0.78rem", color: reached ? "#4ade80" : "#9ca3af" }}>Day {milestone.dayNumber} {reached ? "✓" : ""}</span>
           <p style={{ margin: "0.2rem 0 0", color: "var(--fg, #f0f0f0)", fontWeight: 500 }}>{milestone.title}</p>
         </div>
         <div style={{ display: "flex", gap: "0.4rem" }}>
@@ -219,8 +219,8 @@ function RewardRow({ reward, onClaim, onReceive, compact }) {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }}>
         <div>
           <span style={{ fontWeight: 600, color: "var(--fg, #f0f0f0)" }}>{reward.title}</span>
-          {reward.costValue && <span style={{ marginLeft: "0.5rem", fontSize: "0.8rem", color: "var(--muted, #888)" }}>₹{reward.costValue}</span>}
-          {reward.description && <p style={{ margin: "0.2rem 0 0", fontSize: "0.82rem", color: "var(--muted, #888)" }}>{reward.description}</p>}
+          {reward.costValue && <span style={{ marginLeft: "0.5rem", fontSize: "0.8rem", color: "#9ca3af" }}>₹{reward.costValue}</span>}
+          {reward.description && <p style={{ margin: "0.2rem 0 0", fontSize: "0.82rem", color: "#9ca3af" }}>{reward.description}</p>}
         </div>
         <div style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
           <span style={{ fontSize: "0.78rem", color: statusColor[reward.status] }}>{statusLabel[reward.status]}</span>
@@ -248,7 +248,7 @@ function Stat({ label, value, accent }) {
   return (
     <div style={{ textAlign: "center" }}>
       <div style={{ fontSize: "1.4rem", fontWeight: 700, color: accent ? "#f59e0b" : "var(--fg, #f0f0f0)" }}>{value}</div>
-      <div style={{ fontSize: "0.75rem", color: "var(--muted, #888)", marginTop: "0.2rem" }}>{label}</div>
+      <div style={{ fontSize: "0.75rem", color: "#9ca3af", marginTop: "0.2rem" }}>{label}</div>
     </div>
   );
 }
@@ -263,17 +263,17 @@ function getLast30Days() {
   return days;
 }
 
-const backBtn = { background: "none", border: "none", color: "var(--muted, #888)", cursor: "pointer", fontSize: "0.9rem", padding: "0 0 1rem", display: "block" };
+const backBtn = { background: "none", border: "none", color: "#9ca3af", cursor: "pointer", fontSize: "0.9rem", padding: "0 0 1rem", display: "block" };
 const headerCard = { background: "var(--card, #1a1a2e)", border: "1px solid var(--border, #333)", borderRadius: "1rem", padding: "1.5rem", marginTop: "0.5rem" };
-const catBadge = { fontSize: "0.78rem", color: "var(--muted, #888)", background: "var(--border, #222)", padding: "0.2rem 0.6rem", borderRadius: 99 };
+const catBadge = { fontSize: "0.78rem", color: "#9ca3af", background: "var(--border, #222)", padding: "0.2rem 0.6rem", borderRadius: 99 };
 const statsRow = { display: "flex", gap: "1.5rem", justifyContent: "flex-start", flexWrap: "wrap", marginTop: "1.25rem", paddingTop: "1.25rem", borderTop: "1px solid var(--border, #333)" };
 const logBtn = { padding: "0.55rem 1.1rem", borderRadius: "0.5rem", background: "var(--accent, #7c3aed)", color: "#fff", border: "none", cursor: "pointer", fontWeight: 600, fontSize: "0.9rem", whiteSpace: "nowrap" };
-const repeatBtn = { padding: "0.4rem 0.9rem", borderRadius: "0.5rem", background: "none", border: "1px solid var(--border, #444)", color: "var(--muted, #888)", cursor: "pointer", fontSize: "0.82rem", whiteSpace: "nowrap" };
-const smallBtn = { background: "none", border: "1px solid var(--border, #444)", color: "var(--muted, #888)", borderRadius: "0.4rem", cursor: "pointer", fontSize: "0.8rem", padding: "0.3rem 0.7rem" };
+const repeatBtn = { padding: "0.4rem 0.9rem", borderRadius: "0.5rem", background: "none", border: "1px solid var(--border, #444)", color: "#9ca3af", cursor: "pointer", fontSize: "0.82rem", whiteSpace: "nowrap" };
+const smallBtn = { background: "none", border: "1px solid var(--border, #444)", color: "#9ca3af", borderRadius: "0.4rem", cursor: "pointer", fontSize: "0.8rem", padding: "0.3rem 0.7rem" };
 const saveBtn = { padding: "0.5rem 1rem", borderRadius: "0.4rem", background: "var(--accent, #7c3aed)", color: "#fff", border: "none", cursor: "pointer", fontSize: "0.85rem", fontWeight: 600 };
-const tinyBtn = { background: "none", border: "1px solid var(--border, #444)", color: "var(--muted, #888)", borderRadius: "0.3rem", cursor: "pointer", fontSize: "0.75rem", padding: "0.2rem 0.5rem" };
+const tinyBtn = { background: "none", border: "1px solid var(--border, #444)", color: "#9ca3af", borderRadius: "0.3rem", cursor: "pointer", fontSize: "0.75rem", padding: "0.2rem 0.5rem" };
 const sInput = { padding: "0.5rem 0.75rem", borderRadius: "0.4rem", border: "1px solid var(--border, #444)", background: "var(--bg2, #111)", color: "var(--fg, #f0f0f0)", fontSize: "0.88rem", outline: "none", boxSizing: "border-box" };
-const empty = { color: "var(--muted, #888)", fontSize: "0.85rem", margin: 0 };
+const empty = { color: "#9ca3af", fontSize: "0.85rem", margin: 0 };
 const msCard = { border: "1px solid", borderRadius: "0.6rem", padding: "0.85rem 1rem", marginBottom: "0.6rem", background: "var(--bg2, #0d0d1a)" };
 const rewardCard = { border: "1px solid", borderRadius: "0.5rem", padding: "0.75rem 1rem", background: "var(--bg2, #0d0d1a)" };
 const actionBtn = { padding: "0.3rem 0.75rem", borderRadius: "0.35rem", background: "#f59e0b22", borderColor: "#f59e0b", border: "1px solid", color: "#f59e0b", cursor: "pointer", fontSize: "0.8rem", fontWeight: 600 };
