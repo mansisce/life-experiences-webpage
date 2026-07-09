@@ -30,6 +30,44 @@ function getGroq() {
 // ── In-memory session context (survives server restart only if you add Redis) ──
 const sessions = {};
 
+// ── Human takeover — durable in Neo4j since Vercel functions don't stay warm ────
+
+const ADMIN_COMMAND_RE = /^#(pause|resume)\s+(\+?\d{6,15})/i;
+
+function normalizePhone(p) {
+  return (p || "").replace(/\D/g, "");
+}
+
+async function isPaused(phone, neo4jDriver) {
+  if (!neo4jDriver) return false;
+  const s = neo4jDriver.session();
+  try {
+    const r = await s.run("MATCH (c:Conversation {phone: $phone}) RETURN c.paused AS paused", { phone });
+    return r.records[0]?.get("paused") === true;
+  } finally { s.close(); }
+}
+
+async function setPaused(phone, paused, neo4jDriver) {
+  const s = neo4jDriver.session();
+  try {
+    await s.run(
+      "MERGE (c:Conversation {phone: $phone}) SET c.paused = $paused, c.updatedAt = datetime()",
+      { phone, paused }
+    );
+  } finally { s.close(); }
+}
+
+async function handleAdminCommand(message, neo4jDriver) {
+  const match = message.trim().match(ADMIN_COMMAND_RE);
+  if (!match) return null;
+  const phone = normalizePhone(match[2]);
+  const paused = match[1].toLowerCase() === "pause";
+  await setPaused(phone, paused, neo4jDriver);
+  return paused
+    ? `🤖⏸ Bot paused for ${phone}. Reply to them directly in WhatsApp. Send *#resume ${phone}* when you're done.`
+    : `🤖▶️ Bot resumed for ${phone} — it'll auto-reply again.`;
+}
+
 // ── Intent detection ──────────────────────────────────────────────────────────
 
 const INTENT_PROMPT = `You are classifying a WhatsApp message from a Bangalore parent looking for weekend activities for their young child.
@@ -215,6 +253,19 @@ If asked what you can do, say: "Ask me *what's on this weekend?*, send an event 
 
 export async function handleWhatsAppMessage({ message, sessionId = "default", neo4jDriver }) {
   if (!message?.trim()) return { reply: "Hi! Ask me *what's on this weekend?* to get started 🎉" };
+
+  const senderPhone = normalizePhone(sessionId);
+  const ownerPhone = normalizePhone(process.env.OWNER_PHONE);
+
+  if (ownerPhone && senderPhone === ownerPhone) {
+    const adminReply = await handleAdminCommand(message, neo4jDriver);
+    if (adminReply) return { reply: adminReply, intent: "admin" };
+  }
+
+  if (await isPaused(senderPhone, neo4jDriver)) {
+    console.log(`[whatsapp] sessionId=${sessionId} paused — skipping auto-reply`);
+    return { reply: "", intent: "paused" };
+  }
 
   const ctx = sessions[sessionId] || {};
   sessions[sessionId] = ctx;

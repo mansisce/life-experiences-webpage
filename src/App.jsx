@@ -309,6 +309,26 @@ function ScrollButton({ target, children, variant = "primary" }) {
   );
 }
 
+const WHATSAPP_NUMBER = "919972014329";
+const WHATSAPP_PREFILL = "Hi! I'd like to see this weekend's picks for my kid 🎉";
+
+function WhatsAppButton() {
+  const href = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_PREFILL)}`;
+  return (
+    <a
+      className="whatsapp-fab"
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Chat with us on WhatsApp"
+    >
+      <svg viewBox="0 0 32 32" width="28" height="28" fill="currentColor" aria-hidden="true">
+        <path d="M16.02 3C9.4 3 4 8.4 4 15.02c0 2.25.62 4.35 1.7 6.15L4 29l7.98-1.65a12 12 0 0 0 4.04.7h.01c6.62 0 12.02-5.4 12.02-12.02C28.05 8.4 22.65 3 16.02 3zm0 21.8h-.01a9.8 9.8 0 0 1-4.99-1.37l-.36-.21-3.73.98 1-3.64-.24-.37a9.75 9.75 0 0 1-1.5-5.17c0-5.41 4.4-9.81 9.83-9.81 2.63 0 5.1 1.02 6.96 2.88a9.75 9.75 0 0 1 2.87 6.94c0 5.42-4.4 9.82-9.83 9.82zm5.38-7.35c-.29-.15-1.74-.86-2.01-.96-.27-.1-.47-.15-.66.15-.2.29-.76.96-.93 1.16-.17.19-.34.22-.63.07-.29-.15-1.23-.45-2.34-1.44-.87-.77-1.45-1.72-1.62-2.01-.17-.29-.02-.45.13-.6.13-.13.29-.34.44-.51.15-.17.19-.29.29-.49.1-.19.05-.36-.02-.51-.07-.15-.66-1.59-.9-2.18-.24-.57-.48-.49-.66-.5h-.56c-.19 0-.51.07-.78.36-.27.29-1.02 1-1.02 2.44s1.04 2.83 1.19 3.03c.15.19 2.05 3.13 4.96 4.39.69.3 1.23.48 1.65.61.69.22 1.32.19 1.82.11.55-.08 1.74-.71 1.99-1.4.24-.68.24-1.27.17-1.4-.07-.12-.26-.19-.55-.34z"/>
+      </svg>
+    </a>
+  );
+}
+
 function HomePage() {
   return (
     <main id="top">
@@ -5031,6 +5051,7 @@ function App() {
         <p>Built as a living page for Mansi Gupta.</p>
         <a href="#/">Back home</a>
       </footer>
+      <WhatsAppButton />
     </>
   );
 }

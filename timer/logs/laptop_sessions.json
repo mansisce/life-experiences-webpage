@@ -1,0 +1,1334 @@
+[
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-06-28T19:30:05.326150"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-06-28T19:35:06.142262"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-06-28T19:39:58.373460"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-06-28T19:40:06.451783"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-06-29T01:08:25.764439"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-06-29T07:45:16.957655"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-06-29T09:50:01.488779"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-06-29T09:50:17.602622"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-06-29T13:21:41.789450"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-06-29T13:21:45.871095"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-06-29T13:47:11.056129"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-06-29T13:52:13.275485"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-06-29T14:17:25.109946"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-06-29T14:45:02.215614"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-06-29T15:10:13.488106"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-06-29T15:15:14.802836"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-06-29T15:58:48.235089"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-06-29T15:58:55.294149"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-06-29T16:24:09.153182"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-06-29T16:29:11.100519"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-06-29T20:50:42.165441"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-06-29T20:55:43.395438"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-06-29T20:55:49.567088"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-06-29T21:00:50.822072"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-06-29T21:26:00.542243"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-06-29T21:31:02.008928"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-06-29T21:56:13.542528"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-06-29T22:01:14.914386"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-06-29T22:26:24.076345"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-06-30T07:27:51.819734"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-06-30T08:11:11.384428"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-06-30T08:16:12.568900"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-06-30T08:41:20.296602"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-06-30T09:20:49.442908"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-06-30T09:53:35.885444"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-06-30T10:47:07.340948"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-06-30T12:28:54.324682"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-06-30T12:33:56.849582"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-06-30T12:59:09.157078"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-06-30T13:09:30.708013"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-06-30T13:44:53.278454"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-06-30T13:49:56.390750"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-06-30T14:15:08.628329"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-06-30T14:20:10.939151"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-06-30T14:55:10.520257"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-06-30T15:00:12.873955"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-06-30T18:39:26.978040"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-06-30T18:39:30.106783"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-06-30T19:04:39.340807"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-06-30T20:39:47.203707"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-06-30T21:04:54.796888"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-06-30T21:05:52.099240"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-01T06:18:09.928473"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-01T06:18:14.971862"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-01T06:43:33.920672"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-01T06:48:37.914549"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-01T07:13:51.399064"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-01T07:18:54.020567"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-01T13:05:05.371695"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-01T13:05:08.427882"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-01T13:30:16.817516"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-01T13:35:20.049384"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-01T14:00:44.274874"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-01T14:36:12.673690"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-01T14:37:45.914358"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-01T14:37:47.975649"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-02T08:32:02.220874"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-02T09:41:17.992499"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-02T10:52:25.422087"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-02T10:52:30.523424"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-02T11:17:42.166345"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-02T11:22:43.644347"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-02T11:31:05.459886"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-02T11:31:11.500201"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-02T11:56:19.377676"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-02T12:01:20.997010"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-02T12:52:29.055857"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-02T12:57:30.839229"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-02T13:22:39.863820"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-02T13:27:41.245915"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-02T13:52:49.087770"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-02T13:59:35.991574"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-02T14:24:43.383909"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-02T14:29:45.322770"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-02T14:55:50.273583"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-02T16:20:23.726226"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-02T16:32:49.687254"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-02T16:32:53.868586"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-02T17:29:49.254675"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-02T17:34:51.052025"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-03T09:31:30.445588"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-03T09:33:21.346430"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-03T10:01:04.932894"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-03T10:06:09.693737"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-03T10:31:22.976427"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-03T10:36:24.888835"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-03T11:08:02.038612"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-03T11:13:04.684626"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-03T11:13:17.037319"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-03T11:18:19.851730"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-03T11:30:46.193314"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-03T11:30:55.630361"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-03T12:45:47.952830"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-03T12:45:56.156639"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-03T13:11:19.141828"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-03T13:16:20.208718"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-03T14:42:58.317389"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-03T14:48:03.229745"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-03T20:11:17.672816"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-03T20:16:19.756946"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-03T21:24:55.835514"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-03T21:25:02.132914"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-04T05:11:59.855348"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-04T05:17:04.734709"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-04T05:42:20.967494"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-04T05:47:24.141387"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-04T07:19:14.838543"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-04T07:19:34.541556"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-04T07:44:49.625257"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-04T07:49:52.557228"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-05T08:30:09.507891"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-05T08:35:11.876117"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-05T16:27:10.466990"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-05T16:27:15.619120"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-05T16:52:33.873137"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-05T16:57:37.525216"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-06T10:14:36.894042"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-06T10:14:41.934224"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-06T10:39:50.706331"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-06T10:44:33.247158"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-06T11:09:51.162215"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-06T11:14:55.553735"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-06T11:40:15.216848"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-06T11:45:17.848501"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-06T12:07:06.735620"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-06T12:12:12.392180"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-06T12:37:32.622012"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-06T12:42:35.341721"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-06T13:07:53.288309"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-06T13:44:11.148588"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-06T14:36:01.561511"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-06T14:41:03.699912"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-06T15:06:18.860539"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-06T15:11:22.586262"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-06T18:07:15.459112"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-06T18:12:17.211012"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-06T18:37:29.802215"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-06T18:42:32.415456"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-06T19:07:59.142749"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-06T19:13:03.964569"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-06T19:38:21.776430"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-06T19:43:24.244546"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-06T20:08:36.564208"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-06T20:13:38.829513"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-06T20:38:50.346885"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-06T20:43:53.630834"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-06T21:09:08.271211"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-06T21:14:11.095008"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-06T21:39:24.962161"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-06T21:44:28.499905"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-06T22:09:48.852595"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-06T22:14:51.488406"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-06T22:40:08.144707"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-06T22:45:10.530011"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-06T23:10:24.138326"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-06T23:15:27.872390"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-06T23:40:41.835924"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-06T23:45:44.529222"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-07T00:11:02.271806"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-07T00:16:04.690318"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-07T00:41:17.753928"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-07T00:46:20.023522"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-07T01:11:34.068900"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-07T01:16:36.967404"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-07T01:41:52.109656"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-07T01:46:54.565784"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-07T02:12:12.818845"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-07T02:17:22.937715"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-07T12:20:06.499583"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-07T12:25:09.755523"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-07T12:50:19.691169"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-07T12:55:21.547202"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-07T13:26:43.130282"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-07T13:40:26.531515"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-07T14:56:23.733313"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-07T15:01:27.111132"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-07T15:07:31.900480"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-07T15:07:36.057204"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-07T15:32:50.692107"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-07T15:37:06.573762"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-07T16:02:24.419589"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-07T16:07:28.122234"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-07T16:32:46.765162"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-07T16:37:51.657271"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-07T17:12:03.619046"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-07T17:17:05.494328"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-07T17:42:19.949491"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-07T17:47:22.554816"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-07T18:12:34.181111"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-07T18:17:37.348911"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-07T18:42:53.035629"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-07T20:00:04.344068"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-08T14:32:02.212609"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-08T14:32:05.368101"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-08T14:32:18.541058"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-08T14:32:21.709169"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-08T14:57:34.652197"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-08T15:02:36.533235"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-08T15:10:34.811656"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-08T15:10:42.765188"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-08T15:36:57.823651"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-08T15:42:03.567439"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-08T16:07:23.536007"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-08T16:12:25.319939"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-09T11:13:24.216849"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-09T11:13:38.599736"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-09T11:38:50.439153"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-09T11:43:54.653679"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-09T11:46:46.668634"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-09T11:46:49.718557"
+  },
+  {
+    "device": "laptop",
+    "phase": "focus",
+    "duration_seconds": 1500,
+    "completed_at": "2026-07-09T12:12:23.390565"
+  },
+  {
+    "device": "laptop",
+    "phase": "cooldown",
+    "duration_seconds": 300,
+    "completed_at": "2026-07-09T12:17:25.901607"
+  }
+]
