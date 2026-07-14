@@ -189,10 +189,12 @@
   let phase     = 'idle';  // idle | focus | cooldown
   let remaining = 0;
   let total     = 0;
+  let endTime   = 0;      // wall-clock ms when phase ends
   let running   = false;
   let cycle     = 0;
   let ticker    = null;
   let sessions  = [];
+  let swReg     = null;
 
   // ── DOM refs ──────────────────────────────────────────────────────────────
   const elCountdown  = document.getElementById('countdown');
@@ -246,19 +248,35 @@
     }
   }
 
+  // ── SW alarm helpers ──────────────────────────────────────────────────────
+  function scheduleSwAlarm(title, body, fireAt) {
+    if (swReg?.active) swReg.active.postMessage({ type: 'SCHEDULE_ALARM', title, body, fireAt });
+  }
+
+  function cancelSwAlarm() {
+    if (swReg?.active) swReg.active.postMessage({ type: 'CANCEL_ALARM' });
+  }
+
   // ── Timer core ────────────────────────────────────────────────────────────
   function startPhase(p) {
+    clearInterval(ticker);
     phase     = p;
     total     = p === 'focus' ? FOCUS_SEC : COOLDOWN_SEC;
     remaining = total;
+    endTime   = Date.now() + total * 1000;
     running   = true;
+
+    const alarmTitle = p === 'focus' ? 'Focus done! 🍅' : 'Break over! ☕️';
+    const alarmBody  = p === 'focus' ? 'Take a 5-minute break.' : 'Starting next focus session.';
+    scheduleSwAlarm(alarmTitle, alarmBody, endTime);
+
     updateUI();
-    ticker = setInterval(tick, 1000);
+    ticker = setInterval(tick, 500);
   }
 
   function tick() {
     if (!running) return;
-    remaining--;
+    remaining = Math.max(0, Math.ceil((endTime - Date.now()) / 1000));
     updateUI();
     if (remaining <= 0) {
       clearInterval(ticker);
@@ -267,13 +285,14 @@
   }
 
   function completePhase() {
+    cancelSwAlarm();
     logSession(phase, total);
     if (phase === 'focus') {
       cycle++;
       notify('Focus done! 🍅', 'Take a 5-minute break.');
       startPhase('cooldown');
     } else {
-      notify('Break over! ☕', 'Starting next focus session.');
+      notify('Break over! ☕️', 'Starting next focus session.');
       startPhase('focus');
     }
   }
@@ -283,16 +302,23 @@
       startPhase('focus');
     } else if (running) {
       running = false;
+      endTime = Date.now() + remaining * 1000;
+      cancelSwAlarm();
       elBtnMain.textContent = 'Resume';
     } else {
       running = true;
-      elBtnMain.textContent = 'Pause';
+      endTime = Date.now() + remaining * 1000;
+      const alarmTitle = phase === 'focus' ? 'Focus done! 🍅' : 'Break over! ☕️';
+      const alarmBody  = phase === 'focus' ? 'Take a 5-minute break.' : 'Starting next focus session.';
+      scheduleSwAlarm(alarmTitle, alarmBody, endTime);
+      ticker = setInterval(tick, 500);
     }
   }
 
   function stop() {
     clearInterval(ticker);
-    phase = 'idle'; running = false; remaining = 0; total = 0;
+    cancelSwAlarm();
+    phase = 'idle'; running = false; remaining = 0; total = 0; endTime = 0;
     updateUI();
   }
 
@@ -358,7 +384,9 @@
   checkNotifPermission();
 
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/timer/sw.js').catch(() => {});
+    navigator.serviceWorker.register('/timer/sw.js')
+      .then(reg => { swReg = reg; })
+      .catch(() => {});
   }
 </script>
 </body>
