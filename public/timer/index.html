@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pomodoro Timer</title>
+  <link rel="manifest" href="/timer/manifest.json" />
+  <meta name="theme-color" content="#1a1a2e" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Pomodoro" />
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2rem;
+      padding: 2rem;
+      user-select: none;
+    }
+
+    .phase-label {
+      font-size: 1.1rem;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: #888;
+      height: 1.5rem;
+    }
+
+    .phase-label.focus    { color: #e05c5c; }
+    .phase-label.cooldown { color: #5cb8e0; }
+
+    .ring {
+      position: relative;
+      width: min(72vw, 280px);
+      height: min(72vw, 280px);
+    }
+
+    .ring svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .ring-bg   { fill: none; stroke: #2a2a4a; stroke-width: 8; }
+    .ring-fill { fill: none; stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 1s linear, stroke 0.5s; }
+
+    .ring-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.25rem;
+    }
+
+    .countdown {
+      font-size: clamp(2.8rem, 14vw, 4.5rem);
+      font-weight: 200;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+    }
+
+    .cycle-count {
+      font-size: 0.85rem;
+      color: #555;
+    }
+
+    .controls {
+      display: flex;
+      gap: 1.2rem;
+      align-items: center;
+    }
+
+    button {
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      font-family: inherit;
+      border-radius: 100px;
+      transition: transform 0.1s, opacity 0.2s;
+    }
+
+    button:active { transform: scale(0.95); }
+
+    .btn-primary {
+      background: #e05c5c;
+      color: #fff;
+      padding: 0.85rem 2.4rem;
+      font-size: 1.05rem;
+      font-weight: 500;
+    }
+
+    .btn-primary.cooldown-phase { background: #5cb8e0; }
+
+    .btn-secondary {
+      background: #2a2a4a;
+      color: #aaa;
+      padding: 0.85rem 1.4rem;
+    }
+
+    button:disabled { opacity: 0.3; pointer-events: none; }
+
+    .notif-banner {
+      font-size: 0.8rem;
+      color: #666;
+      text-align: center;
+    }
+
+    .notif-banner a {
+      color: #e05c5c;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    #log {
+      width: 100%;
+      max-width: 340px;
+      max-height: 180px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+
+    .log-entry {
+      background: #16162a;
+      border-radius: 8px;
+      padding: 0.5rem 0.75rem;
+      font-size: 0.78rem;
+      color: #666;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .log-entry .badge {
+      font-size: 0.7rem;
+      padding: 0.1rem 0.5rem;
+      border-radius: 100px;
+      font-weight: 500;
+    }
+
+    .badge.focus    { background: #3a1a1a; color: #e05c5c; }
+    .badge.cooldown { background: #1a2a3a; color: #5cb8e0; }
+  </style>
+</head>
+<body>
+
+<div class="phase-label" id="phaseLabel">Ready</div>
+
+<div class="ring">
+  <svg viewBox="0 0 100 100">
+    <circle class="ring-bg" cx="50" cy="50" r="46" />
+    <circle class="ring-fill" id="ringFill" cx="50" cy="50" r="46"
+      stroke="#e05c5c"
+      stroke-dasharray="289"
+      stroke-dashoffset="289" />
+  </svg>
+  <div class="ring-center">
+    <div class="countdown" id="countdown">25:00</div>
+    <div class="cycle-count" id="cycleCount">cycle 0</div>
+  </div>
+</div>
+
+<div class="controls">
+  <button class="btn-secondary" id="btnStop" onclick="stop()" disabled>Stop</button>
+  <button class="btn-primary"   id="btnMain" onclick="toggleStartPause()">Start</button>
+  <button class="btn-secondary" id="btnSkip" onclick="skip()" disabled>Skip</button>
+</div>
+
+<div class="notif-banner" id="notifBanner"></div>
+
+<div id="log"></div>
+
+<script>
+  const FOCUS_SEC    = 25 * 60;
+  const COOLDOWN_SEC = 5  * 60;
+  const CIRCUMFERENCE = 2 * Math.PI * 46; // ≈ 289
+
+  let phase     = 'idle';  // idle | focus | cooldown
+  let remaining = 0;
+  let total     = 0;
+  let running   = false;
+  let cycle     = 0;
+  let ticker    = null;
+  let sessions  = [];
+
+  // ── DOM refs ──────────────────────────────────────────────────────────────
+  const elCountdown  = document.getElementById('countdown');
+  const elPhase      = document.getElementById('phaseLabel');
+  const elCycle      = document.getElementById('cycleCount');
+  const elRing       = document.getElementById('ringFill');
+  const elBtnMain    = document.getElementById('btnMain');
+  const elBtnStop    = document.getElementById('btnStop');
+  const elBtnSkip    = document.getElementById('btnSkip');
+  const elLog        = document.getElementById('log');
+  const elBanner     = document.getElementById('notifBanner');
+
+  // ── Notification permission ───────────────────────────────────────────────
+  function checkNotifPermission() {
+    if (!('Notification' in window)) return;
+    if (Notification.permission === 'default') {
+      elBanner.innerHTML = '<a onclick="requestNotif()">Enable notifications</a> for alarm alerts';
+    } else if (Notification.permission === 'denied') {
+      elBanner.textContent = 'Notifications blocked — enable in browser settings for alarms';
+    }
+  }
+
+  function requestNotif() {
+    Notification.requestPermission().then(checkNotifPermission);
+  }
+
+  // ── Sound (Web Audio, no file needed) ────────────────────────────────────
+  function playAlarm() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [0, 0.3, 0.6].forEach(delay => {
+        const osc  = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.type      = 'sine';
+        osc.frequency.value = 880;
+        gain.gain.setValueAtTime(0.4, ctx.currentTime + delay);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.4);
+        osc.start(ctx.currentTime + delay);
+        osc.stop(ctx.currentTime  + delay + 0.4);
+      });
+    } catch(e) { /* silently skip if audio blocked */ }
+  }
+
+  // ── Notify ────────────────────────────────────────────────────────────────
+  function notify(title, body) {
+    playAlarm();
+    if (Notification.permission === 'granted') {
+      new Notification(title, { body, icon: '/timer/icon-192.png', silent: true });
+    }
+  }
+
+  // ── Timer core ────────────────────────────────────────────────────────────
+  function startPhase(p) {
+    phase     = p;
+    total     = p === 'focus' ? FOCUS_SEC : COOLDOWN_SEC;
+    remaining = total;
+    running   = true;
+    updateUI();
+    ticker = setInterval(tick, 1000);
+  }
+
+  function tick() {
+    if (!running) return;
+    remaining--;
+    updateUI();
+    if (remaining <= 0) {
+      clearInterval(ticker);
+      completePhase();
+    }
+  }
+
+  function completePhase() {
+    logSession(phase, total);
+    if (phase === 'focus') {
+      cycle++;
+      notify('Focus done! 🍅', 'Take a 5-minute break.');
+      startPhase('cooldown');
+    } else {
+      notify('Break over! ☕', 'Starting next focus session.');
+      startPhase('focus');
+    }
+  }
+
+  function toggleStartPause() {
+    if (phase === 'idle') {
+      startPhase('focus');
+    } else if (running) {
+      running = false;
+      elBtnMain.textContent = 'Resume';
+    } else {
+      running = true;
+      elBtnMain.textContent = 'Pause';
+    }
+  }
+
+  function stop() {
+    clearInterval(ticker);
+    phase = 'idle'; running = false; remaining = 0; total = 0;
+    updateUI();
+  }
+
+  function skip() {
+    clearInterval(ticker);
+    completePhase();
+  }
+
+  // ── UI update ─────────────────────────────────────────────────────────────
+  function updateUI() {
+    const mins = String(Math.floor(remaining / 60)).padStart(2, '0');
+    const secs = String(remaining % 60).padStart(2, '0');
+    elCountdown.textContent = phase === 'idle' ? (FOCUS_SEC / 60 + ':00') : `${mins}:${secs}`;
+    elCycle.textContent     = `cycle ${cycle}`;
+
+    // ring
+    const progress = total > 0 ? (total - remaining) / total : 0;
+    elRing.style.strokeDashoffset = CIRCUMFERENCE * (1 - progress);
+    elRing.style.stroke = phase === 'cooldown' ? '#5cb8e0' : '#e05c5c';
+
+    // phase label
+    elPhase.className   = 'phase-label ' + (phase !== 'idle' ? phase : '');
+    elPhase.textContent = phase === 'idle' ? 'Ready' : phase === 'focus' ? 'Focus' : 'Break';
+
+    // buttons
+    elBtnStop.disabled = phase === 'idle';
+    elBtnSkip.disabled = phase === 'idle';
+    elBtnMain.textContent = phase === 'idle' ? 'Start' : running ? 'Pause' : 'Resume';
+    elBtnMain.className   = 'btn-primary' + (phase === 'cooldown' ? ' cooldown-phase' : '');
+
+    document.title = phase === 'idle' ? 'Pomodoro' : `${mins}:${secs} — ${phase === 'focus' ? '🍅' : '☕'}`;
+  }
+
+  // ── Session log ───────────────────────────────────────────────────────────
+  function logSession(p, dur) {
+    const entry = { phase: p, duration: dur, at: new Date().toISOString() };
+    sessions.push(entry);
+    try { localStorage.setItem('pomodoro_sessions', JSON.stringify(sessions)); } catch(e) {}
+    renderLog();
+  }
+
+  function renderLog() {
+    elLog.innerHTML = sessions.slice().reverse().map(s => {
+      const t = new Date(s.at);
+      const time = t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const label = s.phase === 'focus' ? '🍅 Focus' : '☕ Break';
+      const mins  = Math.round(s.duration / 60);
+      return `<div class="log-entry">
+        <span>${label} · ${mins} min</span>
+        <span class="badge ${s.phase}">${time}</span>
+      </div>`;
+    }).join('');
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
+  try {
+    const saved = localStorage.getItem('pomodoro_sessions');
+    if (saved) sessions = JSON.parse(saved);
+  } catch(e) {}
+
+  renderLog();
+  updateUI();
+  checkNotifPermission();
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/timer/sw.js').catch(() => {});
+  }
+</script>
+</body>
+</html>
