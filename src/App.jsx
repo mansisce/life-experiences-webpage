@@ -234,6 +234,49 @@ const aiLearning = [
   },
 ];
 
+const aiUpdates = [
+  {
+    title: "Attended an AI community event",
+    body: "Joined an in-person AI event to stay close to what practitioners are actually building — agents, integrations, and real deployment stories.",
+    link: "https://luma.com/1xg2bgfa",
+    linkLabel: "Event page",
+    date: "July 2026",
+  },
+  {
+    title: "Hands-on with DocuSign MCP servers",
+    body: "Got practical experience connecting to DocuSign's MCP servers — exploring how an AI agent can list envelopes, work with templates, and trigger agreement workflows through the Model Context Protocol instead of hand-written API glue.",
+    date: "July 2026",
+  },
+  {
+    title: "Panelist alongside industry leaders",
+    body: "Had the privilege of being part of a panel with Vijaya, IBM's Salesforce practice leader, and Amit, a Google staff engineer — discussing how enterprises are adopting AI agents in real workflows.",
+    date: "July 2026",
+  },
+];
+
+const aiConceptTickets = [
+  {
+    title: "MCP servers",
+    body: "Go deeper on the Model Context Protocol: how servers expose tools and resources, how clients discover them, auth patterns, and when to build a custom server versus using an existing one.",
+    status: "In progress",
+  },
+  {
+    title: "Microsoft agents",
+    body: "Explore Microsoft's agent stack — Copilot Studio and the Azure AI agent tooling — to understand how it compares with the agent patterns I already know from Bolna and MCP-based setups.",
+    status: "To explore",
+  },
+  {
+    title: "No-code / low-code AI",
+    body: "Map the no-code and low-code landscape for building agents and automations: what these platforms make easy, where they hit walls, and when to drop down to real code.",
+    status: "To explore",
+  },
+  {
+    title: "DocuSign developer console",
+    body: "Get comfortable in the DocuSign developer console: sandbox accounts, app keys, and how the console connects to the MCP server experiments I have already started.",
+    status: "In progress",
+  },
+];
+
 const bolnaNotes = [
   ["Agent purpose", "Describe what your Bolna agent helps users do and which workflow it automates."],
   ["Architecture", "Add the pieces here: voice input, transcription, intent handling, backend APIs, memory, and response generation."],
@@ -809,7 +852,10 @@ function AiLearningPage() {
         copy="A page for my AI notes, experiments, voice-agent learnings, prompt iterations, and the Bolna agent I have developed."
         actions={
           <>
-            <ScrollButton target="bolna-agent">
+            <ScrollButton target="ai-updates">
+              Latest updates
+            </ScrollButton>
+            <ScrollButton target="bolna-agent" variant="secondary">
               Bolna agent
             </ScrollButton>
             <ScrollButton target="ai-notes" variant="secondary">
@@ -818,6 +864,41 @@ function AiLearningPage() {
           </>
         }
       />
+
+      <section id="ai-updates" className="section">
+        <SectionHeading eyebrow="Latest updates" title="Recent AI learnings and moments" />
+        <div className="learning-grid">
+          {aiUpdates.map((item) => (
+            <article key={item.title}>
+              <h3>{item.title}</h3>
+              <p>{item.body}</p>
+              {item.link && (
+                <a className="text-link" href={item.link} target="_blank" rel="noreferrer">
+                  {item.linkLabel}
+                </a>
+              )}
+              <div className="project-tags" aria-label={`${item.title} date`}>
+                <span>{item.date}</span>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section id="concept-tickets" className="section band">
+        <SectionHeading eyebrow="Concept tickets" title="Concepts I am ticketing to learn next" />
+        <div className="learning-grid">
+          {aiConceptTickets.map((ticket) => (
+            <article key={ticket.title}>
+              <h3>{ticket.title}</h3>
+              <p>{ticket.body}</p>
+              <div className="project-tags" aria-label={`${ticket.title} status`}>
+                <span>{ticket.status}</span>
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
 
       <section id="ai-notes" className="section">
         <SectionHeading eyebrow="Learning map" title="What I am studying in AI" />
