@@ -106,7 +106,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "https://life-experiences-mansi.vercel.app/api/chat",
+        "url": "https://mansilly.vercel.app/api/chat",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
