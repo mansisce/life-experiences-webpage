@@ -1,0 +1,18 @@
+{
+    "version":  "1.0.0",
+    "name":  "@mansilly/personal-os",
+    "scripts":  {
+                    "dev":  "vite",
+                    "build":  "vite build"
+                },
+    "type":  "module",
+    "dependencies":  {
+                         "react":  "^19.2.0",
+                         "react-dom":  "^19.2.0"
+                     },
+    "devDependencies":  {
+                            "vite":  "^7.2.4",
+                            "@vitejs/plugin-react":  "^5.1.1",
+                            "@originjs/vite-plugin-federation":  "^1.2.0"
+                        }
+}

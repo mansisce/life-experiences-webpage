@@ -13,8 +13,10 @@ function getRoute() {
 }
 
 function App() {
-  useRenderTracker("App");
+  const { trackStateInit, trackElementReturn, trackEffectSetup, trackEffectCleanup } = useRenderTracker("App");
+  trackStateInit("route");
   const [route, setRoute] = useState(getRoute);
+  trackStateInit("page");
   const page = useMemo(() => {
     if (route === "/little-human") return <LittleHumanPage />;
     if (route === "/resume") return <ResumePage />;
@@ -26,13 +28,22 @@ function App() {
   useEffect(() => {
     const onHashChange = () => setRoute(getRoute());
     window.addEventListener("hashchange", onHashChange);
-    return () => window.removeEventListener("hashchange", onHashChange);
+    trackEffectSetup("hashchange listener");
+    return () => {
+      window.removeEventListener("hashchange", onHashChange);
+      trackEffectCleanup("hashchange listener");
+    };
   }, []);
 
   useEffect(() => {
+    trackEffectSetup("route scroll reset");
     window.scrollTo({ top: 0, behavior: "auto" });
+    return () => {
+      trackEffectCleanup("route scroll reset");
+    };
   }, [route]);
 
+  trackElementReturn();
   return (
     <>
       <Header route={route} />

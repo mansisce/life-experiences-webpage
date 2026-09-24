@@ -2,9 +2,11 @@ import { pageLinks, homeNavItems } from "../data";
 import { useRenderTracker } from "../hooks/useRenderTracker";
 
 export default function Header({ route }) {
-  useRenderTracker("Header");
+  const { trackStateInit, trackElementReturn } = useRenderTracker("Header");
+  trackStateInit("isHome");
   const isHome = route === "/";
 
+  trackElementReturn();
   return (
     <header className={`site-header ${isHome ? "" : "solid"}`}>
       <a className="brand" href="#/" aria-label="Mansi Gupta home">
