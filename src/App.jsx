@@ -6,6 +6,9 @@ import LittleHumanPage from "./pages/LittleHumanPage";
 import ResumePage from "./pages/ResumePage";
 import ReactLabPage from "./pages/ReactLabPage";
 import AiLearningPage from "./pages/AiLearningPage";
+import CuratorPage from "./pages/CuratorPage";
+import RewardsApp from "./rewards/RewardsApp.jsx";
+import WhatsAppButton from "./components/WhatsAppButton";
 
 function getRoute() {
   const route = window.location.hash.replace("#", "") || "/";
@@ -20,6 +23,8 @@ function App() {
     if (route === "/resume") return <ResumePage />;
     if (route === "/react") return <ReactLabPage />;
     if (route === "/ai") return <AiLearningPage />;
+    if (route === "/curator") return <CuratorPage />;
+    if (route === "/rewards") return <RewardsApp />;
     return <HomePage />;
   }, [route]);
 
@@ -41,6 +46,7 @@ function App() {
         <p>Built as a living page for Mansi Gupta.</p>
         <a href="#/">Back home</a>
       </footer>
+      <WhatsAppButton />
     </>
   );
 }

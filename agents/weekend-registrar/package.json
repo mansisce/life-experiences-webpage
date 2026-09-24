@@ -1,0 +1,17 @@
+{
+  "name": "weekend-registrar",
+  "version": "1.0.0",
+  "description": "Finds free kids events on Urbanaut this weekend and registers automatically",
+  "type": "module",
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "dry-run": "node index.js --dry-run"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.0",
+    "playwright": "^1.48.0"
+  }
+}

@@ -1,0 +1,313 @@
+{
+  "name": "Weekend Picks — WhatsApp Bot",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp-webhook",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-trigger",
+      "name": "WhatsApp Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "weekend-picks-wa"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false },
+          "conditions": [
+            {
+              "id": "verify-token",
+              "leftValue": "={{ $json.query['hub.mode'] }}",
+              "rightValue": "subscribe",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "is-verification",
+      "name": "Verification or Message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": { "responseCode": 200 }
+      },
+      "id": "verify-response",
+      "name": "Return Challenge",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 180]
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body;\nconst entry = body?.entry?.[0];\nconst change = entry?.changes?.[0];\nconst message = change?.value?.messages?.[0];\nif (!message) return [];\n\nconst from = message.from;\nconst type = message.type;\nlet text = '';\n\nif (type === 'text') {\n  text = message.text?.body || '';\n} else if (type === 'audio') {\n  // audio id — will be transcribed in next node\n  return [{ json: { from, type: 'audio', audioId: message.audio?.id, text: '' } }];\n} else if (type === 'image') {\n  text = `[Image received: ${message.image?.caption || 'no caption'}]`;\n} else {\n  text = `[${type} message]`;\n}\n\nreturn [{ json: { from, type, text } }];"
+      },
+      "id": "extract-message",
+      "name": "Extract Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 380]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "conditions": [
+            {
+              "id": "is-audio",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "audio",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "is-audio",
+      "name": "Audio message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 380]
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/v19.0/{{ $json.audioId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.WHATSAPP_TOKEN }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "get-audio-url",
+      "name": "Get Audio URL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 260]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.WHATSAPP_TOKEN }}" }
+          ]
+        },
+        "options": { "response": { "response": { "responseFormat": "file" } } }
+      },
+      "id": "download-audio",
+      "name": "Download Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 260]
+    },
+    {
+      "parameters": {
+        "resource": "audio",
+        "operation": "transcribe",
+        "binaryPropertyName": "data",
+        "options": { "language": "en" }
+      },
+      "id": "transcribe",
+      "name": "Transcribe Audio",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1.3,
+      "position": [1560, 260]
+    },
+    {
+      "parameters": {
+        "jsCode": "const text = $input.first().json.text || '';\nconst from = $('Extract Message').first().json.from;\nreturn [{ json: { from, text } }];"
+      },
+      "id": "merge-text",
+      "name": "Merge Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 420]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.BACKEND_URL }}/chat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"message\": \"{{ $json.text }}\",\n  \"sessionId\": \"{{ $json.from }}\",\n  \"from\": \"{{ $json.from }}\"\n}",
+        "options": {}
+      },
+      "id": "call-backend",
+      "name": "Call Weekend Picks API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 420]
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/v19.0/{{ $env.WHATSAPP_PHONE_ID }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.WHATSAPP_TOKEN }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $('Merge Text').first().json.from }}\",\n  \"type\": \"text\",\n  \"text\": { \"body\": \"{{ $json.reply }}\" }\n}",
+        "options": {}
+      },
+      "id": "send-reply",
+      "name": "Send WhatsApp Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 420]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"status\": \"ok\" }",
+        "options": { "responseCode": 200 }
+      },
+      "id": "ack-meta",
+      "name": "Ack Meta (200)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1780, 420]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "0 17 * * 5" }]
+        }
+      },
+      "id": "friday-cron",
+      "name": "Friday 5pm Reminder",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [240, 600]
+    },
+    {
+      "parameters": {
+        "url": "={{ $env.BACKEND_URL }}/chat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "Content-Type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"message\": \"my saved events\",\n  \"sessionId\": \"reminder-cron\"\n}",
+        "options": {}
+      },
+      "id": "reminder-fetch",
+      "name": "Fetch Saved Events",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 600]
+    },
+    {
+      "parameters": {
+        "url": "=https://graph.facebook.com/v19.0/{{ $env.WHATSAPP_PHONE_ID }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.WHATSAPP_TOKEN }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"messaging_product\": \"whatsapp\",\n  \"to\": \"{{ $env.OWNER_PHONE }}\",\n  \"type\": \"text\",\n  \"text\": { \"body\": \"🌟 *Weekend Picks Reminder*\\n\\n{{ $json.reply }}\" }\n}",
+        "options": {}
+      },
+      "id": "send-reminder",
+      "name": "Send Reminder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 600]
+    }
+  ],
+  "connections": {
+    "WhatsApp Webhook": {
+      "main": [[{ "node": "Verification or Message?", "type": "main", "index": 0 }]]
+    },
+    "Verification or Message?": {
+      "main": [
+        [{ "node": "Return Challenge", "type": "main", "index": 0 }],
+        [{ "node": "Extract Message", "type": "main", "index": 0 }]
+      ]
+    },
+    "Extract Message": {
+      "main": [[{ "node": "Audio message?", "type": "main", "index": 0 }]]
+    },
+    "Audio message?": {
+      "main": [
+        [{ "node": "Get Audio URL", "type": "main", "index": 0 }],
+        [{ "node": "Merge Text", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get Audio URL": {
+      "main": [[{ "node": "Download Audio", "type": "main", "index": 0 }]]
+    },
+    "Download Audio": {
+      "main": [[{ "node": "Transcribe Audio", "type": "main", "index": 0 }]]
+    },
+    "Transcribe Audio": {
+      "main": [[{ "node": "Merge Text", "type": "main", "index": 0 }]]
+    },
+    "Merge Text": {
+      "main": [[{ "node": "Call Weekend Picks API", "type": "main", "index": 0 }]]
+    },
+    "Call Weekend Picks API": {
+      "main": [[{ "node": "Send WhatsApp Reply", "type": "main", "index": 0 }]]
+    },
+    "Send WhatsApp Reply": {
+      "main": [[{ "node": "Ack Meta (200)", "type": "main", "index": 0 }]]
+    },
+    "Friday 5pm Reminder": {
+      "main": [[{ "node": "Fetch Saved Events", "type": "main", "index": 0 }]]
+    },
+    "Fetch Saved Events": {
+      "main": [[{ "node": "Send Reminder", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "meta": { "templateCredsSetupCompleted": true },
+  "pinData": {},
+  "versionId": "1",
+  "triggerCount": 2,
+  "_readme": {
+    "setup": [
+      "1. Import this JSON into n8n (New Workflow → ⋯ → Import from JSON)",
+      "2. Set these n8n environment variables (Settings → Variables):",
+      "   BACKEND_URL      = your public backend URL (e.g. https://your-api.railway.app)",
+      "   WHATSAPP_TOKEN   = your Meta permanent access token",
+      "   WHATSAPP_PHONE_ID = your WhatsApp Business phone number ID",
+      "   OWNER_PHONE      = your WhatsApp number in E.164 format (e.g. 919876543210)",
+      "3. Activate the workflow — copy the webhook URL",
+      "4. In Meta Developer Console → WhatsApp → Configuration:",
+      "   - Webhook URL: paste the n8n webhook URL",
+      "   - Verify token: any string (update the If node condition to match)",
+      "   - Subscribe to: messages",
+      "5. For voice message support, add OpenAI credentials in n8n"
+    ]
+  }
+}

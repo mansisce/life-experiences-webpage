@@ -1,0 +1,128 @@
+{
+  "name": "WhatsApp Bot — Simple",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "whatsapp",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook-get",
+      "name": "WhatsApp Verify",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 180]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook-post",
+      "name": "WhatsApp Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 360]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.challenge'] }}",
+        "options": { "responseCode": 200 }
+      },
+      "id": "node-verify-response",
+      "name": "Return Challenge",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [440, 180]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://mansilly.vercel.app/api/chat",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "message",
+              "value": "={{ $json.body.entry[0].changes[0].value.messages[0].text.body }}"
+            },
+            {
+              "name": "sessionId",
+              "value": "={{ $json.body.entry[0].changes[0].value.messages[0].from }}"
+            },
+            {
+              "name": "from",
+              "value": "={{ $json.body.entry[0].changes[0].value.messages[0].from }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-chat",
+      "name": "Call Chat API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 360]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v19.0/{{ $('WhatsApp Webhook').item.json.body.entry[0].changes[0].value.metadata.phone_number_id }}/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "Bearer PASTE_YOUR_TOKEN_HERE" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('WhatsApp Webhook').item.json.body.entry[0].changes[0].value.messages[0].from, type: 'text', text: { body: $json.reply } }) }}",
+        "options": {}
+      },
+      "id": "node-send",
+      "name": "Send WhatsApp Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 360]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "OK",
+        "options": { "responseCode": 200 }
+      },
+      "id": "node-ack",
+      "name": "Ack Meta",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 500]
+    }
+  ],
+  "connections": {
+    "WhatsApp Verify": {
+      "main": [[{ "node": "Return Challenge", "type": "main", "index": 0 }]]
+    },
+    "WhatsApp Webhook": {
+      "main": [[{ "node": "Call Chat API", "type": "main", "index": 0 }]]
+    },
+    "Call Chat API": {
+      "main": [[
+        { "node": "Send WhatsApp Reply", "type": "main", "index": 0 },
+        { "node": "Ack Meta", "type": "main", "index": 0 }
+      ]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

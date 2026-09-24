@@ -694,6 +694,27 @@ dd {
   margin: 0;
 }
 
+.whatsapp-fab {
+  position: fixed;
+  right: clamp(16px, 4vw, 28px);
+  bottom: clamp(16px, 4vw, 28px);
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #25d366;
+  color: var(--white);
+  box-shadow: var(--shadow);
+  transition: transform 0.15s ease;
+}
+
+.whatsapp-fab:hover {
+  transform: scale(1.08);
+}
+
 @media (max-width: 900px) {
   .nav {
     max-width: 290px;

@@ -2,6 +2,9 @@ import { useRenderTracker } from "../hooks/useRenderTracker";
 import PageHero from "../components/PageHero";
 import SectionHeading from "../components/SectionHeading";
 import ScrollButton from "../components/ScrollButton";
+import ExploreForHer from "../components/ExploreForHer";
+import WeekendPicks from "../components/WeekendPicks";
+import ChildCompass from "../components/ChildCompass";
 import { littleHumanRhythms, littleHumanQuestions } from "../data";
 
 export default function LittleHumanPage() {
@@ -15,9 +18,9 @@ export default function LittleHumanPage() {
         copy="This is the page for the work that does not always look like work: shaping her thoughts, language, confidence, routines, imagination, and the way she learns to move through the world."
         actions={
           <>
-            <ScrollButton target="rhythms">Daily rhythms</ScrollButton>
-            <ScrollButton target="questions" variant="secondary">
-              Reflection questions
+            <ScrollButton target="weekend-picks">Weekend picks</ScrollButton>
+            <ScrollButton target="explore" variant="secondary">
+              Explore for her
             </ScrollButton>
           </>
         }
@@ -96,6 +99,30 @@ export default function LittleHumanPage() {
             <li key={question}>{question}</li>
           ))}
         </ol>
+      </section>
+
+      <section id="explore" className="section">
+        <SectionHeading eyebrow="Bangalore · Urbanaut + BookMyShow" title="Explore for her" />
+        <p style={{ maxWidth: 560, margin: "0 auto 40px", textAlign: "center", color: "var(--muted)" }}>
+          Curated real-world experiences in Bangalore that build something in her — not just fill a weekend.
+        </p>
+        <ExploreForHer />
+      </section>
+
+      <section id="weekend-picks" className="section band">
+        <SectionHeading eyebrow="This weekend · Pedagogy-matched" title="Weekend picks for her" />
+        <p style={{ maxWidth: 560, margin: "0 auto 32px", textAlign: "center", color: "var(--muted)" }}>
+          Ranked by how well each event aligns with your school's philosophy and what she's responded to before. Free events can be registered directly.
+        </p>
+        <WeekendPicks />
+      </section>
+
+      <section id="child-compass" className="section band">
+        <SectionHeading eyebrow="School + age" title="Child Compass" />
+        <p style={{ maxWidth: 540, margin: "0 auto 32px", textAlign: "center", color: "var(--muted)" }}>
+          Enter your child's age and school philosophy to see what's unfolding in her world — and what a mom and dad each need to pay attention to this year.
+        </p>
+        <ChildCompass />
       </section>
     </main>
   );

@@ -1,0 +1,22 @@
+{
+  "parent": {
+    "name": "Mansi Gupta",
+    "email": "mansisce@gmail.com",
+    "phone": "",
+    "city": "Bangalore"
+  },
+  "child": {
+    "name": "",
+    "age": 5,
+    "school": "cfl"
+  },
+  "location": {
+    "pincode": "560102",
+    "neighbourhood": "Whitefield"
+  },
+  "preferences": {
+    "maxDistanceKm": 15,
+    "freeOnly": true,
+    "pedagogy": "cfl"
+  }
+}
