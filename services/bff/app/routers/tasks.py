@@ -49,6 +49,27 @@ async def list_tasks(
     return [to_task_out(t, stats[t.id]) for t in tasks]
 
 
+@router.get("/tasks", response_model=list[schemas.TaskWithArea])
+async def list_all_tasks(
+    session: SessionDep,
+    settings: SettingsDep,
+    now: NowDep,
+    status_: Annotated[schemas.TaskStatus | None, Query(alias="status")] = None,
+):
+    """All tasks across areas, grouped by area — used by the reward task picker."""
+    query = select(Task, Area).join(Area, Area.id == Task.area_id)
+    if status_:
+        query = query.where(Task.status == status_)
+    rows = (await session.execute(query.order_by(Area.category_id, Area.sort_order, PRIORITY_ORDER, Task.id))).all()
+    stats = await task_stats(session, [task for task, _ in rows], settings.tz, now.astimezone(settings.tz).date())
+    return [
+        schemas.TaskWithArea(
+            **to_task_out(task, stats[task.id]).model_dump(), area_name=area.name, category_id=area.category_id
+        )
+        for task, area in rows
+    ]
+
+
 @router.post("/areas/{area_id}/tasks", response_model=schemas.TaskOut, status_code=status.HTTP_201_CREATED)
 async def create_task(area_id: int, body: schemas.TaskCreate, session: SessionDep, settings: SettingsDep, now: NowDep):
     await get_or_404(session, Area, area_id)

@@ -7,7 +7,7 @@ import ResumePage from "./pages/ResumePage";
 import ReactLabPage from "./pages/ReactLabPage";
 import AiLearningPage from "./pages/AiLearningPage";
 import CuratorPage from "./pages/CuratorPage";
-import RewardsApp from "./rewards/RewardsApp.jsx";
+import RemoteRewards from "./components/RemoteRewards";
 import WhatsAppButton from "./components/WhatsAppButton";
 
 function getRoute() {
@@ -24,7 +24,8 @@ function App() {
     if (route === "/react") return <ReactLabPage />;
     if (route === "/ai") return <AiLearningPage />;
     if (route === "/curator") return <CuratorPage />;
-    if (route === "/rewards") return <RewardsApp />;
+    // The rewards microfrontend owns every route under /rewards (e.g. /rewards/a/12).
+    if (route === "/rewards" || route.startsWith("/rewards/")) return <RemoteRewards />;
     return <HomePage />;
   }, [route]);
 

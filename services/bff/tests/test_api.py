@@ -87,6 +87,9 @@ def test_create_filter_and_reprioritise_tasks(client):
     active = client.get(f"/areas/{kitchen}/tasks", params={"status": "active"}).json()
     assert [t["id"] for t in active] == [low["id"]]
 
+    all_active = client.get("/tasks", params={"status": "active"}).json()
+    assert [(t["id"], t["areaName"]) for t in all_active] == [(low["id"], "Kitchen")]
+
     assert client.patch(f"/tasks/{low['id']}", json={"priority": "urgent"}).status_code == 422
     assert client.patch(f"/tasks/{low['id']}", json={"priority": None}).status_code == 422
     assert client.get(f"/areas/{kitchen}").json()["activeTaskCount"] == 1

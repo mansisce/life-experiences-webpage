@@ -136,6 +136,13 @@ class AreaRef(ApiModel):
     category_id: str
 
 
+class TaskWithArea(TaskOut):
+    """Cross-area task list (e.g. the reward task picker) needs to say where each task lives."""
+
+    area_name: str
+    category_id: str
+
+
 class TaskDetail(TaskOut):
     """Task detail screen: the task plus the context that screen needs, in one round trip."""
 

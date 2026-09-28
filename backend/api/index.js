@@ -23,7 +23,6 @@ import { fetchLiveEvents, clearCache } from "./live-events.js";
 import { parseEventFromText } from "./parse-event.js";
 import { syncInstagramEvents, syncCustomAccounts } from "./ig-sync.js";
 import { handleWhatsAppMessage } from "./whatsapp-chat.js";
-import rewardsRouter from "./rewards.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const IG_STORE = path.join(__dirname, "data", "ig-events.json");
@@ -41,10 +40,6 @@ const driver = neo4j.driver(
 
 app.use(cors());
 app.use(express.json());
-
-// Attach neo4j driver to all reward routes
-app.use("/rewards", (req, _res, next) => { req.neo4j = driver; next(); });
-app.use("/rewards", rewardsRouter);
 
 // ─── Health ───────────────────────────────────────────────────────────────────
 

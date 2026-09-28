@@ -1,6 +1,9 @@
 import { pageLinks, homeNavItems } from "../data";
 import { useRenderTracker } from "../hooks/useRenderTracker";
 
+// A section stays highlighted on its sub-routes, e.g. /rewards/a/12 keeps "Rewards" active.
+const isActive = (route, path) => route === path || (path !== "/" && route.startsWith(`${path}/`));
+
 export default function Header({ route }) {
   useRenderTracker("Header");
   const isHome = route === "/";
@@ -12,7 +15,7 @@ export default function Header({ route }) {
       </a>
       <nav className="nav" aria-label="Primary navigation">
         {pageLinks.map(([label, href]) => (
-          <a className={route === href.replace("#", "") ? "active" : ""} key={href} href={href}>
+          <a className={isActive(route, href.replace("#", "")) ? "active" : ""} key={href} href={href}>
             {label}
           </a>
         ))}

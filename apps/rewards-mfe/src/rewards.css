@@ -1,0 +1,204 @@
+/* Rewards MFE — every rule is scoped under .rw-app so it can't leak into the host.
+   Colours reuse the host's tokens when present, with standalone fallbacks. */
+
+.rw-app {
+  --rw-ink: var(--ink, #18201c);
+  --rw-muted: var(--muted, #58635d);
+  --rw-paper: var(--paper, #fbfaf6);
+  --rw-card: #ffffff;
+  --rw-band: var(--band, #eef3ee);
+  --rw-line: var(--line, #d8ded5);
+  --rw-accent: var(--leaf, #2f6f58);
+  --rw-danger: var(--tomato, #b94c36);
+  --rw-warm: var(--turmeric, #d7a842);
+  --rw-blue: var(--blue, #315f86);
+  --rw-radius: 16px;
+  --rw-tap: 44px;
+
+  box-sizing: border-box;
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 16px 16px 96px;
+  color: var(--rw-ink);
+  font-family: inherit;
+  line-height: 1.5;
+  -webkit-tap-highlight-color: transparent;
+}
+.rw-app *, .rw-app *::before, .rw-app *::after { box-sizing: border-box; }
+.rw-app h2, .rw-app h3, .rw-app p { margin: 0; }
+.rw-app h2 { font-size: 1.5rem; line-height: 1.2; }
+.rw-app h3 { font-size: 1rem; }
+.rw-app a { color: inherit; }
+.rw-app :focus-visible { outline: 3px solid var(--rw-blue); outline-offset: 2px; }
+
+.rw-app .rw-sr-only {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+.rw-app .rw-muted { color: var(--rw-muted); }
+
+/* ── Tabs & headers ─────────────────────────────────────── */
+.rw-app .rw-tabs {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; margin-bottom: 20px;
+  background: var(--rw-band); border-radius: 999px;
+}
+.rw-app .rw-tabs a {
+  display: grid; place-items: center; min-height: var(--rw-tap); border-radius: 999px;
+  text-decoration: none; font-weight: 700; color: var(--rw-muted);
+}
+.rw-app .rw-tabs a[aria-current="page"] { background: var(--rw-card); color: var(--rw-ink); box-shadow: 0 1px 4px rgb(0 0 0 / 0.08); }
+
+.rw-app .rw-screen-header { margin-bottom: 16px; }
+.rw-app .rw-crumbs { display: flex; flex-wrap: wrap; gap: 4px 0; margin-bottom: 6px; font-size: 0.875rem; }
+.rw-app .rw-crumbs a { color: var(--rw-muted); text-decoration: none; padding: 6px 0; }
+.rw-app .rw-crumbs a::after { content: "›"; margin: 0 8px; }
+.rw-app .rw-screen-title { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.rw-app .rw-screen-title p { color: var(--rw-muted); margin-top: 4px; }
+.rw-app .rw-screen-title > .rw-btn { flex-shrink: 0; white-space: nowrap; }
+.rw-app .rw-section-head { display: flex; align-items: center; justify-content: space-between; margin: 24px 0 8px; }
+
+/* ── Tiles ───────────────────────────────────────────────── */
+.rw-app .rw-tiles { display: grid; gap: 12px; }
+.rw-app .rw-tile {
+  display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 14px; align-items: center;
+  padding: 18px; min-height: 88px; border-radius: var(--rw-radius); text-decoration: none;
+  background: var(--rw-card); border: 1px solid var(--rw-line);
+}
+.rw-app .rw-tile:active { transform: scale(0.98); }
+.rw-app .rw-tile-icon { grid-row: span 2; font-size: 2rem; width: 52px; height: 52px; display: grid; place-items: center; border-radius: 14px; background: var(--rw-band); }
+.rw-app .rw-tile strong { font-size: 1.1rem; }
+.rw-app .rw-tile small { color: var(--rw-muted); }
+.rw-app .rw-tile--career .rw-tile-icon { background: #e4ecf4; }
+.rw-app .rw-tile--household .rw-tile-icon { background: #e6f0ea; }
+.rw-app .rw-tile--fun .rw-tile-icon { background: #f8efd9; }
+
+/* ── Lists & rows ────────────────────────────────────────── */
+.rw-app .rw-list { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 8px; }
+.rw-app .rw-row {
+  display: flex; align-items: center; gap: 8px; padding: 6px 8px 6px 14px; min-height: 60px;
+  background: var(--rw-card); border: 1px solid var(--rw-line); border-radius: 12px;
+}
+.rw-app .rw-row-main { flex: 1; min-width: 0; display: grid; padding: 8px 0; text-decoration: none; }
+.rw-app .rw-row-main strong { overflow-wrap: anywhere; }
+.rw-app .rw-row-main small { color: var(--rw-muted); }
+.rw-app .rw-row-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.rw-app .rw-task--done .rw-row-main strong,
+.rw-app .rw-task--archived .rw-row-main strong { text-decoration: line-through; color: var(--rw-muted); }
+
+/* ── Cards & forms ───────────────────────────────────────── */
+.rw-app .rw-card { background: var(--rw-card); border: 1px solid var(--rw-line); border-radius: var(--rw-radius); padding: 16px; margin-bottom: 12px; }
+.rw-app .rw-form { display: grid; gap: 10px; }
+.rw-app .rw-inline-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.rw-app .rw-inline-form > input, .rw-app .rw-inline-form > select { flex: 1 1 180px; }
+.rw-app .rw-field-label { font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; color: var(--rw-muted); }
+
+.rw-app input:not([type="checkbox"]), .rw-app textarea, .rw-app .rw-select {
+  width: 100%; min-height: var(--rw-tap); padding: 10px 12px; font: inherit; font-size: 16px; /* 16px stops iOS zoom */
+  color: var(--rw-ink); background: var(--rw-paper); border: 1px solid var(--rw-line); border-radius: 10px;
+}
+.rw-app textarea { resize: vertical; }
+.rw-app .rw-row-actions .rw-select { width: auto; min-height: 36px; padding: 4px 8px; font-size: 14px; }
+.rw-app .rw-select--high { border-color: var(--rw-danger); }
+.rw-app .rw-number { display: flex; align-items: center; gap: 8px; font-weight: 700; }
+.rw-app .rw-number input { width: 96px; }
+
+.rw-app .rw-btn {
+  min-height: var(--rw-tap); padding: 0 16px; font: inherit; font-weight: 700; cursor: pointer;
+  color: var(--rw-ink); background: var(--rw-band); border: 1px solid transparent; border-radius: 10px;
+}
+.rw-app .rw-btn:disabled { opacity: 0.5; cursor: default; }
+.rw-app .rw-btn--primary { background: var(--rw-accent); color: #fff; }
+.rw-app .rw-btn--block { width: 100%; }
+.rw-app .rw-btn--done { width: var(--rw-tap); padding: 0; font-size: 1.2rem; background: #e6f0ea; color: var(--rw-accent); }
+.rw-app .rw-icon-btn { width: var(--rw-tap); height: var(--rw-tap); border: 0; border-radius: 10px; background: transparent; font-size: 1.1rem; cursor: pointer; }
+.rw-app .rw-icon-btn:hover { background: var(--rw-band); }
+.rw-app .rw-link-btn { justify-self: start; min-height: 36px; padding: 0; border: 0; background: none; font: inherit; font-weight: 700; color: var(--rw-blue); cursor: pointer; }
+
+.rw-app .rw-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.rw-app .rw-filters { display: grid; gap: 8px; margin-bottom: 12px; }
+.rw-app .rw-chips button {
+  min-height: 36px; padding: 0 14px; font: inherit; font-size: 0.9rem; cursor: pointer;
+  border: 1px solid var(--rw-line); border-radius: 999px; background: var(--rw-card); color: var(--rw-ink);
+}
+.rw-app .rw-chips button.is-on { background: var(--rw-ink); border-color: var(--rw-ink); color: #fff; }
+
+/* ── Badges, stats, progress ─────────────────────────────── */
+.rw-app .rw-badge { font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--rw-band); }
+.rw-app .rw-badge--high { background: #f6e0da; color: var(--rw-danger); }
+.rw-app .rw-streak { font-size: 0.9rem; font-weight: 700; white-space: nowrap; }
+.rw-app .rw-streak small { font-weight: 400; color: var(--rw-muted); }
+
+.rw-app .rw-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 0 0 12px; }
+.rw-app .rw-stats div { background: var(--rw-band); border-radius: 12px; padding: 12px; text-align: center; }
+.rw-app .rw-stats dt { font-size: 0.75rem; color: var(--rw-muted); }
+.rw-app .rw-stats dd { margin: 0; font-size: 1.5rem; font-weight: 800; }
+.rw-app .rw-notes { margin-bottom: 12px; color: var(--rw-muted); white-space: pre-wrap; }
+
+.rw-app .rw-progress { height: 10px; border-radius: 999px; background: var(--rw-band); overflow: hidden; margin: 8px 0 4px; }
+.rw-app .rw-progress span { display: block; height: 100%; background: var(--rw-accent); border-radius: inherit; transition: width 0.4s ease; }
+
+.rw-app .rw-status { font-size: 0.75rem; font-weight: 700; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: var(--rw-band); }
+.rw-app .rw-status--unlocked { background: #f8efd9; color: #8a6414; }
+.rw-app .rw-status--claimed { background: #e6f0ea; color: var(--rw-accent); }
+
+/* ── Rewards ─────────────────────────────────────────────── */
+.rw-app .rw-rewards { list-style: none; margin: 12px 0 0; padding: 0; }
+.rw-app .rw-reward { display: grid; gap: 6px; }
+.rw-app .rw-reward img { width: 100%; max-height: 180px; object-fit: cover; border-radius: 12px; }
+.rw-app .rw-reward--unlocked { border-color: var(--rw-warm); box-shadow: 0 0 0 2px #f8efd9; }
+.rw-app .rw-reward-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.rw-app .rw-rule { font-size: 0.9rem; }
+.rw-app .rw-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.rw-app .rw-tag { font-size: 0.85rem; padding: 4px 10px; border-radius: 999px; background: var(--rw-band); text-decoration: none; }
+.rw-app .rw-picker { display: grid; gap: 8px; max-height: 320px; overflow-y: auto; }
+.rw-app .rw-picker fieldset { margin: 0; padding: 8px 12px; border: 1px solid var(--rw-line); border-radius: 12px; }
+.rw-app .rw-picker legend { font-size: 0.8rem; font-weight: 700; color: var(--rw-muted); padding: 0 4px; }
+.rw-app .rw-check { display: flex; align-items: center; gap: 10px; min-height: 40px; cursor: pointer; }
+.rw-app .rw-check input { width: 20px; height: 20px; accent-color: var(--rw-accent); }
+.rw-app .rw-mini-list { list-style: none; padding: 0; margin: 8px 0 12px; display: grid; gap: 10px; }
+.rw-app .rw-mini-list li { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 0 8px; }
+.rw-app .rw-mini-list .rw-progress { grid-column: 1 / -1; }
+
+/* ── Activity timeline ───────────────────────────────────── */
+.rw-app .rw-timeline { list-style: none; margin: 0; padding: 0 0 0 16px; border-left: 2px solid var(--rw-line); }
+.rw-app .rw-timeline li { position: relative; padding: 0 0 14px 8px; }
+.rw-app .rw-timeline li::before {
+  content: ""; position: absolute; left: -23px; top: 6px; width: 12px; height: 12px; border-radius: 50%;
+  background: var(--rw-accent); border: 2px solid var(--rw-paper);
+}
+.rw-app .rw-timeline time { font-weight: 700; font-size: 0.9rem; }
+.rw-app .rw-timeline p { color: var(--rw-muted); }
+
+/* ── States & toasts ─────────────────────────────────────── */
+.rw-app .rw-state { display: grid; justify-items: center; gap: 10px; padding: 32px 16px; text-align: center; color: var(--rw-muted); }
+.rw-app .rw-state--empty { border: 1px dashed var(--rw-line); border-radius: var(--rw-radius); }
+.rw-app .rw-state--empty strong { color: var(--rw-ink); }
+.rw-app .rw-state--error { color: var(--rw-danger); }
+.rw-app .rw-spinner {
+  width: 24px; height: 24px; border-radius: 50%; border: 3px solid var(--rw-line); border-top-color: var(--rw-accent);
+  animation: rw-spin 0.8s linear infinite;
+}
+@keyframes rw-spin { to { transform: rotate(360deg); } }
+
+.rw-app .rw-toasts {
+  position: fixed; z-index: 50; left: 50%; bottom: max(16px, env(safe-area-inset-bottom)); transform: translateX(-50%);
+  display: grid; gap: 8px; width: min(calc(100% - 32px), 420px); pointer-events: none;
+}
+.rw-app .rw-toast {
+  pointer-events: auto; padding: 12px 16px; border: 0; border-radius: 12px; font: inherit; text-align: left; cursor: pointer;
+  background: var(--rw-ink); color: #fff; box-shadow: 0 8px 24px rgb(0 0 0 / 0.2); animation: rw-rise 0.2s ease-out;
+}
+.rw-app .rw-toast--error { background: var(--rw-danger); }
+.rw-app .rw-toast--celebrate { background: var(--rw-warm); color: var(--rw-ink); font-weight: 800; font-size: 1.05rem; }
+@keyframes rw-rise { from { transform: translateY(12px); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .rw-app *, .rw-app *::before { animation: none !important; transition: none !important; }
+}
+
+/* ── Wider screens ───────────────────────────────────────── */
+@media (min-width: 640px) {
+  .rw-app { padding-top: 24px; }
+  .rw-app .rw-tiles { grid-template-columns: repeat(3, 1fr); }
+  .rw-app .rw-tile { grid-template-columns: 1fr; grid-template-rows: auto; row-gap: 6px; min-height: 160px; align-content: start; }
+  .rw-app .rw-tile-icon { grid-row: auto; }
+}
