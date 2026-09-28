@@ -1,0 +1,144 @@
+"""Tasks, completions (activity log) and streaks."""
+
+from datetime import timedelta
+from typing import Annotated
+
+from fastapi import APIRouter, HTTPException, Query, status
+from sqlalchemy import case, select
+
+from .. import schemas
+from ..deps import NowDep, SessionDep, SettingsDep
+from ..models import Activity, Area, Reward, Task, reward_tasks
+from ..services import (
+    evaluate_unlocks,
+    get_or_404,
+    locked_rewards_for_task,
+    reward_progress_map,
+    rewards_out,
+    task_stats,
+    to_task_out,
+)
+
+router = APIRouter(tags=["tasks"])
+
+PRIORITY_ORDER = case({"high": 0, "medium": 1, "low": 2}, value=Task.priority, else_=3)
+
+
+@router.get("/areas/{area_id}/tasks", response_model=list[schemas.TaskOut])
+async def list_tasks(
+    area_id: int,
+    session: SessionDep,
+    settings: SettingsDep,
+    now: NowDep,
+    priority: schemas.Priority | None = None,
+    # Named `status_` so it doesn't shadow fastapi's `status` module; clients still send ?status=
+    status_: Annotated[schemas.TaskStatus | None, Query(alias="status")] = None,
+    relevance: schemas.Relevance | None = None,
+):
+    """Filter with ?priority=high&status=active&relevance=relevant. Sorted high -> low priority."""
+    await get_or_404(session, Area, area_id)
+    query = select(Task).where(Task.area_id == area_id)
+    if priority:
+        query = query.where(Task.priority == priority)
+    if status_:
+        query = query.where(Task.status == status_)
+    if relevance:
+        query = query.where(Task.relevance == relevance)
+    tasks = (await session.scalars(query.order_by(PRIORITY_ORDER, Task.created_at))).all()
+    stats = await task_stats(session, tasks, settings.tz, now.astimezone(settings.tz).date())
+    return [to_task_out(t, stats[t.id]) for t in tasks]
+
+
+@router.post("/areas/{area_id}/tasks", response_model=schemas.TaskOut, status_code=status.HTTP_201_CREATED)
+async def create_task(area_id: int, body: schemas.TaskCreate, session: SessionDep, settings: SettingsDep, now: NowDep):
+    await get_or_404(session, Area, area_id)
+    task = Task(area_id=area_id, source="manual", **body.model_dump())
+    task.title = task.title.strip()
+    session.add(task)
+    await session.commit()
+    stats = await task_stats(session, [task], settings.tz, now.astimezone(settings.tz).date())
+    return to_task_out(task, stats[task.id])
+
+
+@router.get("/tasks/{task_id}", response_model=schemas.TaskDetail)
+async def get_task(task_id: int, session: SessionDep, settings: SettingsDep, now: NowDep):
+    today = now.astimezone(settings.tz).date()
+    task = await get_or_404(session, Task, task_id)
+    area = await get_or_404(session, Area, task.area_id)
+    stats = await task_stats(session, [task], settings.tz, today)
+    rewards = (
+        await session.scalars(
+            select(Reward)
+            .join(reward_tasks, reward_tasks.c.reward_id == Reward.id)
+            .where(reward_tasks.c.task_id == task_id)
+            .order_by(Reward.created_at)
+        )
+    ).all()
+    progress, _ = await reward_progress_map(session, rewards, settings.tz, today)
+    return schemas.TaskDetail(
+        **to_task_out(task, stats[task.id]).model_dump(),
+        area=schemas.AreaRef(id=area.id, name=area.name, category_id=area.category_id),
+        rewards=[
+            schemas.RewardRef(id=r.id, title=r.title, status=r.status, progress_percent=progress[r.id].percent)
+            for r in rewards
+        ],
+    )
+
+
+@router.patch("/tasks/{task_id}", response_model=schemas.TaskOut)
+async def update_task(
+    task_id: int, body: schemas.TaskUpdate, session: SessionDep, settings: SettingsDep, now: NowDep
+):
+    task = await get_or_404(session, Task, task_id)
+    for field, value in body.model_dump(exclude_unset=True).items():
+        if value is None:
+            raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"{field} cannot be null")
+        setattr(task, field, value.strip() if field == "title" else value)
+    await session.commit()
+    stats = await task_stats(session, [task], settings.tz, now.astimezone(settings.tz).date())
+    return to_task_out(task, stats[task.id])
+
+
+@router.post(
+    "/tasks/{task_id}/complete", response_model=schemas.CompleteResponse, status_code=status.HTTP_201_CREATED
+)
+async def complete_task(
+    task_id: int, body: schemas.CompleteRequest, session: SessionDep, settings: SettingsDep, now: NowDep
+):
+    """Log a completion, recompute the streak and unlock any rewards whose rule is now met."""
+    task = await get_or_404(session, Task, task_id)
+    if task.status != "active":
+        raise HTTPException(status.HTTP_409_CONFLICT, f"Only active tasks can be completed (this one is {task.status})")
+
+    completed_at = body.completed_at or now
+    if completed_at.tzinfo is None:
+        completed_at = completed_at.replace(tzinfo=settings.tz)  # naive = user's local time
+    if completed_at > now + timedelta(minutes=1):
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "completedAt cannot be in the future")
+
+    activity = Activity(task_id=task.id, completed_at=completed_at, note=body.note.strip())
+    session.add(activity)
+    if task.frequency == "one_off":
+        task.status = "done"
+    await session.flush()  # make the new activity visible to the queries below, inside this transaction
+
+    unlocked = await evaluate_unlocks(session, await locked_rewards_for_task(session, task.id), settings.tz, now)
+    await session.commit()
+
+    today = now.astimezone(settings.tz).date()
+    stats = await task_stats(session, [task], settings.tz, today)
+    return schemas.CompleteResponse(
+        activity=schemas.ActivityOut.model_validate(activity),
+        task=to_task_out(task, stats[task.id]),
+        unlocked_rewards=await rewards_out(session, unlocked, settings.tz, today),
+    )
+
+
+@router.get("/tasks/{task_id}/activity", response_model=list[schemas.ActivityOut])
+async def list_activity(task_id: int, session: SessionDep):
+    """Newest first."""
+    await get_or_404(session, Task, task_id)
+    result = await session.scalars(
+        select(Activity).where(Activity.task_id == task_id).order_by(Activity.completed_at.desc(), Activity.id.desc())
+    )
+    return result.all()
