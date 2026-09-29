@@ -5,6 +5,7 @@ import { ErrorState, Loading, ScreenHeader, useAction } from "../components/ui.j
 import { TileForm } from "../components/tiles.jsx";
 import { EditTilesButton, StarterButton, TileManager } from "../components/manage.jsx";
 import { DetailsSearch } from "../components/details.jsx";
+import { rewardCounts } from "../components/rewards.jsx";
 
 function FirstTile({ onChanged }) {
   const { api, toast } = useRewards();
@@ -31,6 +32,7 @@ function FirstTile({ onChanged }) {
 export default function TilesScreen() {
   const { api, links } = useRewards();
   const categories = useResource(() => api.categories(), [api]);
+  const rewards = useResource(() => api.rewards(), [api]);
   const [editMode, setEditMode] = useState(false);
 
   if (categories.loading && categories.data === undefined) return <Loading label="Loading tiles…" />;
@@ -41,7 +43,7 @@ export default function TilesScreen() {
     <section>
       <ScreenHeader
         title="Rewards"
-        subtitle={tiles.length ? "Pick an area, do the work, earn the treat." : undefined}
+        subtitle={tiles.length ? "Pick a tile, then an area: its tasks, rewards and contacts are inside." : undefined}
         actions={tiles.length > 0 && <EditTilesButton editing={editMode} onToggle={() => setEditMode((on) => !on)} />}
       />
 
@@ -55,6 +57,7 @@ export default function TilesScreen() {
           <div className="rw-tiles">
             {tiles.map((c) => {
               const active = c.areas.reduce((sum, a) => sum + a.activeTaskCount, 0);
+              const tileRewards = rewardCounts((rewards.data ?? []).filter((r) => r.categoryId === c.id));
               return (
                 <a key={c.id} className="rw-tile" href={links.category(c.id)}>
                   <span className="rw-tile-icon" aria-hidden="true">
@@ -62,7 +65,8 @@ export default function TilesScreen() {
                   </span>
                   <strong>{c.name}</strong>
                   <small>
-                    {c.areas.length} areas · {active} active tasks
+                    {c.areas.length} area{c.areas.length === 1 ? "" : "s"} · {active} active task{active === 1 ? "" : "s"}
+                    {tileRewards && <span className="rw-tile-rewards">{tileRewards}</span>}
                   </small>
                 </a>
               );

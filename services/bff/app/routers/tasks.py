@@ -120,6 +120,13 @@ async def update_task(
     return to_task_out(task, stats[task.id])
 
 
+@router.delete("/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_task(task_id: int, session: SessionDep):
+    """Deletes the task with its completions and reward tags (ON DELETE CASCADE). Rewards themselves stay."""
+    await session.delete(await get_or_404(session, Task, task_id))
+    await session.commit()
+
+
 @router.post(
     "/tasks/{task_id}/complete", response_model=schemas.CompleteResponse, status_code=status.HTTP_201_CREATED
 )

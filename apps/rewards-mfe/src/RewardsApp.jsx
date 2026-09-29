@@ -8,7 +8,10 @@ import TilesScreen from "./screens/TilesScreen.jsx";
 import CategoryScreen from "./screens/CategoryScreen.jsx";
 import AreaScreen from "./screens/AreaScreen.jsx";
 import TaskScreen from "./screens/TaskScreen.jsx";
-import RewardsScreen from "./screens/RewardsScreen.jsx";
+import RewardScreen from "./screens/RewardScreen.jsx";
+import RewardsListScreen from "./screens/RewardsListScreen.jsx";
+import TasksListScreen from "./screens/TasksListScreen.jsx";
+import LinkScreen from "./screens/LinkScreen.jsx";
 
 const DEFAULT_BFF_URL = import.meta.env.VITE_BFF_URL || "http://localhost:8000";
 const DEFAULT_TOKEN = import.meta.env.VITE_BFF_TOKEN || "demo-token";
@@ -49,15 +52,19 @@ class ScreenBoundary extends Component {
 function Screen({ route }) {
   switch (route.name) {
     case "category":
-      return <CategoryScreen key={route.param} categoryId={route.param} tab={route.tab} />;
+      return <CategoryScreen key={route.param} categoryId={route.param} tab={route.tab} query={route.query} />;
     case "area":
-      return <AreaScreen key={route.param} areaId={Number(route.param)} tab={route.tab} />;
+      return <AreaScreen key={route.param} areaId={Number(route.param)} tab={route.tab} query={route.query} />;
     case "task":
       return <TaskScreen key={route.param} taskId={Number(route.param)} />;
-    case "rewards":
-    case "rewardsTile":
-    case "rewardsArea":
-      return <RewardsScreen key={`${route.name}/${route.param}/${route.query}`} view={route.name} param={route.param} query={route.query} />;
+    case "reward":
+      return <RewardScreen key={route.param} rewardId={Number(route.param)} />;
+    case "tasksList":
+      return <TasksListScreen />;
+    case "rewardsList":
+      return <RewardsListScreen />;
+    case "link":
+      return <LinkScreen key={route.query} query={route.query} />;
     default:
       return <TilesScreen />;
   }
@@ -90,20 +97,23 @@ export default function RewardsApp({ apiBaseUrl = DEFAULT_BFF_URL, token = DEFAU
   );
 
   const context = useMemo(() => ({ api, links, toast, celebrate }), [api, links, toast, celebrate]);
-  const onRewards = route.name.startsWith("rewards");
 
   return (
     <RewardsContext.Provider value={context}>
       <div className="rw-app">
         <nav className="rw-tabs" aria-label="Rewards sections">
-          <a href={links.tiles()} aria-current={!onRewards ? "page" : undefined}>
-            Areas
-          </a>
-          <a href={links.rewards()} aria-current={onRewards ? "page" : undefined}>
-            Rewards
-          </a>
+          {[
+            ["Tiles", links.tiles(), !["tasksList", "rewardsList", "link", "reward"].includes(route.name)],
+            ["Tasks", links.tasksList(), route.name === "tasksList"],
+            ["Rewards", links.rewardsList(), route.name === "rewardsList" || route.name === "reward"],
+            ["Link", links.link(), route.name === "link"],
+          ].map(([text, href, current]) => (
+            <a key={text} href={href} aria-current={current ? "page" : undefined}>
+              {text}
+            </a>
+          ))}
         </nav>
-        <ScreenBoundary resetKey={`${route.name}/${route.param}`}>
+        <ScreenBoundary resetKey={`${route.name}/${route.param}/${route.tab}`}>
           <Screen route={route} />
         </ScreenBoundary>
         <Toasts items={toasts} onDismiss={dismiss} />

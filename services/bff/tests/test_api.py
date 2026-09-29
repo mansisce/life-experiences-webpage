@@ -128,6 +128,25 @@ def test_completion_rules(client, clock):
     assert client.get(f"/tasks/{daily['id']}").json()["currentStreak"] == 0
 
 
+def test_edit_and_delete_task(client):
+    kitchen = area_id(client, "household", "Kitchen")
+    task = make_task(client, kitchen, title="Wipe counters")
+    edited = client.patch(f"/tasks/{task['id']}", json={"title": "  Wipe all counters ", "notes": "Use the blue cloth"}).json()
+    assert (edited["title"], edited["notes"]) == ("Wipe all counters", "Use the blue cloth")
+
+    complete(client, task["id"])
+    reward = client.post(
+        "/rewards",
+        json={"title": "Treat", "ruleType": "completions", "threshold": 5,
+              "taskIds": [task["id"]]},
+    ).json()
+    assert client.delete(f"/tasks/{task['id']}").status_code == 204
+    assert client.get(f"/tasks/{task['id']}").status_code == 404
+    assert client.delete(f"/tasks/{task['id']}").status_code == 404
+    [kept] = client.get("/rewards").json()  # the reward stays, just untagged
+    assert kept["id"] == reward["id"] and kept["tasks"] == []
+
+
 # ── Rewards ─────────────────────────────────────────────────────────────────────
 
 
@@ -138,7 +157,7 @@ def test_reward_unlocks_on_completion_count_then_claim(client):
     complete(client, task["id"])
 
     reward = client.post(
-        "/rewards", json={"title": "Coffee out", "ruleType": "completions", "threshold": 3, "categoryId": "household"}
+        "/rewards", json={"title": "Coffee out", "ruleType": "completions", "threshold": 3}
     ).json()
     assert reward["status"] == "locked" and reward["progress"]["current"] == 0
 
@@ -183,7 +202,6 @@ def test_streak_reward_uses_best_current_streak_across_tasks(client):
             "title": "New brushes",
             "ruleType": "streak",
             "threshold": 3,
-            "categoryId": "fun",
             "taskIds": [a["id"], b["id"]],
         },
     ).json()
@@ -196,15 +214,15 @@ def test_reward_already_met_unlocks_on_create_and_rejects_unknown_tasks(client):
     complete(client, task["id"])
     reward = client.post(
         "/rewards",
-        json={"title": "Movie", "ruleType": "completions", "threshold": 1, "categoryId": "fun", "taskIds": [task["id"]]},
+        json={"title": "Movie", "ruleType": "completions", "threshold": 1, "taskIds": [task["id"]]},
     ).json()
     assert reward["status"] == "unlocked"
 
     bad = client.post(
-        "/rewards", json={"title": "X", "ruleType": "completions", "threshold": 1, "categoryId": "fun", "taskIds": [999]}
+        "/rewards", json={"title": "X", "ruleType": "completions", "threshold": 1, "taskIds": [999]}
     )
     assert bad.status_code == 422
-    points = {"title": "X", "ruleType": "points", "threshold": 1, "categoryId": "fun"}
+    points = {"title": "X", "ruleType": "points", "threshold": 1}
     assert client.post("/rewards", json=points).status_code == 422
 
 
@@ -219,7 +237,7 @@ def test_dashboard_summary_is_flat_snake_case(client):
     complete(client, task["id"], days_ago=40)
     client.post(
         "/rewards",
-        json={"title": "Treat", "ruleType": "streak", "threshold": 5, "categoryId": "household", "taskIds": [task["id"]]},
+        json={"title": "Treat", "ruleType": "streak", "threshold": 5, "taskIds": [task["id"]]},
     )
 
     summary = client.get("/dashboard/summary").json()

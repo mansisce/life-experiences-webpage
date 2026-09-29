@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useRewards } from "../context.js";
 import { useResource } from "../lib/useResource.js";
 import DetailsPanel from "../components/details.jsx";
-import { scopeLabel } from "../components/rewardScope.js";
+import { AreaRewardsPanel } from "../components/rewards.jsx";
 import {
   Chips,
   Empty,
@@ -12,7 +12,6 @@ import {
   Loading,
   PRIORITIES,
   PriorityBadge,
-  ProgressBar,
   RELEVANCE,
   Resource,
   ScreenHeader,
@@ -114,43 +113,6 @@ function TaskRow({ task, onChanged }) {
   );
 }
 
-/** LLR-4.14: locked or unlocked rewards scoped to this area or its whole tile. */
-function AreaRewards({ area, reloadKey }) {
-  const { api, links } = useRewards();
-  const rewards = useResource(() => api.areaRewards(area.id), [api, area.id, reloadKey]);
-  const newHere = links.rewards({ tile: area.category.id, area: area.id, new: 1 });
-  if (rewards.error && rewards.data === undefined) return <ErrorState error={rewards.error} onRetry={rewards.reload} />;
-  if (rewards.data === undefined) return null;
-  return (
-    <div className="rw-card rw-area-rewards">
-      <div className="rw-reward-head">
-        <h3>Rewards you can earn here</h3>
-        <a className="rw-link-btn" href={newHere}>
-          + Reward
-        </a>
-      </div>
-      {rewards.data.length === 0 ? (
-        <p className="rw-muted">
-          None yet. <a href={newHere}>Add a reward for {area.name}</a> or for all of {area.category.name}.
-        </p>
-      ) : (
-        <ul className="rw-mini-list">
-          {rewards.data.map((r) => (
-            <li key={r.id}>
-              <a href={links.rewards(r.areaId ? { area: r.areaId } : { tile: r.categoryId })}>
-                {r.title}
-                <small className="rw-muted"> · {r.areaId ? "this area" : `all of ${scopeLabel(r)}`}</small>
-              </a>
-              <span className={`rw-status rw-status--${r.status}`}>{r.status}</span>
-              <ProgressBar percent={r.progress.percent} label={`${r.title} progress`} />
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
-  );
-}
-
 function TaskList({ areaId, filters, reloadKey, onCompleted }) {
   const { api } = useRewards();
   const tasks = useResource(() => api.areaTasks(areaId, filters), [api, areaId, filters.priority, filters.status, filters.relevance, reloadKey]);
@@ -170,12 +132,11 @@ function TaskList({ areaId, filters, reloadKey, onCompleted }) {
   );
 }
 
-export default function AreaScreen({ areaId, tab = "main" }) {
+export default function AreaScreen({ areaId, tab = "main", query = "" }) {
   const { api, links } = useRewards();
   const area = useResource(() => api.area(areaId), [api, areaId]);
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [reloadKey, setReloadKey] = useState(0);
-  const [rewardsKey, setRewardsKey] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
   const setFilter = (field) => (value) => setFilters((f) => ({ ...f, [field]: value }));
 
@@ -194,17 +155,19 @@ export default function AreaScreen({ areaId, tab = "main" }) {
           <SubTabs
             label={`${a.name} sections`}
             tabs={[
-              ["Tasks", links.area(areaId), tab !== "details"],
+              ["Tasks", links.area(areaId), tab === "main"],
+              ["Rewards", links.areaRewards(areaId), tab === "rewards"],
               ["Notes & contacts", links.areaDetails(areaId), tab === "details"],
             ]}
           />
           {tab === "details" ? (
             <DetailsPanel ownerType="area" ownerId={areaId} />
+          ) : tab === "rewards" ? (
+            <AreaRewardsPanel area={a} openForm={new URLSearchParams(query).get("new") === "1"} />
           ) : (
           <>
           {/* Phase 4: photo upload + AI suggestions panel goes here, running in parallel with the manual form. */}
-          <AreaRewards area={a} reloadKey={rewardsKey} />
-          <AddTaskForm areaId={areaId} onCreated={() => (setReloadKey((k) => k + 1), setRewardsKey((k) => k + 1), area.refresh())} />
+          <AddTaskForm areaId={areaId} onCreated={() => (setReloadKey((k) => k + 1), area.refresh())} />
 
           <div className="rw-section-head">
             <h3>Tasks</h3>
@@ -219,7 +182,7 @@ export default function AreaScreen({ areaId, tab = "main" }) {
               <Chips label="Filter by relevance" options={RELEVANCE} value={filters.relevance} onChange={setFilter("relevance")} allowNone />
             </div>
           )}
-          <TaskList areaId={areaId} filters={filters} reloadKey={reloadKey} onCompleted={() => setRewardsKey((k) => k + 1)} />
+          <TaskList areaId={areaId} filters={filters} reloadKey={reloadKey} onCompleted={area.refresh} />
           </>
           )}
         </section>

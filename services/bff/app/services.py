@@ -206,8 +206,8 @@ async def rewards_out(
     )
     out = []
     for r in rewards:
-        category = categories.get(r.category_id)
         progress = tasks.progress[r.id]
+        category = categories.get(r.category_id)
         out.append(
             schemas.RewardOut(
                 id=r.id,
@@ -223,7 +223,7 @@ async def rewards_out(
                 area_id=r.area_id,
                 area_name=area_names.get(r.area_id),
                 match_mode=r.match_mode,
-                needs_tile=r.category_id is None,
+                connected=(r.match_mode == "all" and r.category_id is not None) or bool(tasks.tagged.get(r.id)),
                 progress=schemas.ProgressOut(current=progress.current, target=progress.target, percent=progress.percent),
                 tasks=[schemas.TaskRef(id=t.id, title=t.title, area_id=t.area_id) for t in tasks.tagged.get(r.id, [])],
                 matched_task_count=len(tasks.matched[r.id]),

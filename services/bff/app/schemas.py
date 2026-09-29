@@ -194,14 +194,15 @@ class TaskDetail(TaskOut):
 
 
 class RewardCreate(ApiModel):
+    """A title is enough. It can belong to an area (for organising only); tasks are linked separately
+    on the Link screen, and any task can be linked to any reward."""
+
     title: str = Title
     description: str = Field(default="", max_length=2000)
     image_url: str | None = Field(default=None, max_length=500)
-    rule_type: RuleType
-    threshold: int = Field(ge=1, le=365)
-    category_id: str  # every new reward has a tile (LLR-4.9)
-    area_id: int | None = None  # None = the whole tile
-    match_mode: MatchMode = "selected"
+    area_id: int | None = None  # optional home area; its tile comes from the area
+    rule_type: RuleType = "completions"  # task count: linked tasks done N times in total
+    threshold: int = Field(default=5, ge=1, le=365)
     task_ids: list[int] = []
 
 
@@ -211,12 +212,7 @@ class RewardUpdate(ApiModel):
     image_url: str | None = Field(default=None, max_length=500)
     rule_type: RuleType | None = None
     threshold: int | None = Field(default=None, ge=1, le=365)
-    # Scope and match mode change only while locked (LLR-4.16). Send areaId: null for the whole tile.
-    category_id: str | None = None
-    area_id: int | None = None
-    match_mode: MatchMode | None = None
-    # Narrowing the scope untags tasks outside it; the first attempt answers 409 listing them.
-    untag_outside: bool = False
+    area_id: int | None = None  # move to another area, or null for no area; links are unaffected
     # Only "claimed" can be set by a client; locked -> unlocked happens on task completion.
     status: Literal["claimed"] | None = None
 
@@ -245,15 +241,16 @@ class RewardOut(ApiModel):
     rule_type: RuleType
     threshold: int
     status: RewardStatus
+    # Where the reward is kept (optional; organising only, linking isn't limited by it).
     category_id: str | None
     category_name: str | None
     category_icon: str | None
     area_id: int | None
     area_name: str | None
-    match_mode: MatchMode
-    needs_tile: bool  # migrated without a clear tile; pick one before editing (BR-R16)
+    match_mode: MatchMode  # "all" only on older rewards that counted every task of an area
+    connected: bool  # has linked tasks (or, for older rewards, "all tasks in the area")
     progress: ProgressOut
-    tasks: list[TaskRef]  # tagged tasks (kept, but ignored for progress, in "all" mode)
+    tasks: list[TaskRef]  # linked tasks
     matched_task_count: int  # tasks that count towards progress
     unlocked_at: datetime | None
     claimed_at: datetime | None

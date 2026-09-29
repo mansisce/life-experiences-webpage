@@ -130,6 +130,7 @@ Conventions: **LLR** = detailed functional requirement · **BR-R** = business ru
 | LLR-2.7 | An empty list says "No tasks yet" with the default filter and "No tasks match these filters" otherwise | 🟡 |
 | LLR-2.8 | Null values in updates are rejected (422); unknown enum values are rejected (422) | ✅ |
 | LLR-2.9 | A cross-area list of active tasks, grouped by area, is available for the reward task picker | ✅ |
+| LLR-2.10 | **Edit a task** from task detail (✎): title and notes. **Delete a task** (🗑) after a confirmation that names its completion count; its completions and reward tags go with it, the rewards themselves stay (`DELETE /tasks/{id}`) | ✅ |
 
 **AC-2.3**
 - *Given* a low-priority task created before a high-priority one *when* the list loads *then* the high one is first.
@@ -142,7 +143,7 @@ Conventions: **LLR** = detailed functional requirement · **BR-R** = business ru
 | ID | Requirement | Status |
 |---|---|---|
 | LLR-3.1 | Complete an **active** task, optionally with a note (≤ 1000) and a time (`completedAt`). If no time is given, the time is now | ✅ |
-| LLR-3.2 | The UI offers *Now*, *Yesterday* and *2 days ago* (same time of day) | 🟡 |
+| LLR-3.2 | Logging uses a **month calendar**: days the task was done are marked (with a count when more than once), today is outlined, future days are disabled, and ‹ › move between months. Tap a day, adjust the time (defaults to now), add an optional note and log. A time later than now is clamped to now | 🟡 |
 | LLR-3.3 | A completion more than 1 minute in the future is rejected (422) | ✅ |
 | LLR-3.4 | Completing a **one-off** task sets it to done. Further completions are rejected (409) | ✅ |
 | LLR-3.5 | Completing a done or archived task is rejected with a message naming its status (409) | ✅ |
@@ -180,19 +181,19 @@ Conventions: **LLR** = detailed functional requirement · **BR-R** = business ru
 | LLR-4.7 | When a completion unlocks a reward, the completion response includes it and the UI shows a celebration toast | ✅ |
 | LLR-4.8 | Editing a reward's tasks is only offered while it's locked | 🟡 |
 
-#### Reward scope and matching (HLR-9) ✅
+#### Rewards, areas and links (HLR-9, revised 2026-09-30) ✅
 
 | ID | Requirement | Status |
 |---|---|---|
-| LLR-4.9 | Every reward has a **scope** from the same taxonomy as tasks: a **tile** (required: Career/Office/Work, Household or Fun) and optionally one **area** of that tile (e.g. Household › Kitchen). Creating a reward without a tile is rejected (422); an area from another tile is rejected (422) | ✅ |
-| LLR-4.10 | Every reward has a **match mode**: *Selected tasks* (default; the user tags specific tasks) or *All tasks in scope* (every non-archived task in the scope counts automatically, including tasks created later) | ✅ |
-| LLR-4.11 | In *Selected tasks* mode, only tasks **inside the reward's scope** can be tagged. Tagging a task outside it is rejected (422) with a message naming the task and the scope | ✅ |
-| LLR-4.12 | The reward form picks tile, then area (optional, "Whole tile" default), then match mode. The task picker lists **only tasks in that scope**, grouped by area | ✅ |
-| LLR-4.13 | Each reward card shows its scope as a breadcrumb (e.g. "Household › Kitchen" or "Fun") and its match mode. The Rewards tab is navigated **like the Areas tab**: tile cards (with active / to-claim / claimed counts) → a tile (its whole-tile rewards, then one row per area) → an area (its rewards, plus whole-tile rewards that also count there). Each level filters by status and has **+ New reward** preset to that tile or area | ✅ |
-| LLR-4.14 | The **area screen** shows "Rewards you can earn here": locked or unlocked rewards whose scope is this area or this area's whole tile, with progress | ✅ |
-| LLR-4.15 | On **task detail**, "Tag to a reward" offers only locked *Selected tasks* rewards whose scope contains the task. Rewards that match the task automatically (*All tasks in scope*) are listed with the label "Counts automatically" | ✅ |
-| LLR-4.16 | Scope and match mode can be changed only while the reward is **locked**. Narrowing the scope removes tags that fall outside it, after the user confirms; the confirmation lists the tasks that will be untagged | ✅ |
-| LLR-4.17 | Deleting an **area** doesn't delete rewards scoped to it: they widen to the area's tile (area cleared) and keep their status, rule and remaining tags. Renaming an area changes nothing | ✅ |
+| LLR-4.9 | **Rewards stand alone.** A reward needs only a title and N (default 5); a note and picture link are optional. It can optionally be **kept in an area** (to organise it; its tile comes from the area), but that never limits which tasks it can be linked to | ✅ |
+| LLR-4.10 | **Links are many-to-many and unrestricted**: any task (from any tile or area) can be linked to any reward; one task can count for several rewards. Unlock rule for now: **task count**, the linked tasks done N times in total. (Older rewards that counted "all tasks in an area" keep working) | ✅ |
+| LLR-4.11 | Linking twice is harmless; unlinking an unlocked or claimed reward doesn't lock it again (BR-R10); deleting a task, area or tile removes only its links, and rewards stay. Deleting a tile does delete rewards kept in it (BR-R18) | ✅ |
+| LLR-4.12 | The **Link screen** (`#/rewards/link`, top menu *Link*) lists **all tasks** (grouped by tile › area, with how often each was done and how many rewards it counts for) and **all rewards** (with area, N and status), each searchable. Pick a task and a reward, then **Link** (or **Unlink** if they already are). *Current links* lists each linked reward with its tasks, each with ✕ to unlink. Opens with a task or reward already picked from the task or reward screens | ✅ |
+| LLR-4.13 | The top menu is **Tiles \| Tasks \| Rewards \| Link**. *Tasks* lists **every task grouped by tile › area** (status filter, default Active; search; each row shows frequency, completions, streak 🔥 and rewards 🎁, with a quick ✓). *Rewards* lists **every reward grouped by the area it's kept in** (tile › area order, *Not in an area* last; status filter; search; + New with an optional area). The Link screen's two lists use the same grouping. A tile shows only its areas; an area has tabs **Tasks \| Rewards \| Notes & contacts**, and its Rewards tab lists and adds the rewards kept there but **doesn't link tasks** | ✅ |
+| LLR-4.14 | A **reward's screen** (`#/rewards/r/{id}`) shows its rule, progress and linked tasks (✕ to unlink), *+ Link tasks* (Link screen with this reward picked), *Claim 🎁* when unlocked, and ✎ / 🗑 to edit (title, N while locked, area, note, picture) or delete it (tasks and history stay) | ✅ |
+| LLR-4.15 | On **task detail**, the *Rewards* card lists the rewards the task counts for (links to each reward) and *+ Link to a reward* opens the Link screen with this task picked | ✅ |
+| LLR-4.16 | N can be changed only while the reward is **locked**; lowering it re-checks the rule at once. A reward whose linked tasks already meet N unlocks as soon as it's linked | ✅ |
+| LLR-4.17 | Moving a reward to another area, or out of any area, never changes its links | ✅ |
 | LLR-4.18 | **Existing rewards are migrated without data loss** (schema migration with automatic pre-upgrade backup): if all tagged tasks share one area, scope = that area; else if they share one tile, scope = that tile; otherwise (no tags, or tags across tiles) the reward keeps its tags and is marked *Needs a tile* until the user picks one. No reward, tag, completion or status is deleted | ✅ |
 
 **Business rules: rewards**
@@ -276,8 +277,8 @@ Conventions: **LLR** = detailed functional requirement · **BR-R** = business ru
 | LLR-8.4 | Errors use `{detail}` with status codes 401, 404, 409 and 422 as catalogued in LLD §3.3 | ✅ |
 | LLR-8.5 | Request bodies accept camelCase or snake_case. React responses are camelCase; dashboard responses are snake_case | ✅ |
 | LLR-8.6 | Timestamps are ISO-8601 UTC in responses | ✅ |
-| LLR-8.7 | Reward create/update accept `categoryId` (required on create), `areaId` (optional; `null` = whole tile) and `matchMode` (`selected` \| `all`); update also accepts `untagOutside` (narrowing answers 409 listing the tasks until it's `true`). Reward responses include `categoryId`, `categoryName`, `categoryIcon`, `areaId`, `areaName`, `matchMode`, `needsTile` and `matchedTaskCount` | ✅ |
-| LLR-8.8 | `GET /rewards` accepts `categoryId` and `areaId` filters. `GET /areas/{id}/rewards` returns the rewards that match that area (LLR-4.14). Task detail's `rewards` lists every reward matching the task, with how it matches (`tagged` or `scope`) | ✅ |
+| LLR-8.7 | `POST /rewards` needs only `title` (optional `threshold` = N, default 5, `areaId`, `description`, `imageUrl`, `taskIds`). `GET /rewards` (`?status=`, `?areaId=`), `GET` / `PATCH` / `DELETE /rewards/{id}` (`PATCH` edits title, N, note, picture, `areaId` or `null`). `POST` / `DELETE /rewards/{id}/tasks/{taskId}` link and unlink one task; `PUT /rewards/{id}/tasks` replaces all links. Responses include the optional `categoryId`, `categoryName`, `categoryIcon`, `areaId`, `areaName`, plus `tasks`, `connected` and `matchedTaskCount` | ✅ |
+| LLR-8.8 | Task detail's `rewards` lists every reward the task counts for, with how (`tagged` = linked, or `scope` for older all-tasks-in-an-area rewards) | ✅ |
 | LLR-8.9 | Schema changes are applied by versioned migrations on startup, never by dropping and recreating tables; a backup of the database file is written before each upgrade (Q14) | ✅ |
 | LLR-8.10 | Tile endpoints: `POST /categories`, `PATCH /categories/{id}` (name, icon), `DELETE /categories/{id}`, `PUT /categories/order` and `PUT /categories/{id}/areas/order`, `POST /categories/starter` (LLR-1.8, returns what was added) | ✅ |
 | LLR-8.12 | Task create/update accept `isMilestone`, `visibility` (`announced` \| `silent`), `dueAt` (ISO date-time, optional) and `targetDays` (optional); `GET /areas/{id}/tasks` adds filters `milestone=true` and `due=overdue\|today\|week` and `sort=due`. Responses served without the passcode omit silent tasks entirely (BR-R23) | ⏳ next |
@@ -290,7 +291,7 @@ Each **tile** and each **area** has a *Notes & contacts* section (Q16, Q18). Eve
 
 | ID | Requirement | Status |
 |---|---|---|
-| LLR-10.1 | The tile screen and the area screen each have a **Notes & contacts** tab next to their main content. It lists topics as groups (items without a topic under "General"), each showing its contacts, files and notes | ✅ |
+| LLR-10.1 | The area screen has a **Notes & contacts** tab (tiles no longer have their own tabs; older tile-level items stay stored and searchable) next to their main content. It lists topics as groups (items without a topic under "General"), each showing its contacts, files and notes | ✅ |
 | LLR-10.2 | **Topic** is free text (1–60 characters), optional, and offers existing topics from the same tile or area as suggestions, so "Bosch Dishwasher" isn't typed three different ways | ✅ |
 | LLR-10.3 | **Contact**: name (required, 1–80); organisation or brand (e.g. Bosch, Kent, IFB, LG); role (*Customer care*, *Service executive*, *Technician*, *Vendor or shop*, *Other*); up to 3 phone numbers with labels (mobile, toll-free, WhatsApp); email; website; last visit or contact date; notes (≤ 1000); topic | ✅ |
 | LLR-10.4 | Phone numbers are stored as entered and shown with actions: **Call** (`tel:`), **WhatsApp** (`wa.me`, for numbers marked WhatsApp) and **Copy**. Email gets **Email** (`mailto:`). All actions are one tap on a phone | ✅ |
@@ -465,6 +466,7 @@ Touch and accessibility: controls ≥ 44 px high (chips ≥ 36 px), inputs 16 px
 | LLR-11.1–11.13; BR-R22–R26; LLR-8.12 | tasks, rewards, `/dashboard/summary` | ⏳ planned: `test_task_planning_fields_round_trip`, `test_overdue_rules`, `test_milestone_reward_needs_all_milestones`, `test_silent_tasks_invisible_without_passcode`, `test_silent_completion_has_no_celebration_flag`, `test_migration_defaults_existing_tasks` |
 | LLR-10.1–10.12; BR-R20–R21; LLR-8.11 | details, files, `/search` | `test_details_grouped_by_topic_with_last_executive`, `test_tile_level_details_for_home_wide_services`, `test_contact_validation`, `test_edit_and_delete_items`, `test_file_upload_rules_and_signed_download`, `test_search_matches_names_topics_and_phone_digits`, `test_deleting_owner_removes_details_and_files`, `test_export_import_includes_details`; read-only view test comes with the passcode work |
 | LLR-2.1, 2.3–2.5, 2.8, 2.9 | `POST /areas/{id}/tasks`, `GET /areas/{id}/tasks`, `PATCH /tasks/{id}`, `GET /tasks` | `test_create_filter_and_reprioritise_tasks` |
+| LLR-2.10 | `PATCH /tasks/{id}`, `DELETE /tasks/{id}` | `test_edit_and_delete_task` |
 | LLR-3.1, 3.6, 3.7; BR-R2–R4 | `POST /tasks/{id}/complete`, `GET /tasks/{id}/activity`, `GET /tasks/{id}` | `test_completions_build_streak_and_activity_log`, `test_daily_streak`, `test_weekly_streak` |
 | LLR-3.3–3.5; BR-R4, R5 | `POST /tasks/{id}/complete` | `test_completion_rules`, `test_one_off_streak_is_done_or_not` |
 | LLR-4.1, 4.2, 4.6, 4.7; BR-R7, R9, R10 | `/rewards*` | `test_reward_unlocks_on_completion_count_then_claim`, `test_reward_already_met_unlocks_on_create_and_rejects_unknown_tasks`, `test_completions_rule_progress` |
@@ -474,9 +476,6 @@ Touch and accessibility: controls ≥ 44 px high (chips ≥ 36 px), inputs 16 px
 | LLR-8.1 | all | `test_requires_demo_token` |
 | LLR-7.x, 5.2–5.8 | — | Manual E2E (browser, 375 px); planned Playwright smoke |
 | LLR-6.x | ⏳ | planned: adapter tests with `FakeVisionAdapter`, fallback tests |
-| LLR-4.9–4.11, 4.16; BR-R12 | `POST/PATCH /rewards`, `PUT /rewards/{id}/tasks` | `test_reward_scope_validation`, `test_tagging_outside_scope_rejected`, `test_narrowing_scope_untags` |
-| LLR-4.10; BR-R13–R15 | `POST /tasks/{id}/complete` | `test_all_in_scope_counts_untagged_and_new_tasks`, `test_other_tile_never_counts` |
-| LLR-4.14, 4.15; LLR-8.8 | `GET /areas/{id}/rewards`, `GET /tasks/{id}` | `test_area_lists_matching_rewards`, `test_task_detail_lists_matching_rewards` |
-| LLR-4.17 | `DELETE /areas/{id}` | `test_deleting_area_widens_reward_scope` |
+| LLR-4.9–4.17; LLR-8.7, 8.8 | `/rewards*`, `/rewards/{id}/tasks/{taskId}` | `test_reward_needs_only_a_title`, `test_area_rewards_are_kept_in_an_area_but_link_anywhere`, `test_link_any_task_to_any_reward`, `test_linked_task_counts_unlock_the_reward`, `test_linking_tasks_already_done_enough_unlocks_immediately`, `test_rewards_outlive_tiles_areas_and_tasks`, `test_delete_reward_keeps_tasks`, `test_older_all_tasks_in_area_rewards_keep_counting` |
 | LLR-8.9; NFR-D8 | startup migrations, `app.backup` | `test_models_match_migrations`, `test_pre_migration_database_is_stamped_not_rebuilt`, `test_migrate_is_idempotent`, `test_export_import_round_trip`, `test_import_refuses_non_empty_target_without_replace` |
-| LLR-4.18; BR-R16 | migration `0003_reward_scope` | `test_migration_infers_scope_and_keeps_data` (runs against a database at `0002_details`), `test_needs_a_tile_reward_must_pick_one_first`, `test_claimed_reward_without_a_tile_can_still_get_one` |
+| LLR-4.18; BR-R16 | migration `0003_reward_scope` | `test_migration_infers_scope_and_keeps_data` (runs against a database at `0002_details`) |

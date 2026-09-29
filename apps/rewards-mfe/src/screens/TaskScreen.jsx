@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useRewards } from "../context.js";
+import { navigate } from "../lib/router.js";
 import { useResource } from "../lib/useResource.js";
+import { CompletionCalendar, dayKey, startOfDay } from "../components/calendar.jsx";
 import {
   Chips,
   Empty,
@@ -17,30 +19,43 @@ import {
   useAction,
 } from "../components/ui.jsx";
 
-const WHEN = [
-  ["0", "Now"],
-  ["1", "Yesterday"],
-  ["2", "2 days ago"],
-];
+const timeNow = () => new Date().toTimeString().slice(0, 5); // "HH:MM", local
 
-function LogCompletion({ task, onLogged }) {
+/** Pick a day on the calendar (and optionally a time), add a note, log it. */
+function LogCompletion({ task, log, onLogged }) {
   const { api, toast, celebrate } = useRewards();
+  const [day, setDay] = useState(() => startOfDay(new Date()));
+  const [time, setTime] = useState(timeNow);
   const [note, setNote] = useState("");
-  const [daysAgo, setDaysAgo] = useState("0");
   const [busy, run] = useAction(toast);
 
+  const counts = {};
+  for (const entry of log.data ?? []) {
+    const key = dayKey(new Date(entry.completedAt));
+    counts[key] = (counts[key] ?? 0) + 1;
+  }
+  const isToday = dayKey(day) === dayKey(new Date());
+  const dayText = isToday ? "today" : day.toLocaleDateString(undefined, { weekday: "short", day: "numeric", month: "short" });
+
   if (task.status !== "active") {
-    return <p className="rw-muted rw-card">This task is {task.status}. Set it back to Active to log more completions.</p>;
+    return (
+      <div className="rw-card rw-form">
+        <h3>Completions</h3>
+        <CompletionCalendar counts={counts} selected={day} onSelect={setDay} />
+        <p className="rw-muted">This task is {task.status}. Set it back to Active to log more completions.</p>
+      </div>
+    );
   }
 
   const submit = async (e) => {
     e.preventDefault();
-    // Backfill: "I did this yesterday" keeps the same time of day, one or two days back.
-    const completedAt = daysAgo === "0" ? undefined : new Date(Date.now() - Number(daysAgo) * 86_400_000).toISOString();
-    const result = await run(() => api.completeTask(task.id, { note: note.trim(), completedAt }), "Completion logged");
+    const [hours, minutes] = time.split(":").map(Number);
+    const when = new Date(day.getFullYear(), day.getMonth(), day.getDate(), hours || 0, minutes || 0);
+    const completedAt = new Date(Math.min(when.getTime(), Date.now())).toISOString(); // never in the future
+    const result = await run(() => api.completeTask(task.id, { note: note.trim(), completedAt }), `Logged for ${dayText}`);
     if (result) {
       setNote("");
-      setDaysAgo("0");
+      setTime(timeNow());
       celebrate(result.unlockedRewards);
       onLogged();
     }
@@ -49,18 +64,27 @@ function LogCompletion({ task, onLogged }) {
   return (
     <form className="rw-card rw-form" onSubmit={submit} aria-label="Log a completion">
       <h3>Log a completion</h3>
-      <Chips label="When" options={WHEN} value={daysAgo} onChange={setDaysAgo} />
+      <CompletionCalendar counts={counts} selected={day} onSelect={setDay} />
+      <div className="rw-log-when">
+        <span>
+          Done <strong>{dayText}</strong> at
+        </span>
+        <input type="time" aria-label="Time" value={time} onChange={(e) => setTime(e.target.value)} required />
+        {!isToday && (
+          <button type="button" className="rw-link-btn" onClick={() => (setDay(startOfDay(new Date())), setTime(timeNow()))}>
+            Back to today
+          </button>
+        )}
+      </div>
       <input aria-label="Note (optional)" placeholder="Note (optional)" value={note} onChange={(e) => setNote(e.target.value)} maxLength={1000} />
       <button type="submit" className="rw-btn rw-btn--primary rw-btn--block" disabled={busy}>
-        {busy ? "Logging…" : "✓ Done"}
+        {busy ? "Logging…" : `✓ Done ${dayText}`}
       </button>
     </form>
   );
 }
 
-function ActivityLog({ taskId, reloadKey }) {
-  const { api } = useRewards();
-  const log = useResource(() => api.activity(taskId), [api, taskId, reloadKey]);
+function ActivityLog({ log }) {
   if (log.loading && log.data === undefined) return <Loading label="Loading activity…" />;
   if (log.error && log.data === undefined) return <ErrorState error={log.error} onRetry={log.reload} />;
   if (log.data.length === 0) return <Empty title="No completions yet">Log the first one above.</Empty>;
@@ -76,41 +100,51 @@ function ActivityLog({ taskId, reloadKey }) {
   );
 }
 
-function TaskRewards({ task, onChanged }) {
-  const { api, links, toast, celebrate } = useRewards();
-  const { area } = task;
-  // LLR-4.15: only locked "Selected tasks" rewards whose scope contains this task can be tagged.
-  const rewards = useResource(() => api.rewards({ status: "locked", categoryId: area.categoryId }), [api, area.categoryId, task.rewards.length]);
-  const [choice, setChoice] = useState("");
+/** Edit a task's title and notes. */
+function EditTaskForm({ task, onSaved, onCancel }) {
+  const { api, toast } = useRewards();
+  const [title, setTitle] = useState(task.title);
+  const [notes, setNotes] = useState(task.notes);
   const [busy, run] = useAction(toast);
-
-  const linkedIds = new Set(task.rewards.map((r) => r.id));
-  const available = (rewards.data ?? []).filter(
-    (r) => !linkedIds.has(r.id) && r.matchMode === "selected" && (!r.areaId || r.areaId === area.id)
-  );
-  const newHere = links.rewards({ tile: area.categoryId, area: area.id, new: 1 });
-
-  const tag = async () => {
-    const reward = available.find((r) => String(r.id) === choice);
-    if (!reward) return;
-    const updated = await run(() => api.setRewardTasks(reward.id, [...reward.tasks.map((t) => t.id), task.id]), `Tagged to “${reward.title}”`);
-    if (updated) {
-      if (updated.status === "unlocked") celebrate([updated]);
-      setChoice("");
-      onChanged();
-    }
+  const submit = async (e) => {
+    e.preventDefault();
+    if (await run(() => api.updateTask(task.id, { title: title.trim(), notes: notes.trim() }), "Saved")) onSaved();
   };
+  return (
+    <form className="rw-card rw-form" onSubmit={submit} aria-label="Edit task">
+      <h3>Edit task</h3>
+      <input aria-label="Task title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} autoFocus required />
+      <textarea aria-label="Notes" placeholder="Notes (optional)" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={2000} />
+      <div className="rw-inline-form">
+        <button type="submit" className="rw-btn rw-btn--primary" disabled={busy || !title.trim()}>
+          {busy ? "Saving…" : "Save"}
+        </button>
+        <button type="button" className="rw-btn" onClick={onCancel}>
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
 
+/** Rewards this task counts towards; linking happens on the Link screen, with this task picked. */
+function TaskRewards({ task }) {
+  const { links } = useRewards();
   return (
     <div className="rw-card">
-      <h3>Rewards</h3>
+      <div className="rw-reward-head">
+        <h3>Rewards</h3>
+        <a className="rw-link-btn" href={links.link({ task: task.id })}>
+          + Link to a reward
+        </a>
+      </div>
       {task.rewards.length === 0 ? (
-        <p className="rw-muted">Doesn't count towards any reward yet.</p>
+        <p className="rw-muted">Not linked to any reward yet.</p>
       ) : (
         <ul className="rw-mini-list">
           {task.rewards.map((r) => (
             <li key={r.id}>
-              <a href={links.rewards({ area: area.id })}>
+              <a href={links.reward(r.id)}>
                 {r.title}
                 {r.match === "scope" && <small className="rw-muted"> · Counts automatically</small>}
               </a>
@@ -120,29 +154,6 @@ function TaskRewards({ task, onChanged }) {
           ))}
         </ul>
       )}
-      {rewards.error ? (
-        <ErrorState error={rewards.error} onRetry={rewards.reload} />
-      ) : available.length > 0 ? (
-        <div className="rw-inline-form">
-          <select aria-label="Reward to tag" className="rw-select" value={choice} onChange={(e) => setChoice(e.target.value)}>
-            <option value="">Tag to a reward…</option>
-            {available.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.title}
-              </option>
-            ))}
-          </select>
-          <button type="button" className="rw-btn" disabled={!choice || busy} onClick={tag}>
-            Tag
-          </button>
-        </div>
-      ) : (
-        !rewards.loading && (
-          <p className="rw-muted">
-            <a href={newHere}>{task.rewards.length ? "Create another reward" : "Create a reward"}</a> for {area.name} to work towards.
-          </p>
-        )
-      )}
     </div>
   );
 }
@@ -150,8 +161,15 @@ function TaskRewards({ task, onChanged }) {
 export default function TaskScreen({ taskId }) {
   const { api, links, toast } = useRewards();
   const task = useResource(() => api.task(taskId), [api, taskId]);
-  const [logKey, setLogKey] = useState(0);
+  const log = useResource(() => api.activity(taskId), [api, taskId]);
+  const [editing, setEditing] = useState(false);
   const [busy, run] = useAction(toast);
+
+  const remove = async (t) => {
+    const history = t.completionCount ? ` and its ${t.completionCount} completion${t.completionCount === 1 ? "" : "s"}` : "";
+    if (!window.confirm(`Delete “${t.title}”${history}? Rewards it counted towards stay.`)) return;
+    if (await run(async () => (await api.deleteTask(t.id), true), `Deleted ${t.title}`)) navigate(links.area(t.area.id));
+  };
 
   const update = async (changes) => {
     if (await run(() => api.updateTask(taskId, changes), "Saved")) task.refresh();
@@ -168,8 +186,24 @@ export default function TaskScreen({ taskId }) {
             ]}
             title={t.title}
             subtitle={t.source === "ai" ? "Suggested by AI" : "Added manually"}
+            actions={
+              !editing && (
+                <div className="rw-row-actions">
+                  <button type="button" className="rw-icon-btn" aria-label={`Edit ${t.title}`} onClick={() => setEditing(true)}>
+                    ✎
+                  </button>
+                  <button type="button" className="rw-icon-btn" aria-label={`Delete ${t.title}`} disabled={busy} onClick={() => remove(t)}>
+                    🗑
+                  </button>
+                </div>
+              )
+            }
           />
-          {t.notes && <p className="rw-notes">{t.notes}</p>}
+          {editing ? (
+            <EditTaskForm task={t} onCancel={() => setEditing(false)} onSaved={() => (setEditing(false), task.refresh())} />
+          ) : (
+            t.notes && <p className="rw-notes">{t.notes}</p>
+          )}
 
           <dl className="rw-stats">
             <div>
@@ -186,9 +220,9 @@ export default function TaskScreen({ taskId }) {
             </div>
           </dl>
 
-          <LogCompletion task={t} onLogged={() => (task.refresh(), setLogKey((k) => k + 1))} />
+          <LogCompletion task={t} log={log} onLogged={() => (task.refresh(), log.refresh())} />
 
-          <TaskRewards task={t} onChanged={task.refresh} />
+          <TaskRewards task={t} />
 
           <div className="rw-card rw-form" aria-busy={busy}>
             <h3>Settings</h3>
@@ -205,7 +239,7 @@ export default function TaskScreen({ taskId }) {
           <div className="rw-section-head">
             <h3>Activity log</h3>
           </div>
-          <ActivityLog taskId={taskId} reloadKey={logKey} />
+          <ActivityLog log={log} />
         </section>
       )}
     </Resource>
