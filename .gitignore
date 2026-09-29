@@ -15,3 +15,6 @@ services/bff/data/
 
 # Office lock files (e.g. an open workbook)
 ~$*
+
+# Leftover from the old feature/reward-system-and-microfrontends branch (contains a local .env)
+apps/reward-system/
