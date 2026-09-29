@@ -50,6 +50,8 @@ This capstone replaces it with a **Rewards microfrontend**:
 | D9 | Roadmap | An Android app is planned | API-first BFF; mobile-first UI |
 | D11 | PO review of the requirements workbook (2026-09-29) | Preset tiles don't fit everyone's life; the user wants to create, rename, reorder and delete tiles themselves | Tiles become fully user-managed (CRUD); nothing seeded, with an optional one-click starter set (HLR-1) |
 | D12 | PO review (2026-09-29) | When an appliance breaks, the useful information is scattered: customer-care numbers, the last executive who visited, bills, notes (e.g. Bosch dishwasher, Kent water purifier, IFB washing machine, LG fridge, pigeon net, pest control) | Tiles and areas hold **notes, contacts and files**, grouped by topic (HLR-10) |
+| D13 | PO review (2026-09-29) | Some tasks are big checkpoints (milestones), some have a deadline or a planned length in days, and some are private: they shouldn't be shown or celebrated publicly | Tasks gain milestone, announce/silent, due date/time and days-to-complete; milestones can unlock rewards (HLR-11) |
+| D14 | PO review (2026-09-29) | Reward ideas come up at random moments (e.g. spotting "101 Hilarious Jokes" for Shiragi while browsing the library), before any rule or task exists; some rewards are for someone else (Shiragi), not for the user | Rewards get an **Idea** stage (capture now, add a rule later, or mark bought/dropped) and a **For whom** label (HLR-12) |
 | D10 | PO review of MVP (2026-09-28) | Rewards float free of the tile/area structure: a reward can be tagged to any task anywhere, so it isn't clear which part of life a reward belongs to | Rewards use the **same tiles and areas** as tasks, and are matched to tasks inside that scope (HLR-9) |
 
 ### 2.4 Assumptions
@@ -164,6 +166,8 @@ flowchart LR
 | G9 | Backend | Express + Neo4j shared with other features | Dedicated BFF, typed contracts, OpenAPI, relational store | Re-architect |
 | G10 | Clients | Web only | Web, analytics, Android-ready API | New |
 | G11 | Tile management | 6 fixed goal categories (plus custom ones) | Tiles fully user-managed (create, edit, reorder, delete); empty start with an optional starter set | Replace |
+| G13 | Task planning and privacy | Goals had target days and day-numbered milestones; everything visible | Tasks: milestone flag (badge, filter, reward rule, bigger celebration), due date and time, days to complete, announce or silent (visibility and celebration) | Extend |
+| G14 | Reward ideas | Reward had to be defined with its goal; no wishlist | Capture reward ideas in seconds (title, photo, link, where seen, for whom); convert to a reward with a rule later, or close as bought/dropped | New |
 | G12 | Service records | Scattered across phone contacts, chats and paper | Notes, contacts and files on every tile and area, grouped by topic, with tap-to-call | New |
 
 ### 4.4 Transition plan
@@ -177,6 +181,8 @@ flowchart LR
 | T3b | Reward scope and matching (HLR-9), shipped as the first data-preserving migration | ⏳ next, after T3a |
 | T3c | User-managed tiles (CRUD), no seeding, optional starter set (HLR-1 update) | ⏳ next |
 | T3d | Notes, contacts and files on tiles and areas (HLR-10) | ⏳ next |
+| T3e | Task planning and visibility: milestones, due date/time, days to complete, announce/silent (HLR-11) | ⏳ next |
+| T3f | Reward ideas and wishlist, "For whom" on rewards (HLR-12) | ⏳ next |
 | T4 | Deploy the MFE + BFF; set the host's remote URL; merge to `main` | ⏳ |
 | T5 | Integration services: vision → events/outbox → reminders | ⏳ |
 | T6 | Mobile BFF surface; Android client | ⏳ future |
@@ -218,6 +224,8 @@ No data migration from Neo4j is planned. The old feature held no production data
 | HLR-4 | Rewards | Create, tag, progress, auto-unlock, claim | LLR-4.1–4.8 | ✅ |
 | HLR-9 | Reward scope and matching | Rewards live in the same tiles and areas as tasks; tasks are matched to rewards inside that scope (selected tasks, or all tasks in scope); existing rewards migrated without data loss | LLR-4.9–4.18 | ⏳ next |
 | HLR-10 | Notes, contacts and files | Every tile and area holds notes, contacts (customer care, service executives, vendors) and files (bills, warranty cards), grouped by topic such as "Bosch Dishwasher", with tap-to-call and search | LLR-10.x | ⏳ next |
+| HLR-11 | Task planning and visibility | Tasks can be milestones (badge, filter, "milestone completed" reward rule, bigger celebration), have a due date and time and a days-to-complete target, and be announced or silent (silent = hidden from the public view and completed without celebration) | LLR-11.x | ⏳ next |
+| HLR-12 | Reward ideas and wishlist | Capture a reward idea in seconds (e.g. a book for Shiragi spotted at the library) without a rule; turn it into a real reward later, or mark it bought or dropped; every reward says who it's for | LLR-12.x | ⏳ next |
 | HLR-5 | Insights dashboard | Aggregates, filters, cached reads, claim from dashboard | LLR-5.x | ✅ |
 | HLR-6 | AI task suggestions | Photos → suggestions → decisions → tasks; non-blocking | LLR-6.x | ⏳ |
 | HLR-7 | Module composition | Independently delivered MFE with host fallback | LLR-7.x | ✅ |
@@ -257,6 +265,7 @@ Vercel (host + MFE hosting); a Python host for the BFF (post-MVP deploy); the An
 | AI suggestions low quality | M | L | Human approval per suggestion; acceptance-rate metric in the dashboard |
 | Scope creep into other modules | M | M | Capstone limited to Rewards; roadmap items gated by priority |
 | Contacts and bills visible in the public read-only view (PO decision Q17): executives' personal numbers and your bills exposed once hosted | M | H | Acceptable locally; revisit before going public (option: hide details from visitors while keeping rewards public) |
+| Silent tasks leaking through counts or reward lists in the public view | M | M | Silent tasks and their completions are removed from every response served without the passcode, including counts, dashboard aggregates and reward task lists (BR-R23); tested explicitly |
 | Deleting a tile removes everything under it | L | H | Typed-name confirmation listing what will go, plus an automatic database snapshot first (BR-R18) |
 | React version drift host ↔ remote | L | H | Shared singleton; pinned versions; smoke check |
 
@@ -272,3 +281,5 @@ The MVP is accepted when the demo runs without manual workarounds:
 7. (HLR-9) Kitchen shows "Rewards you can earn here" for rewards scoped to Household or Household › Kitchen, and the Kitchen task can only be tagged to those.
 8. (HLR-1) On a fresh database, create a tile "Home", rename it, add areas; "Add suggested tiles" adds the starter set without duplicating "Home".
 9. (HLR-10) Kitchen › Notes & contacts shows a "Bosch Dishwasher" topic with its customer-care number, past executives with visit dates, bills and notes; tapping a number starts a call on the phone. Household (tile level) holds "Pest Control" with its last executive.
+10. (HLR-11) A milestone task "Finish React course" (due 31 Oct 2026, 18:00; 30 days to complete) shows its 🏁 badge and due chip; a reward with the rule "milestone completed" unlocks when it's done, with the milestone celebration. A silent task doesn't appear in the read-only view and completes without a toast.
+11. (HLR-12) At the library, capture the idea "101 Hilarious Jokes" for Shiragi with a cover photo in two taps; later turn it into a reward that unlocks when Shiragi's "Read 20 minutes" task reaches a 7-day streak. The idea stays hidden from the read-only view until then.

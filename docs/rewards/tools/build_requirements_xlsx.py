@@ -227,6 +227,10 @@ def parent_epic(req_id: str) -> str:
             return "HLR-1"
         if major == 8 and minor == 11:
             return "HLR-10"
+        if major == 8 and minor == 12:
+            return "HLR-11"
+        if major == 8 and minor == 13:
+            return "HLR-12"
         return f"HLR-{major}"
     if m := re.match(r"^BR-R(\d+)$", req_id):
         n = int(m[1])
@@ -236,7 +240,11 @@ def parent_epic(req_id: str) -> str:
             return "HLR-4"
         if n <= 16:
             return "HLR-9"
-        return "HLR-1" if n <= 19 else "HLR-10"
+        if n <= 19:
+            return "HLR-1"
+        if n <= 21:
+            return "HLR-10"
+        return "HLR-11" if n <= 26 else "HLR-12"
     if req_id.startswith(("NFR-D", "HNFR")):
         return "Cross-cutting"
     return ""
@@ -258,9 +266,9 @@ def normalise_status(raw: str, req_id: str) -> str:
     return "Planned"
 
 
-NEXT_EPICS = {"HLR-9", "HLR-10"}
+NEXT_EPICS = {"HLR-9", "HLR-10", "HLR-11", "HLR-12"}
 # Rules and NFRs from tables without a status column that describe work not built yet.
-NOT_YET_BUILT = {"BR-R17", "BR-R18", "BR-R19", "NFR-D9", "NFR-D10"}
+NOT_YET_BUILT = {"BR-R17", "BR-R18", "BR-R19", "NFR-D9", "NFR-D10", "NFR-D11"}
 
 
 def collect_requirements(docs: list[tuple[str, list[dict]]]) -> list[dict]:

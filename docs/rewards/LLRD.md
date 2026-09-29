@@ -34,6 +34,13 @@ Conventions: **LLR** = detailed functional requirement · **BR-R** = business ru
 | Q16 | How structured are the notes and contacts? | Simple: notes, contacts and files, each with an optional **topic** (e.g. "Bosch Dishwasher") that groups them. "Past executives" are contacts with the role *Service executive* and a last-visit date | PO decision, 2026-09-29 |
 | Q17 | Who can see notes, contacts and files? | The same as rewards: visible in the read-only view when public reads are on; editing needs the owner passcode. Risk logged in HLRD §9 | PO decision, 2026-09-29 |
 | Q18 | Can tiles hold notes and contacts, or only areas? | Both. Home-wide services (e.g. Pest Control) live on the tile; appliance-specific ones on the area (e.g. Kitchen › Bosch Dishwasher) | PO decision, 2026-09-29 |
+| Q19 | What does marking a task as a milestone do? | Three things: a 🏁 badge and a *Milestones* filter (and a dashboard list); a new reward rule *milestone completed*; and a bigger celebration when it's completed | PO decision, 2026-09-29 |
+| Q20 | What do "announce" and "keep silent" mean? | Visibility and celebration. **Announced**: visible in the read-only view, celebrated on completion with a share prompt. **Silent**: visible only with the owner passcode, and completed quietly (no toast, no share prompt) | PO decision, 2026-09-29 |
+| Q21 | How do "days to complete" and the due date relate? | They're independent fields, both optional; neither is calculated from the other | PO decision, 2026-09-29 |
+| Q22 | What visibility do existing and new tasks get? | Existing tasks become *Announced* (unchanged behaviour). New tasks default to *Announced*; the add form lets you switch to *Silent* | Design decision, 2026-09-29 (see O8) |
+| Q23 | Where do "things I might get for Shiragi later" go: notes or rewards? | Rewards, as **ideas**: a reward in an *Idea* stage with no rule yet. Notes (HLR-10) stay for reference information about a place (contacts, bills) | PO decision, 2026-09-29 |
+| Q24 | Should reward ideas be visible in the read-only view? | No by default: ideas are **Silent** (hidden without the passcode), so a gift for Shiragi stays a surprise. Each idea or reward can be switched to *Announced* | Design decision, 2026-09-29 |
+| Q25 | Who can a reward be for? | Any person, as a free-text **For whom** label with suggestions from earlier entries (default "Me"). It's a label only; all editing stays with the owner | PO decision, 2026-09-29 |
 
 ### 1.2 Open items
 
@@ -41,6 +48,8 @@ Conventions: **LLR** = detailed functional requirement · **BR-R** = business ru
 |---|---|---|---|
 | O1 | ~~Hosting choice~~ Closed by Q13 | PO | — |
 | O5 | Can one reward ever span two tiles (e.g. a treat for Career + Fun)? Current rule: no; create one reward per tile. Revisit if it comes up in real use | PO | Before HLR-9 build |
+| O7 | A *milestone completed* reward with several milestone tasks: unlock when **all** are done (current rule, BR-R25) or when **any** is done? | PO | Before HLR-11 build |
+| O8 | Should new tasks default to *Silent* instead of *Announced* once the site is public? | PO | Before going live |
 | O2 | Confirm no data needs migrating from the old Neo4j rewards | PO | Before merging to `main` |
 | O3 | Reminder channel for the web (push vs email) | PO | Integration phase |
 | O4 | Claude model and per-request cost budget for vision | PO | Phase 4 |
@@ -57,8 +66,10 @@ Conventions: **LLR** = detailed functional requirement · **BR-R** = business ru
 | Unit of work | Goal (title, description, type, target days) | Task (title, notes, priority, frequency, status, relevance, source) | LLR-2.x |
 | Logging | "Log today": did it?, duration, note | Complete now or backfill 1–2 days; note | LLR-3.x |
 | Streak | Daily streak per goal | Per task, daily or weekly periods; current + best | LLR-3.x |
-| Milestones | Day-number milestones per goal | Replaced by reward rules (streak of N) | LLR-4.x |
+| Milestones | Day-number milestones per goal | Any task can be a milestone: 🏁 badge and filter, a *milestone completed* reward rule, a bigger celebration (plus *streak of N* for day counts) | LLR-11.1–11.4 |
+| Deadlines and privacy | Target days per goal; everything visible | Optional due date and time, days to complete (independent); announce or silent per task | LLR-11.5–11.12 |
 | Rewards | Per goal/milestone, ₹ value, claim → receive | Many-to-many with tasks; completions or streak rule; auto-unlock; claim | LLR-4.1–4.8 |
+| Reward ideas | Rewards defined only together with a goal | Capture an idea first (title, photo, link, where seen, for whom), turn it into a reward later or close it as bought/dropped | LLR-12.x |
 | Reward scope | Reward inherits its goal's category (6 goal categories) | Reward has its own tile + optional area from the **same taxonomy as tasks**; tasks matched by scope (selected, or all in scope) | LLR-4.9–4.18 |
 | Insights | 3 summary cards | Streamlit dashboard | LLR-5.x |
 | AI | — | Photo → suggestions (⏳) | LLR-6.x |
@@ -269,6 +280,8 @@ Conventions: **LLR** = detailed functional requirement · **BR-R** = business ru
 | LLR-8.8 | `GET /rewards` accepts `categoryId` and `areaId` filters. `GET /areas/{id}/rewards` returns the rewards that match that area (LLR-4.14). Task detail's `rewards` lists every reward matching the task, with how it matches (`tagged` or `scope`) | ⏳ (HLR-9) |
 | LLR-8.9 | Schema changes are applied by versioned migrations on startup, never by dropping and recreating tables; a backup of the database file is written before each upgrade (Q14) | ✅ |
 | LLR-8.10 | Tile endpoints: `POST /categories`, `PATCH /categories/{id}` (name, icon), `DELETE /categories/{id}`, `PUT /categories/order` and `PUT /categories/{id}/areas/order`, `POST /categories/starter` (LLR-1.8, returns what was added) | ⏳ next |
+| LLR-8.12 | Task create/update accept `isMilestone`, `visibility` (`announced` \| `silent`), `dueAt` (ISO date-time, optional) and `targetDays` (optional); `GET /areas/{id}/tasks` adds filters `milestone=true` and `due=overdue\|today\|week` and `sort=due`. Responses served without the passcode omit silent tasks entirely (BR-R23) | ⏳ next |
+| LLR-8.13 | Rewards accept `status: "idea"` on create (rule, threshold and tile then optional), `forWhom`, `visibility`, `link`, `seenAt` (where seen) and a cover image; `POST /rewards/{id}/activate` (rule, threshold, tile, tasks) turns an idea into a locked reward; `POST /rewards/{id}/close` with `outcome` (`bought` \| `dropped`); `GET /rewards` filters `status=idea\|closed` and `forWhom=` | ⏳ next |
 | LLR-8.11 | Details endpoints for both owners (`/categories/{id}` and `/areas/{id}`): `…/details` (grouped by topic), `…/notes`, `…/contacts`, `…/files` (multipart upload); `PATCH`/`DELETE` on `/notes/{id}`, `/contacts/{id}`, `/files/{id}`; `GET /files/{id}/download`; `GET /search?q=` | ⏳ next |
 
 ### LLR-10 Notes, contacts and files (HLR-10) ⏳ next
@@ -308,6 +321,77 @@ Each **tile** and each **area** has a *Notes & contacts* section (Q16, Q18). Eve
 - *Given* a saved number "98450 12345" *when* the user searches "9845012345" *then* the contact is found, and tapping **Call** on a phone dials it.
 - *Given* the read-only view (no passcode) *then* notes, contacts and files are visible, but the add, edit, delete and upload controls are hidden (Q17).
 
+### LLR-11 Task planning and visibility (HLR-11) ⏳ next
+
+Four new, optional task attributes (Q19 to Q22). They sit under **More options** in the add form, so adding a quick task on a phone stays one field and one tap.
+
+| ID | Requirement | Status |
+|---|---|---|
+| LLR-11.1 | **Milestone**: yes/no (default no), set when creating or editing a task | ⏳ next |
+| LLR-11.2 | Milestones show a 🏁 badge on task rows and task detail. The area task list has a **Milestones only** filter, and the dashboard has a *Milestones* table (title, tile › area, due, done / overdue / upcoming) | ⏳ next |
+| LLR-11.3 | Completing an **announced** milestone shows the **milestone celebration**: a larger, longer celebration than a normal completion (respects reduced motion), with its own share prompt | ⏳ next |
+| LLR-11.4 | New reward rule **Milestone completed** (alongside *N completions* and *streak of N*). The reward unlocks when every milestone task it matches has at least one completion (BR-R25). Creating one that matches no milestone task is rejected (422) | ⏳ next |
+| LLR-11.5 | **Announce or keep silent**: each task is *Announced* (default) or *Silent*, set when creating or editing it (Q20, Q22) | ⏳ next |
+| LLR-11.6 | **Silent** tasks and their completions never appear in anything served without the owner passcode: lists, counts, streaks, activity, dashboard aggregates or reward task lists (BR-R23). With the passcode they're shown with a 🔕 marker | ⏳ next |
+| LLR-11.7 | Completing an **announced** task shows the celebration toast and a **Share on WhatsApp** prompt (prefilled text, e.g. "Done: Wipe counters 🔥 3-day streak"). Completing a **silent** task shows only a quiet "Logged" confirmation, with no share prompt (BR-R24) | ⏳ next |
+| LLR-11.8 | **Due date and time** (optional): a local date and time, stored in UTC. Tasks show a chip: *Overdue* (red), *Due today*, *Due in N days* (within 7 days) or the date. The area list can be filtered by *Overdue*, *Due today* and *Due this week*, and sorted by due date | ⏳ next |
+| LLR-11.9 | **Days to complete** (optional): a whole number from 1 to 3650, shown as "Planned: N days". Task detail also shows "Day X of N", counted from the task's creation date | ⏳ next |
+| LLR-11.10 | Due date and days to complete are **independent**: changing one never changes the other, and they may disagree (Q21, BR-R26) | ⏳ next |
+| LLR-11.11 | All four attributes can be edited on task detail at any time. A due date in the past is allowed (the task is simply overdue) | ⏳ next |
+| LLR-11.12 | **Existing tasks are migrated without data loss**: milestone = no, visibility = announced, no due date, no days to complete. Nothing else changes | ⏳ next |
+| LLR-11.13 | The dashboard adds an **Overdue** KPI and the *Milestones* table (LLR-11.2); the owner-only dashboard includes silent tasks, marked 🔕 | ⏳ next |
+
+**Business rules: task planning and visibility**
+
+| ID | Rule |
+|---|---|
+| BR-R22 | A task is **overdue** when it's active, has a due date, and the due date is before now. Done and archived tasks are never overdue |
+| BR-R23 | **Silent means invisible without the passcode**: silent tasks, their completions, streaks and activity are excluded from every response to a caller without the owner passcode, including counts and aggregates, so their existence can't be inferred |
+| BR-R24 | Celebrations and share prompts happen only for **announced** tasks. A reward unlocked by a silent task's completion is unlocked quietly (no share prompt); the reward itself stays visible |
+| BR-R25 | A **Milestone completed** reward unlocks when every milestone task it matches (tagged, or in scope with *All tasks in scope*) has ≥ 1 completion. Non-milestone tasks tagged to it don't count. Progress = milestones completed ÷ milestones matched |
+| BR-R26 | Due date and days to complete are never derived from each other or from the frequency |
+
+**AC-11 (your examples)**
+- *Given* the add form *when* the user opens **More options**, ticks **Milestone**, sets due "31 Oct 2026, 6:00 pm" and days to complete "30" *then* the task shows 🏁, "Due 31 Oct" and "Planned: 30 days", and task detail shows "Day 1 of 30".
+- *Given* a reward "New laptop bag" with the rule **Milestone completed** tagged to the milestone "Finish React course" *when* that task is completed *then* the reward unlocks and the milestone celebration plays.
+- *Given* two milestone tasks tagged to one milestone reward *when* only one is completed *then* progress shows 1 of 2 and it stays locked (BR-R25, O7).
+- *Given* a **silent** task "Therapy session" *when* a visitor opens the read-only view *then* it isn't listed, the area's active count doesn't include it, and dashboard totals exclude it; with the passcode it's shown with 🔕.
+- *Given* the user completes a silent task *then* only "Logged" appears: no toast and no share prompt.
+- *Given* a task due yesterday that's still active *then* it shows *Overdue*; when it's completed or archived the chip disappears.
+- *Given* a task with due date 10 Oct and days to complete 30 *when* the due date is moved to 20 Oct *then* days to complete stays 30.
+
+### LLR-12 Reward ideas and wishlist (HLR-12) ⏳ next
+
+A reward can start life as an **idea**: something you might get later, captured before any rule or task exists (Q23).
+
+| ID | Requirement | Status |
+|---|---|---|
+| LLR-12.1 | **Quick capture**: a "+ Idea" button on the Rewards tab and on every tile and area screen opens a short form: title (required, 1–200), then optional **for whom**, notes (≤ 2000), link (URL), cover photo (camera or gallery, via the file rules of LLR-10.7), where seen (e.g. "City library") and tile/area. Saving needs only the title | ⏳ next |
+| LLR-12.2 | **For whom** on every reward and idea: free text (1–40) with suggestions from earlier entries; default "Me" (Q25) | ⏳ next |
+| LLR-12.3 | Ideas have status **Idea**: no rule, no progress and no tasks, and they never unlock or appear in progress counts (BR-R27) | ⏳ next |
+| LLR-12.4 | The Rewards tab has an **Ideas** filter (and *Closed* for bought or dropped ideas), and can be filtered by **for whom**, e.g. "Shiragi's ideas and rewards". Tile and area screens list their ideas under "Rewards you can earn here" in a separate *Ideas* group | ⏳ next |
+| LLR-12.5 | **Turn into a reward**: from an idea, add a rule (N completions, streak of N or milestone completed), a threshold, a tile (and optional area) and tasks. It becomes a normal *locked* reward, keeping its title, photo, link, notes and for whom; the unlock check runs straight away (BR-R28) | ⏳ next |
+| LLR-12.6 | **Close an idea** as *Bought* (got it without a rule) or *Dropped* (no longer wanted). Closed ideas leave the Ideas list, stay under *Closed* with the date and outcome, and can be reopened (BR-R29) | ⏳ next |
+| LLR-12.7 | Ideas are **Silent** by default (hidden from the read-only view) and can be switched to *Announced*; ordinary rewards default to *Announced*. Visibility follows the silent rules of BR-R23 (Q24) | ⏳ next |
+| LLR-12.8 | Ideas are included in search (LLR-10.9) by title, notes, for whom and where seen | ⏳ next |
+| LLR-12.9 | **Existing rewards are migrated without data loss**: for whom = "Me", visibility = announced; their status, rule, tasks and progress are unchanged | ⏳ next |
+
+**Business rules: ideas**
+
+| ID | Rule |
+|---|---|
+| BR-R27 | An *Idea* has no rule and no progress. It can't unlock or be claimed, and it isn't counted in reward totals or progress on the dashboard (the dashboard shows an *Ideas* count per person) |
+| BR-R28 | Turning an idea into a reward requires a rule, a threshold (except *milestone completed*) and a tile (LLR-4.9); the idea's id is kept, so links and photos stay attached |
+| BR-R29 | Closing is only for ideas; a reward that already has a rule is claimed, not closed. Reopening a closed idea returns it to *Idea* |
+| BR-R30 | *For whom* is a label: it groups and filters rewards, but never changes who can see or edit them (visibility rules decide that) |
+
+**AC-12 (your example)**
+- *Given* the user is at the library *when* they tap "+ Idea", type "101 Hilarious Jokes", choose for whom "Shiragi", take a photo of the cover and save *then* it appears under Rewards › Ideas with the photo, for "Shiragi", saved in under 10 seconds on a phone.
+- *Given* the idea *when* a visitor opens the read-only view *then* it isn't shown (silent by default); with the passcode it's listed with 🔕.
+- *Given* the idea *when* the user turns it into a reward for Household › Books with the rule "streak of 7" tagged to Shiragi's task "Read 20 minutes" *then* it's a locked reward at 0 %, still with its photo, link and for whom "Shiragi".
+- *Given* the user simply buys the book *when* they close the idea as *Bought* *then* it moves to *Closed* with today's date.
+- *Given* the Rewards tab filtered to "Shiragi" *then* only her ideas and rewards are shown.
+
 ---
 
 ## 4. Screen requirements (MFE)
@@ -317,9 +401,9 @@ Each **tile** and each **area** has a *Notes & contacts* section (Q16, Q18). Eve
 | Tiles | Tiles: icon, name, area count, active task count; ⏳ "+ New tile"; ⏳ search box (LLR-10.9) | loading, error+retry; ⏳ empty: "Create your first tile" + "Add suggested tiles" | open tile; ⏳ create, edit, reorder, delete tile |
 | Tile (category) | Breadcrumb; areas with active count; ⏳ tabs *Areas* / *Notes & contacts* | loading, error, empty ("No areas yet"), not found | add, rename (inline), delete (confirm) area; ⏳ edit or delete this tile; ⏳ tile-level notes, contacts, files |
 | ⏳ Notes & contacts (tab on tile and area) | Topic groups ("General" last); per topic: last executive, contacts (role, organisation, phones with Call / WhatsApp / Copy), files (thumbnail or PDF icon, date, amount), notes | loading, error, empty ("No notes or contacts yet"), read-only (no edit controls) | add note, contact, file; edit, delete, change topic |
-| Area | Breadcrumb; active count; add form; filters (collapsible); task rows (title, frequency, source, status, streak 🔥, priority select, ✓); ⏳ "Rewards you can earn here" (matching rewards with progress) | loading, error, "No tasks yet" / "No tasks match these filters"; ⏳ "No rewards for this area yet" + create link prefilled with this scope | add task, filter, reprioritise, quick complete, open task; ⏳ create reward for this area |
+| Area | Breadcrumb; active count; add form (⏳ with **More options**: milestone, announce/silent, due date and time, days to complete); filters (collapsible; ⏳ milestones, overdue/due today/this week, sort by due); task rows (title, frequency, source, status, streak 🔥, priority select, ✓; ⏳ 🏁 milestone, due chip, 🔕 silent); ⏳ "Rewards you can earn here" (matching rewards with progress) | loading, error, "No tasks yet" / "No tasks match these filters"; ⏳ "No rewards for this area yet" + create link prefilled with this scope | add task, filter, reprioritise, quick complete, open task; ⏳ create reward for this area |
 | Task | Breadcrumb; stats (current, best, completions); log completion (when + note); matching rewards (tagged, or ⏳ "Counts automatically") + tag select limited to in-scope rewards; settings chips; activity log | loading, error, "No completions yet", inactive-task notice | complete, tag reward, change settings |
-| Rewards | Status filter; ⏳ tile and area filters; create form (⏳ tile → area → match mode, then task picker limited to scope, grouped by area); cards: image, title, ⏳ scope breadcrumb + match mode, status, rule, progress, tags | loading, error, empty per filter; ⏳ *Needs a tile* badge | create, claim, edit tasks, ⏳ change scope (locked only) |
+| Rewards | Status filter (⏳ plus *Ideas* and *Closed*); ⏳ for-whom filter; ⏳ "+ Idea" quick capture; ⏳ idea cards (photo, title, for whom, where seen, *Turn into reward*, *Bought*, *Dropped*); ⏳ tile and area filters; create form (⏳ tile → area → match mode, then task picker limited to scope, grouped by area); cards: image, title, ⏳ scope breadcrumb + match mode, status, rule, progress, tags | loading, error, empty per filter; ⏳ *Needs a tile* badge | create, claim, edit tasks, ⏳ change scope (locked only) |
 
 Touch and accessibility: controls ≥ 44 px high (chips ≥ 36 px), inputs 16 px, labelled controls, `role="radiogroup"` chips, `aria-live` toasts, focus ring visible, reduced-motion respected.
 
@@ -340,6 +424,14 @@ Touch and accessibility: controls ≥ 44 px high (chips ≥ 36 px), inputs 16 px
 | ⏳ Starter set | "Added <n> tiles and <n> areas" / "You already have all the suggested tiles" |
 | ⏳ File too large or wrong type | "Files must be PDF, JPG, PNG, WebP or HEIC, up to 10 MB" |
 | ⏳ No details yet | "No notes or contacts yet. Add a customer-care number, the last executive or a bill." |
+| ⏳ Milestone celebration | "🏁 Milestone reached: <title>!" (with share prompt when announced) |
+| ⏳ Share text | "Done: <title> 🔥 <n>-day streak" / "Milestone reached: <title> 🏁" |
+| ⏳ Silent completion | "Logged" |
+| ⏳ Overdue chip | "Overdue" / "Due today" / "Due in <n> days" |
+| ⏳ Milestone reward without milestones | "Tag at least one milestone task to use this rule" |
+| ⏳ Idea saved | "Idea saved for <for whom>" |
+| ⏳ Idea closed | "Marked as bought" / "Dropped. You can reopen it from Closed" |
+| ⏳ Turn into reward | "Now a reward: <title>. Complete the tagged tasks to unlock it" |
 | ⏳ Tag outside scope | "“<task>” isn't in <tile> › <area>" |
 | ⏳ Area from another tile | "<area> isn't part of <tile>" |
 | ⏳ Reward needs a tile | "Pick a tile for this reward to keep editing it" |
@@ -355,10 +447,11 @@ Touch and accessibility: controls ≥ 44 px high (chips ≥ 36 px), inputs 16 px
 | NFR-D3 | Dashboard issues ≤ 1 BFF read per window per 30 s | `st.cache_data` TTL |
 | NFR-D4 | No horizontal scroll at 375 px width | measured `scrollWidth` = viewport |
 | NFR-D5 | Stats for N tasks use one activity query (no N+1) | code review (`task_stats`) |
-| NFR-D6 | Every business rule BR-R1…R21 has ≥ 1 automated test | traceability §7 |
+| NFR-D6 | Every business rule BR-R1…R30 has ≥ 1 automated test | traceability §7 |
 | NFR-D8 | No schema change may delete or rewrite existing rows except as specified (LLR-4.18); every migration has an upgrade test run against a copy of a pre-migration database | migration tests |
 | NFR-D9 | Uploaded files are stored outside any public web folder with random names, served only through the BFF, and count against a 2 GB soft limit on the droplet (warning shown); moving to object storage later changes no requirement | code review, upload tests |
 | NFR-D10 | Search over notes, contacts and files returns in ≤ 300 ms for 5,000 items | test with generated data |
+| NFR-D11 | Every read endpoint has a test that a silent task leaves no trace (item, count or aggregate) in its response without the passcode | privacy tests |
 | NFR-D7 | Naive datetimes never reach storage | `UTCDateTime` raises |
 
 ## 7. Traceability matrix
@@ -368,6 +461,8 @@ Touch and accessibility: controls ≥ 44 px high (chips ≥ 36 px), inputs 16 px
 | LLR-1.1 (superseded) | lifespan seed, `GET /categories` | `test_seeded_tiles_and_sub_tiles` (to be replaced by the LLR-1.7 tests) |
 | LLR-1.3–1.5 | `POST/PATCH/DELETE /areas` | `test_area_add_rename_delete` |
 | LLR-1.7–1.13; BR-R17–R19; LLR-8.10 | `/categories*` | ⏳ planned: `test_fresh_database_has_no_tiles`, `test_starter_set_is_idempotent`, `test_tile_crud_and_unique_names`, `test_delete_tile_snapshots_and_cascades`, `test_upgrade_keeps_existing_tiles` |
+| LLR-12.1–12.9; BR-R27–R30; LLR-8.13 | `/rewards*` | ⏳ planned: `test_idea_needs_only_title`, `test_idea_never_unlocks_or_counts`, `test_activate_idea_keeps_details_and_evaluates`, `test_close_and_reopen_idea`, `test_ideas_silent_by_default`, `test_filter_by_for_whom`, `test_migration_defaults_existing_rewards` |
+| LLR-11.1–11.13; BR-R22–R26; LLR-8.12 | tasks, rewards, `/dashboard/summary` | ⏳ planned: `test_task_planning_fields_round_trip`, `test_overdue_rules`, `test_milestone_reward_needs_all_milestones`, `test_silent_tasks_invisible_without_passcode`, `test_silent_completion_has_no_celebration_flag`, `test_migration_defaults_existing_tasks` |
 | LLR-10.1–10.12; BR-R20–R21; LLR-8.11 | details, files, `/search` | ⏳ planned: `test_details_grouped_by_topic`, `test_last_executive_is_latest_visit`, `test_file_upload_rules`, `test_search_matches_phone_digits`, `test_read_only_view_shows_details_but_blocks_edits` |
 | LLR-2.1, 2.3–2.5, 2.8, 2.9 | `POST /areas/{id}/tasks`, `GET /areas/{id}/tasks`, `PATCH /tasks/{id}`, `GET /tasks` | `test_create_filter_and_reprioritise_tasks` |
 | LLR-3.1, 3.6, 3.7; BR-R2–R4 | `POST /tasks/{id}/complete`, `GET /tasks/{id}/activity`, `GET /tasks/{id}` | `test_completions_build_streak_and_activity_log`, `test_daily_streak`, `test_weekly_streak` |
