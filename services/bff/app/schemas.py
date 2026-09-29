@@ -21,6 +21,8 @@ Relevance = Literal["relevant", "not_relevant", "ignore"]
 Source = Literal["ai", "manual"]
 RuleType = Literal["completions", "streak"]
 RewardStatus = Literal["locked", "unlocked", "claimed"]
+# selected: only tagged tasks count; all: every non-archived task in the reward's scope counts (HLR-9)
+MatchMode = Literal["selected", "all"]
 
 Name = Field(min_length=1, max_length=80)
 Title = Field(min_length=1, max_length=200)
@@ -80,7 +82,8 @@ class DeletePreview(ApiModel):
     areas: int
     tasks: int
     completions: int
-    rewards_losing_tasks: int
+    rewards: int  # scoped to this tile, deleted with it
+    rewards_losing_tasks: int  # scoped elsewhere ("Needs a tile") but tagged to tasks in this tile
     notes: int
     contacts: int
     files: int
@@ -162,6 +165,9 @@ class RewardRef(ApiModel):
     title: str
     status: RewardStatus
     progress_percent: int
+    match_mode: MatchMode
+    # How this task counts towards the reward: tagged to it, or automatically by scope.
+    match: Literal["tagged", "scope"]
 
 
 class AreaRef(ApiModel):
@@ -193,6 +199,9 @@ class RewardCreate(ApiModel):
     image_url: str | None = Field(default=None, max_length=500)
     rule_type: RuleType
     threshold: int = Field(ge=1, le=365)
+    category_id: str  # every new reward has a tile (LLR-4.9)
+    area_id: int | None = None  # None = the whole tile
+    match_mode: MatchMode = "selected"
     task_ids: list[int] = []
 
 
@@ -202,6 +211,12 @@ class RewardUpdate(ApiModel):
     image_url: str | None = Field(default=None, max_length=500)
     rule_type: RuleType | None = None
     threshold: int | None = Field(default=None, ge=1, le=365)
+    # Scope and match mode change only while locked (LLR-4.16). Send areaId: null for the whole tile.
+    category_id: str | None = None
+    area_id: int | None = None
+    match_mode: MatchMode | None = None
+    # Narrowing the scope untags tasks outside it; the first attempt answers 409 listing them.
+    untag_outside: bool = False
     # Only "claimed" can be set by a client; locked -> unlocked happens on task completion.
     status: Literal["claimed"] | None = None
 
@@ -219,6 +234,7 @@ class ProgressOut(ApiModel):
 class TaskRef(ApiModel):
     id: int
     title: str
+    area_id: int
 
 
 class RewardOut(ApiModel):
@@ -229,8 +245,16 @@ class RewardOut(ApiModel):
     rule_type: RuleType
     threshold: int
     status: RewardStatus
+    category_id: str | None
+    category_name: str | None
+    category_icon: str | None
+    area_id: int | None
+    area_name: str | None
+    match_mode: MatchMode
+    needs_tile: bool  # migrated without a clear tile; pick one before editing (BR-R16)
     progress: ProgressOut
-    tasks: list[TaskRef]
+    tasks: list[TaskRef]  # tagged tasks (kept, but ignored for progress, in "all" mode)
+    matched_task_count: int  # tasks that count towards progress
     unlocked_at: datetime | None
     claimed_at: datetime | None
     created_at: datetime

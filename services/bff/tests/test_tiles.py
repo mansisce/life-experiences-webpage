@@ -79,13 +79,13 @@ def test_delete_tile_needs_typed_name_snapshots_and_cascades(client, tmp_path):
     kitchen = area_id(client, "household", "Kitchen")
     task = make_task(client, kitchen)
     complete(client, task["id"])
-    reward = client.post(
-        "/rewards", json={"title": "Treat", "ruleType": "completions", "threshold": 5, "taskIds": [task["id"]]}
-    ).json()
+    rule = {"ruleType": "completions", "threshold": 5}
+    client.post("/rewards", json={"title": "Treat", **rule, "categoryId": "household", "taskIds": [task["id"]]})
+    kept = client.post("/rewards", json={"title": "Movie", **rule, "categoryId": "fun"}).json()
 
     preview = client.get("/categories/household/delete-preview").json()
     assert preview == {
-        "name": "Household", "areas": 13, "tasks": 1, "completions": 1, "rewardsLosingTasks": 1,
+        "name": "Household", "areas": 13, "tasks": 1, "completions": 1, "rewards": 1, "rewardsLosingTasks": 0,
         "notes": 0, "contacts": 0, "files": 0,
     }
 
@@ -97,8 +97,8 @@ def test_delete_tile_needs_typed_name_snapshots_and_cascades(client, tmp_path):
     assert "Household" not in tile_names(client)
     assert client.get(f"/areas/{kitchen}").status_code == 404
     assert client.get(f"/tasks/{task['id']}").status_code == 404
-    assert client.get("/rewards").json()[0]["id"] == reward["id"]  # the reward survives, untagged
-    assert client.get("/rewards").json()[0]["tasks"] == []
+    # Rewards scoped to the tile go with it (BR-R18); other tiles' rewards are untouched.
+    assert [r["id"] for r in client.get("/rewards").json()] == [kept["id"]]
     assert list((tmp_path / "backups").glob("test-*-pre-delete-tile-household.db"))
 
 

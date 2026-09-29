@@ -66,7 +66,7 @@ async def dashboard_summary(
     )
 
     rewards = (await session.scalars(select(Reward).order_by(Reward.created_at))).all()
-    progress, _ = await reward_progress_map(session, rewards, tz, today)
+    progress = (await reward_progress_map(session, rewards, tz, today)).progress
 
     decisions = dict(
         (await session.execute(select(Suggestion.decision, func.count()).group_by(Suggestion.decision))).all()

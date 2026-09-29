@@ -47,7 +47,7 @@ Conventions: **LLR** = detailed functional requirement · **BR-R** = business ru
 | # | Item | Owner | Needed by |
 |---|---|---|---|
 | O1 | ~~Hosting choice~~ Closed by Q13 | PO | — |
-| O5 | Can one reward ever span two tiles (e.g. a treat for Career + Fun)? Current rule: no; create one reward per tile. Revisit if it comes up in real use | PO | Before HLR-9 build |
+| O5 | Can one reward ever span two tiles (e.g. a treat for Career + Fun)? Current rule: no; create one reward per tile. Revisit if it comes up in real use | PO | Built with "no" (HLR-9); revisit after real use |
 | O7 | A *milestone completed* reward with several milestone tasks: unlock when **all** are done (current rule, BR-R25) or when **any** is done? | PO | Before HLR-11 build |
 | O8 | Should new tasks default to *Silent* instead of *Announced* once the site is public? | PO | Before going live |
 | O2 | Confirm no data needs migrating from the old Neo4j rewards | PO | Before merging to `main` |
@@ -180,20 +180,20 @@ Conventions: **LLR** = detailed functional requirement · **BR-R** = business ru
 | LLR-4.7 | When a completion unlocks a reward, the completion response includes it and the UI shows a celebration toast | ✅ |
 | LLR-4.8 | Editing a reward's tasks is only offered while it's locked | 🟡 |
 
-#### Reward scope and matching (HLR-9) ⏳ next
+#### Reward scope and matching (HLR-9) ✅
 
 | ID | Requirement | Status |
 |---|---|---|
-| LLR-4.9 | Every reward has a **scope** from the same taxonomy as tasks: a **tile** (required: Career/Office/Work, Household or Fun) and optionally one **area** of that tile (e.g. Household › Kitchen). Creating a reward without a tile is rejected (422); an area from another tile is rejected (422) | ⏳ |
-| LLR-4.10 | Every reward has a **match mode**: *Selected tasks* (default; the user tags specific tasks) or *All tasks in scope* (every non-archived task in the scope counts automatically, including tasks created later) | ⏳ |
-| LLR-4.11 | In *Selected tasks* mode, only tasks **inside the reward's scope** can be tagged. Tagging a task outside it is rejected (422) with a message naming the task and the scope | ⏳ |
-| LLR-4.12 | The reward form picks tile, then area (optional, "Whole tile" default), then match mode. The task picker lists **only tasks in that scope**, grouped by area | ⏳ |
-| LLR-4.13 | Each reward card shows its scope as a breadcrumb (e.g. "Household › Kitchen" or "Fun") and its match mode. The rewards list can be filtered by tile and by area, in addition to status | ⏳ |
-| LLR-4.14 | The **area screen** shows "Rewards you can earn here": locked or unlocked rewards whose scope is this area or this area's whole tile, with progress | ⏳ |
-| LLR-4.15 | On **task detail**, "Tag to a reward" offers only locked *Selected tasks* rewards whose scope contains the task. Rewards that match the task automatically (*All tasks in scope*) are listed with the label "Counts automatically" | ⏳ |
-| LLR-4.16 | Scope and match mode can be changed only while the reward is **locked**. Narrowing the scope removes tags that fall outside it, after the user confirms; the confirmation lists the tasks that will be untagged | ⏳ |
-| LLR-4.17 | Deleting an **area** doesn't delete rewards scoped to it: they widen to the area's tile (area cleared) and keep their status, rule and remaining tags. Renaming an area changes nothing | ⏳ |
-| LLR-4.18 | **Existing rewards are migrated without data loss** (schema migration with automatic pre-upgrade backup): if all tagged tasks share one area, scope = that area; else if they share one tile, scope = that tile; otherwise (no tags, or tags across tiles) the reward keeps its tags and is marked *Needs a tile* until the user picks one. No reward, tag, completion or status is deleted | ⏳ |
+| LLR-4.9 | Every reward has a **scope** from the same taxonomy as tasks: a **tile** (required: Career/Office/Work, Household or Fun) and optionally one **area** of that tile (e.g. Household › Kitchen). Creating a reward without a tile is rejected (422); an area from another tile is rejected (422) | ✅ |
+| LLR-4.10 | Every reward has a **match mode**: *Selected tasks* (default; the user tags specific tasks) or *All tasks in scope* (every non-archived task in the scope counts automatically, including tasks created later) | ✅ |
+| LLR-4.11 | In *Selected tasks* mode, only tasks **inside the reward's scope** can be tagged. Tagging a task outside it is rejected (422) with a message naming the task and the scope | ✅ |
+| LLR-4.12 | The reward form picks tile, then area (optional, "Whole tile" default), then match mode. The task picker lists **only tasks in that scope**, grouped by area | ✅ |
+| LLR-4.13 | Each reward card shows its scope as a breadcrumb (e.g. "Household › Kitchen" or "Fun") and its match mode. The Rewards tab is navigated **like the Areas tab**: tile cards (with active / to-claim / claimed counts) → a tile (its whole-tile rewards, then one row per area) → an area (its rewards, plus whole-tile rewards that also count there). Each level filters by status and has **+ New reward** preset to that tile or area | ✅ |
+| LLR-4.14 | The **area screen** shows "Rewards you can earn here": locked or unlocked rewards whose scope is this area or this area's whole tile, with progress | ✅ |
+| LLR-4.15 | On **task detail**, "Tag to a reward" offers only locked *Selected tasks* rewards whose scope contains the task. Rewards that match the task automatically (*All tasks in scope*) are listed with the label "Counts automatically" | ✅ |
+| LLR-4.16 | Scope and match mode can be changed only while the reward is **locked**. Narrowing the scope removes tags that fall outside it, after the user confirms; the confirmation lists the tasks that will be untagged | ✅ |
+| LLR-4.17 | Deleting an **area** doesn't delete rewards scoped to it: they widen to the area's tile (area cleared) and keep their status, rule and remaining tags. Renaming an area changes nothing | ✅ |
+| LLR-4.18 | **Existing rewards are migrated without data loss** (schema migration with automatic pre-upgrade backup): if all tagged tasks share one area, scope = that area; else if they share one tile, scope = that tile; otherwise (no tags, or tags across tiles) the reward keeps its tags and is marked *Needs a tile* until the user picks one. No reward, tag, completion or status is deleted | ✅ |
 
 **Business rules: rewards**
 
@@ -276,8 +276,8 @@ Conventions: **LLR** = detailed functional requirement · **BR-R** = business ru
 | LLR-8.4 | Errors use `{detail}` with status codes 401, 404, 409 and 422 as catalogued in LLD §3.3 | ✅ |
 | LLR-8.5 | Request bodies accept camelCase or snake_case. React responses are camelCase; dashboard responses are snake_case | ✅ |
 | LLR-8.6 | Timestamps are ISO-8601 UTC in responses | ✅ |
-| LLR-8.7 | Reward create/update accept `categoryId` (required on create), `areaId` (optional) and `match` (`selected` \| `all_in_scope`); reward responses include `scope {categoryId, categoryName, areaId, areaName}`, `match` and `needsTile` | ⏳ (HLR-9) |
-| LLR-8.8 | `GET /rewards` accepts `categoryId` and `areaId` filters. `GET /areas/{id}/rewards` returns the rewards that match that area (LLR-4.14). Task detail's `rewards` lists every reward matching the task, with how it matches (`tagged` or `scope`) | ⏳ (HLR-9) |
+| LLR-8.7 | Reward create/update accept `categoryId` (required on create), `areaId` (optional; `null` = whole tile) and `matchMode` (`selected` \| `all`); update also accepts `untagOutside` (narrowing answers 409 listing the tasks until it's `true`). Reward responses include `categoryId`, `categoryName`, `categoryIcon`, `areaId`, `areaName`, `matchMode`, `needsTile` and `matchedTaskCount` | ✅ |
+| LLR-8.8 | `GET /rewards` accepts `categoryId` and `areaId` filters. `GET /areas/{id}/rewards` returns the rewards that match that area (LLR-4.14). Task detail's `rewards` lists every reward matching the task, with how it matches (`tagged` or `scope`) | ✅ |
 | LLR-8.9 | Schema changes are applied by versioned migrations on startup, never by dropping and recreating tables; a backup of the database file is written before each upgrade (Q14) | ✅ |
 | LLR-8.10 | Tile endpoints: `POST /categories`, `PATCH /categories/{id}` (name, icon), `DELETE /categories/{id}`, `PUT /categories/order` and `PUT /categories/{id}/areas/order`, `POST /categories/starter` (LLR-1.8, returns what was added) | ✅ |
 | LLR-8.12 | Task create/update accept `isMilestone`, `visibility` (`announced` \| `silent`), `dueAt` (ISO date-time, optional) and `targetDays` (optional); `GET /areas/{id}/tasks` adds filters `milestone=true` and `due=overdue\|today\|week` and `sort=due`. Responses served without the passcode omit silent tasks entirely (BR-R23) | ⏳ next |
@@ -474,9 +474,9 @@ Touch and accessibility: controls ≥ 44 px high (chips ≥ 36 px), inputs 16 px
 | LLR-8.1 | all | `test_requires_demo_token` |
 | LLR-7.x, 5.2–5.8 | — | Manual E2E (browser, 375 px); planned Playwright smoke |
 | LLR-6.x | ⏳ | planned: adapter tests with `FakeVisionAdapter`, fallback tests |
-| LLR-4.9–4.11, 4.16; BR-R12 | `POST/PATCH /rewards`, `PUT /rewards/{id}/tasks` | ⏳ planned: `test_reward_scope_validation`, `test_tagging_outside_scope_rejected`, `test_narrowing_scope_untags` |
-| LLR-4.10; BR-R13–R15 | `POST /tasks/{id}/complete` | ⏳ planned: `test_all_in_scope_counts_untagged_and_new_tasks`, `test_other_tile_never_counts` |
-| LLR-4.14, 4.15; LLR-8.8 | `GET /areas/{id}/rewards`, `GET /tasks/{id}` | ⏳ planned: `test_area_lists_matching_rewards`, `test_task_detail_lists_matching_rewards` |
-| LLR-4.17 | `DELETE /areas/{id}` | ⏳ planned: `test_deleting_area_widens_reward_scope` |
+| LLR-4.9–4.11, 4.16; BR-R12 | `POST/PATCH /rewards`, `PUT /rewards/{id}/tasks` | `test_reward_scope_validation`, `test_tagging_outside_scope_rejected`, `test_narrowing_scope_untags` |
+| LLR-4.10; BR-R13–R15 | `POST /tasks/{id}/complete` | `test_all_in_scope_counts_untagged_and_new_tasks`, `test_other_tile_never_counts` |
+| LLR-4.14, 4.15; LLR-8.8 | `GET /areas/{id}/rewards`, `GET /tasks/{id}` | `test_area_lists_matching_rewards`, `test_task_detail_lists_matching_rewards` |
+| LLR-4.17 | `DELETE /areas/{id}` | `test_deleting_area_widens_reward_scope` |
 | LLR-8.9; NFR-D8 | startup migrations, `app.backup` | `test_models_match_migrations`, `test_pre_migration_database_is_stamped_not_rebuilt`, `test_migrate_is_idempotent`, `test_export_import_round_trip`, `test_import_refuses_non_empty_target_without_replace` |
-| LLR-4.18; BR-R16 | migration `0002_reward_scope` | ⏳ planned: `test_migration_infers_scope_and_keeps_data` (runs against a pre-migration fixture database) |
+| LLR-4.18; BR-R16 | migration `0003_reward_scope` | `test_migration_infers_scope_and_keeps_data` (runs against a database at `0002_details`), `test_needs_a_tile_reward_must_pick_one_first`, `test_claimed_reward_without_a_tile_can_still_get_one` |

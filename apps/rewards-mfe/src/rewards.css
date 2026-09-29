@@ -248,3 +248,17 @@
   .rw-app .rw-tile { grid-template-columns: 1fr; grid-template-rows: auto; row-gap: 6px; min-height: 160px; align-content: start; }
   .rw-app .rw-tile-icon { grid-row: auto; }
 }
+
+/* Reward scope (HLR-9) */
+.rw-app .rw-scope-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; }
+.rw-app .rw-scope { margin: 0; font-size: 0.875rem; color: var(--rw-muted); }
+.rw-app .rw-scope a { color: inherit; font-weight: 600; }
+.rw-app .rw-scope--missing { color: #8a6414; background: #f8efd9; padding: 8px 10px; border-radius: 10px; }
+.rw-app .rw-scope-editor { border-top: 1px solid var(--rw-line); padding-top: 10px; }
+.rw-app .rw-reward-group { margin-top: 16px; }
+.rw-app .rw-group-title { font-size: 1rem; margin: 0 0 4px; }
+.rw-app .rw-area-rewards { margin-bottom: 12px; }
+.rw-app .rw-area-rewards h3 { margin: 0; font-size: 1rem; }
+.rw-app .rw-mini-list a small { font-weight: 400; }
+.rw-app .rw-also { margin-top: 16px; }
+.rw-app .rw-also h3 { margin: 0 0 4px; font-size: 1rem; }

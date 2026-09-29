@@ -266,7 +266,7 @@ def normalise_status(raw: str, req_id: str) -> str:
     return "Planned"
 
 
-NEXT_EPICS = {"HLR-9", "HLR-11", "HLR-12"}
+NEXT_EPICS = {"HLR-11", "HLR-12"}
 # Rules and NFRs from tables without a status column that describe work not built yet.
 NOT_YET_BUILT = {"NFR-D9", "NFR-D10", "NFR-D11"}
 

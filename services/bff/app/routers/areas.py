@@ -76,7 +76,8 @@ async def rename_area(area_id: int, body: schemas.AreaUpdate, session: SessionDe
 
 @router.delete("/areas/{area_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_area(area_id: int, session: SessionDep, settings: SettingsDep):
-    """Deletes the area and (via ON DELETE CASCADE) its tasks, activity, notes, contacts and files."""
+    """Deletes the area and (via ON DELETE CASCADE) its tasks, activity, notes, contacts and files.
+    Rewards scoped to the area widen to its tile (ON DELETE SET NULL, LLR-4.17)."""
     area = await get_or_404(session, Area, area_id)
     stored = await stored_names_under(session, area_ids=[area.id])
     await session.delete(area)

@@ -78,12 +78,17 @@ function ActivityLog({ taskId, reloadKey }) {
 
 function TaskRewards({ task, onChanged }) {
   const { api, links, toast, celebrate } = useRewards();
-  const rewards = useResource(() => api.rewards(), [api, task.rewards.length]);
+  const { area } = task;
+  // LLR-4.15: only locked "Selected tasks" rewards whose scope contains this task can be tagged.
+  const rewards = useResource(() => api.rewards({ status: "locked", categoryId: area.categoryId }), [api, area.categoryId, task.rewards.length]);
   const [choice, setChoice] = useState("");
   const [busy, run] = useAction(toast);
 
-  const taggedIds = new Set(task.rewards.map((r) => r.id));
-  const available = (rewards.data ?? []).filter((r) => !taggedIds.has(r.id) && r.status === "locked");
+  const linkedIds = new Set(task.rewards.map((r) => r.id));
+  const available = (rewards.data ?? []).filter(
+    (r) => !linkedIds.has(r.id) && r.matchMode === "selected" && (!r.areaId || r.areaId === area.id)
+  );
+  const newHere = links.rewards({ tile: area.categoryId, area: area.id, new: 1 });
 
   const tag = async () => {
     const reward = available.find((r) => String(r.id) === choice);
@@ -100,12 +105,15 @@ function TaskRewards({ task, onChanged }) {
     <div className="rw-card">
       <h3>Rewards</h3>
       {task.rewards.length === 0 ? (
-        <p className="rw-muted">Not tagged to any reward yet.</p>
+        <p className="rw-muted">Doesn't count towards any reward yet.</p>
       ) : (
         <ul className="rw-mini-list">
           {task.rewards.map((r) => (
             <li key={r.id}>
-              <a href={links.rewards()}>{r.title}</a>
+              <a href={links.rewards({ area: area.id })}>
+                {r.title}
+                {r.match === "scope" && <small className="rw-muted"> · Counts automatically</small>}
+              </a>
               <span className={`rw-status rw-status--${r.status}`}>{r.status}</span>
               <ProgressBar percent={r.progressPercent} label={`${r.title} progress`} />
             </li>
@@ -131,7 +139,7 @@ function TaskRewards({ task, onChanged }) {
       ) : (
         !rewards.loading && (
           <p className="rw-muted">
-            <a href={links.rewards()}>{task.rewards.length ? "Create another reward" : "Create a reward"}</a> to work towards.
+            <a href={newHere}>{task.rewards.length ? "Create another reward" : "Create a reward"}</a> for {area.name} to work towards.
           </p>
         )
       )}

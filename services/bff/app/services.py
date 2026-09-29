@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from . import schemas
 from .domain import Progress, compute_streak, reward_progress
-from .models import Activity, Area, Reward, Task, reward_tasks
+from .models import Activity, Area, Category, Reward, Task, reward_tasks
 
 
 async def get_or_404[M](session: AsyncSession, model: type[M], obj_id: int | str) -> M:
@@ -96,16 +96,56 @@ async def reward_task_map(session: AsyncSession, reward_ids: Sequence[int]) -> d
     return tagged
 
 
+def in_scope(reward: Reward, area: Area) -> bool:
+    """BR-R12: the task's area belongs to the reward's tile and, if the reward has an area, is that area."""
+    return reward.category_id == area.category_id and (reward.area_id is None or reward.area_id == area.id)
+
+
+async def matched_task_map(
+    session: AsyncSession, rewards: Sequence[Reward]
+) -> tuple[dict[int, list[Task]], dict[int, list[Task]]]:
+    """(matched, tagged) tasks per reward. Matched = the tasks whose completions count (BR-R13, BR-R14)."""
+    tagged = await reward_task_map(session, [r.id for r in rewards])
+    by_scope = [r for r in rewards if r.match_mode == "all" and r.category_id is not None]
+    in_tile: dict[str, list[Task]] = defaultdict(list)
+    if by_scope:
+        rows = await session.execute(
+            select(Task, Area.category_id)
+            .join(Area, Area.id == Task.area_id)
+            .where(Area.category_id.in_({r.category_id for r in by_scope}), Task.status != "archived")
+            .order_by(Task.id)
+        )
+        for task, category_id in rows:
+            in_tile[category_id].append(task)
+
+    matched = {}
+    for reward in rewards:
+        if reward.match_mode == "all" and reward.category_id is not None:
+            matched[reward.id] = [
+                t for t in in_tile[reward.category_id] if reward.area_id is None or t.area_id == reward.area_id
+            ]
+        else:
+            matched[reward.id] = tagged.get(reward.id, [])
+    return matched, tagged
+
+
+@dataclass(frozen=True)
+class RewardTasks:
+    progress: dict[int, Progress]
+    matched: dict[int, list[Task]]
+    tagged: dict[int, list[Task]]
+
+
 async def reward_progress_map(
     session: AsyncSession, rewards: Sequence[Reward], tz: ZoneInfo, today: date
-) -> tuple[dict[int, Progress], dict[int, list[Task]]]:
-    tagged = await reward_task_map(session, [r.id for r in rewards])
-    all_tasks = {t.id: t for tasks in tagged.values() for t in tasks}
+) -> RewardTasks:
+    matched, tagged = await matched_task_map(session, rewards)
+    all_tasks = {t.id: t for tasks in matched.values() for t in tasks}
     stats = await task_stats(session, list(all_tasks.values()), tz, today)
 
     progress = {}
     for reward in rewards:
-        task_stats_list = [stats[t.id] for t in tagged.get(reward.id, [])]
+        task_stats_list = [stats[t.id] for t in matched[reward.id]]
         progress[reward.id] = reward_progress(
             reward.rule_type,
             reward.threshold,
@@ -113,7 +153,7 @@ async def reward_progress_map(
             total_completions=sum(s.completion_count for s in task_stats_list),
             best_current_streak=max((s.current_streak for s in task_stats_list), default=0),
         )
-    return progress, tagged
+    return RewardTasks(progress, matched, tagged)
 
 
 async def evaluate_unlocks(
@@ -121,7 +161,7 @@ async def evaluate_unlocks(
 ) -> list[Reward]:
     """Flip locked rewards whose rule is now met to unlocked. Returns the ones that changed."""
     locked = [r for r in rewards if r.status == "locked"]
-    progress, _ = await reward_progress_map(session, locked, tz, now.astimezone(tz).date())
+    progress = (await reward_progress_map(session, locked, tz, now.astimezone(tz).date())).progress
     newly_unlocked = []
     for reward in locked:
         if progress[reward.id].met:
@@ -131,38 +171,68 @@ async def evaluate_unlocks(
     return newly_unlocked
 
 
-async def locked_rewards_for_task(session: AsyncSession, task_id: int) -> list[Reward]:
-    result = await session.scalars(
-        select(Reward)
-        .join(reward_tasks, reward_tasks.c.reward_id == Reward.id)
-        .where(reward_tasks.c.task_id == task_id, Reward.status == "locked")
-    )
-    return list(result)
+def rewards_matching_area(area: Area):
+    """Rewards scoped to this area or to its whole tile."""
+    return (Reward.category_id == area.category_id) & (Reward.area_id.is_(None) | (Reward.area_id == area.id))
+
+
+async def rewards_for_task(session: AsyncSession, task: Task, area: Area) -> list[tuple[Reward, str]]:
+    """Every reward the task counts towards, with how: "tagged" or "scope" (BR-R15, LLR-8.8)."""
+    tagged_ids = set(await session.scalars(select(reward_tasks.c.reward_id).where(reward_tasks.c.task_id == task.id)))
+    by_scope = (Reward.match_mode == "all") & rewards_matching_area(area)
+    candidates = (
+        await session.scalars(select(Reward).where(Reward.id.in_(tagged_ids) | by_scope).order_by(Reward.created_at))
+    ).all()
+    result = []
+    for reward in candidates:
+        if reward.match_mode == "all" and reward.category_id is not None:
+            if in_scope(reward, area) and task.status != "archived":
+                result.append((reward, "scope"))
+        elif reward.id in tagged_ids:
+            result.append((reward, "tagged"))
+    return result
 
 
 async def rewards_out(
     session: AsyncSession, rewards: Sequence[Reward], tz: ZoneInfo, today: date
 ) -> list[schemas.RewardOut]:
-    progress, tagged = await reward_progress_map(session, rewards, tz, today)
-    return [
-        schemas.RewardOut(
-            id=r.id,
-            title=r.title,
-            description=r.description,
-            image_url=r.image_url,
-            rule_type=r.rule_type,
-            threshold=r.threshold,
-            status=r.status,
-            progress=schemas.ProgressOut(
-                current=progress[r.id].current, target=progress[r.id].target, percent=progress[r.id].percent
-            ),
-            tasks=[schemas.TaskRef(id=t.id, title=t.title) for t in tagged.get(r.id, [])],
-            unlocked_at=r.unlocked_at,
-            claimed_at=r.claimed_at,
-            created_at=r.created_at,
+    tasks = await reward_progress_map(session, rewards, tz, today)
+    categories = {
+        c.id: c
+        for c in await session.scalars(select(Category).where(Category.id.in_({r.category_id for r in rewards})))
+    }
+    area_names = dict(
+        (await session.execute(select(Area.id, Area.name).where(Area.id.in_({r.area_id for r in rewards})))).all()
+    )
+    out = []
+    for r in rewards:
+        category = categories.get(r.category_id)
+        progress = tasks.progress[r.id]
+        out.append(
+            schemas.RewardOut(
+                id=r.id,
+                title=r.title,
+                description=r.description,
+                image_url=r.image_url,
+                rule_type=r.rule_type,
+                threshold=r.threshold,
+                status=r.status,
+                category_id=r.category_id,
+                category_name=category.name if category else None,
+                category_icon=category.icon if category else None,
+                area_id=r.area_id,
+                area_name=area_names.get(r.area_id),
+                match_mode=r.match_mode,
+                needs_tile=r.category_id is None,
+                progress=schemas.ProgressOut(current=progress.current, target=progress.target, percent=progress.percent),
+                tasks=[schemas.TaskRef(id=t.id, title=t.title, area_id=t.area_id) for t in tasks.tagged.get(r.id, [])],
+                matched_task_count=len(tasks.matched[r.id]),
+                unlocked_at=r.unlocked_at,
+                claimed_at=r.claimed_at,
+                created_at=r.created_at,
+            )
         )
-        for r in rewards
-    ]
+    return out
 
 
 async def ensure_tasks_exist(session: AsyncSession, task_ids: Sequence[int]) -> list[int]:

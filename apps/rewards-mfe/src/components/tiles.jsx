@@ -57,6 +57,18 @@ function plural(n, word) {
   return `${n} ${word}${n === 1 ? "" : "s"}`;
 }
 
+/** "2 areas, 5 tasks, 1 reward and 3 contacts" — always areas, tasks and completions; the rest only when present. */
+function removedList(p) {
+  const optional = [
+    [p.rewards, "reward"],
+    [p.notes, "note"],
+    [p.contacts, "contact"],
+    [p.files, "file"],
+  ].filter(([n]) => n > 0);
+  const parts = [[p.areas, "area"], [p.tasks, "task"], [p.completions, "completion"], ...optional].map(([n, word]) => plural(n, word));
+  return `${parts.slice(0, -1).join(", ")} and ${parts.at(-1)}`;
+}
+
 /** Deleting a tile removes everything under it, so it's previewed and needs the name typed (LLR-1.12). */
 export function DeleteTileDialog({ tile, onCancel, onDeleted }) {
   const { api, toast } = useRewards();
@@ -90,8 +102,8 @@ export function DeleteTileDialog({ tile, onCancel, onDeleted }) {
           <ErrorState error={preview.error} onRetry={preview.reload} />
         ) : (
           <p>
-            This removes {plural(preview.data.areas, "area")}, {plural(preview.data.tasks, "task")} and {plural(preview.data.completions, "completion")}
-            {preview.data.rewardsLosingTasks > 0 && `; ${plural(preview.data.rewardsLosingTasks, "reward")} will lose tagged tasks`}. A backup is saved first.
+            This removes {removedList(preview.data)}
+            {preview.data.rewardsLosingTasks > 0 && `; ${plural(preview.data.rewardsLosingTasks, "reward")} elsewhere will lose tagged tasks`}. A backup is saved first.
           </p>
         )}
         <label className="rw-field-label" htmlFor="rw-delete-confirm">

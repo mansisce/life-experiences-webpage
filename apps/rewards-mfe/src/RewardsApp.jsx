@@ -55,7 +55,9 @@ function Screen({ route }) {
     case "task":
       return <TaskScreen key={route.param} taskId={Number(route.param)} />;
     case "rewards":
-      return <RewardsScreen />;
+    case "rewardsTile":
+    case "rewardsArea":
+      return <RewardsScreen key={`${route.name}/${route.param}/${route.query}`} view={route.name} param={route.param} query={route.query} />;
     default:
       return <TilesScreen />;
   }
@@ -88,7 +90,7 @@ export default function RewardsApp({ apiBaseUrl = DEFAULT_BFF_URL, token = DEFAU
   );
 
   const context = useMemo(() => ({ api, links, toast, celebrate }), [api, links, toast, celebrate]);
-  const onRewards = route.name === "rewards";
+  const onRewards = route.name.startsWith("rewards");
 
   return (
     <RewardsContext.Provider value={context}>

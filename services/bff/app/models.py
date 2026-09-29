@@ -82,6 +82,14 @@ class Reward(Base):
     rule_type: Mapped[str] = mapped_column(String(15))  # completions | streak
     threshold: Mapped[int]
     status: Mapped[str] = mapped_column(String(10), default="locked")  # locked | unlocked | claimed
+    # Scope (HLR-9): a tile, optionally narrowed to one of its areas. category_id is NULL only for
+    # rewards migrated from before scopes whose tags didn't point at one tile ("Needs a tile").
+    # Deleting the tile deletes its rewards; deleting the area widens the reward to the tile.
+    category_id: Mapped[str | None] = mapped_column(
+        ForeignKey("categories.id", ondelete="CASCADE"), default=None, index=True
+    )
+    area_id: Mapped[int | None] = mapped_column(ForeignKey("areas.id", ondelete="SET NULL"), default=None, index=True)
+    match_mode: Mapped[str] = mapped_column(String(10), default="selected", server_default="selected")  # selected | all
     unlocked_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
     claimed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)

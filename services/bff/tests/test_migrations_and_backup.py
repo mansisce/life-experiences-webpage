@@ -4,22 +4,27 @@ and export -> import round-trips every row."""
 import sqlite3
 
 import pytest
+from alembic import command
 from alembic.autogenerate import compare_metadata
 from alembic.runtime.migration import MigrationContext
 from sqlalchemy import create_engine
 
 from app.backup import export_data, import_data
 from app.db import Base
-from app.migrate import BASELINE_REVISION, migrate
+from app.migrate import BASELINE_REVISION, alembic_config, migrate
 
 from .test_api import area_id, complete, make_task
 
 
-BASELINE_TABLES = ["categories", "areas", "tasks", "activities", "rewards", "reward_tasks", "photos", "suggestions"]
-
-
 def url_for(path) -> str:
     return f"sqlite+aiosqlite:///{path.as_posix()}"
+
+
+def make_legacy_db(db) -> None:
+    """The schema create_all() made before migrations existed: the 0001 baseline, with no version table."""
+    command.upgrade(alembic_config(url_for(db)), BASELINE_REVISION)
+    with sqlite3.connect(db) as conn:
+        conn.execute("DROP TABLE alembic_version")
 
 
 def test_models_match_migrations(tmp_path):
@@ -35,10 +40,7 @@ def test_models_match_migrations(tmp_path):
 def test_pre_migration_database_is_stamped_not_rebuilt(tmp_path):
     """A database made by the old create_all() keeps every row when migrations arrive."""
     db = tmp_path / "legacy.db"
-    engine = create_engine(f"sqlite:///{db.as_posix()}")
-    # Only the tables create_all() made before migrations existed (the 0001 baseline).
-    Base.metadata.create_all(engine, tables=[Base.metadata.tables[name] for name in BASELINE_TABLES])
-    engine.dispose()
+    make_legacy_db(db)
     with sqlite3.connect(db) as conn:
         conn.execute("INSERT INTO categories (id, name, icon, sort_order) VALUES ('fun', 'Fun', 'x', 0)")
         conn.execute(
@@ -68,7 +70,11 @@ def test_export_import_round_trip(client, tmp_path):
     task = make_task(client, kitchen, title="Wipe counters")
     complete(client, task["id"], days_ago=1, note="After dinner")
     complete(client, task["id"])
-    client.post("/rewards", json={"title": "Coffee", "ruleType": "completions", "threshold": 2, "taskIds": [task["id"]]})
+    client.post(
+        "/rewards",
+        json={"title": "Coffee", "ruleType": "completions", "threshold": 2, "categoryId": "household",
+              "areaId": kitchen, "taskIds": [task["id"]]},
+    )
 
     source_url = client.app.state.settings.database_url
     payload = export_data(source_url)

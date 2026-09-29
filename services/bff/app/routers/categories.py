@@ -9,7 +9,7 @@ from sqlalchemy import delete, distinct, func, or_, select
 from .. import schemas
 from ..deps import SessionDep, SettingsDep
 from ..migrate import backup_sqlite, sqlite_file
-from ..models import Activity, Area, Attachment, Category, Contact, Note, Task, reward_tasks
+from ..models import Activity, Area, Attachment, Category, Contact, Note, Reward, Task, reward_tasks
 from ..seed import add_starter_set, next_tile_order, slugify, unique_tile_id
 from ..services import get_or_404
 from .areas import active_counts, area_out
@@ -116,8 +116,11 @@ async def _delete_preview(session, category: Category) -> schemas.DeletePreview:
         areas=await session.scalar(select(func.count()).where(Area.category_id == category.id)),
         tasks=await session.scalar(select(func.count()).where(Task.area_id.in_(area_ids))),
         completions=await session.scalar(select(func.count()).where(Activity.task_id.in_(task_ids))),
+        rewards=await session.scalar(select(func.count()).where(Reward.category_id == category.id)),
         rewards_losing_tasks=await session.scalar(
-            select(func.count(distinct(reward_tasks.c.reward_id))).where(reward_tasks.c.task_id.in_(task_ids))
+            select(func.count(distinct(reward_tasks.c.reward_id)))
+            .join(Reward, Reward.id == reward_tasks.c.reward_id)
+            .where(reward_tasks.c.task_id.in_(task_ids), Reward.category_id.is_distinct_from(category.id))
         ),
         **{
             key: await session.scalar(
@@ -152,7 +155,7 @@ async def delete_category(
     area_ids = list(await session.scalars(select(Area.id).where(Area.category_id == category.id)))
     stored = await stored_names_under(session, category_id=category.id, area_ids=area_ids)
     # Areas cascade to tasks, completions, reward tags, notes, contacts and files (ON DELETE CASCADE);
-    # the tile's own notes, contacts and files cascade from the tile.
+    # the tile's own notes, contacts, files and rewards cascade from the tile.
     await session.execute(delete(Area).where(Area.category_id == category.id))
     await session.delete(category)
     await session.commit()

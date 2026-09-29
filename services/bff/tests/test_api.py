@@ -138,13 +138,13 @@ def test_reward_unlocks_on_completion_count_then_claim(client):
     complete(client, task["id"])
 
     reward = client.post(
-        "/rewards", json={"title": "Coffee out", "ruleType": "completions", "threshold": 3}
+        "/rewards", json={"title": "Coffee out", "ruleType": "completions", "threshold": 3, "categoryId": "household"}
     ).json()
     assert reward["status"] == "locked" and reward["progress"]["current"] == 0
 
     tagged = client.put(f"/rewards/{reward['id']}/tasks", json={"taskIds": [task["id"]]}).json()
     assert tagged["progress"] == {"current": 2, "target": 3, "percent": 67}
-    assert tagged["tasks"] == [{"id": task["id"], "title": task["title"]}]
+    assert tagged["tasks"] == [{"id": task["id"], "title": task["title"], "areaId": task["areaId"]}]
 
     assert client.patch(f"/rewards/{reward['id']}", json={"status": "claimed"}).status_code == 409
 
@@ -157,7 +157,16 @@ def test_reward_unlocks_on_completion_count_then_claim(client):
     assert client.get("/rewards", params={"status": "claimed"}).json()[0]["id"] == reward["id"]
 
     detail = client.get(f"/tasks/{task['id']}").json()
-    assert detail["rewards"] == [{"id": reward["id"], "title": "Coffee out", "status": "claimed", "progressPercent": 100}]
+    assert detail["rewards"] == [
+        {
+            "id": reward["id"],
+            "title": "Coffee out",
+            "status": "claimed",
+            "progressPercent": 100,
+            "matchMode": "selected",
+            "match": "tagged",
+        }
+    ]
 
 
 def test_streak_reward_uses_best_current_streak_across_tasks(client):
@@ -170,7 +179,13 @@ def test_streak_reward_uses_best_current_streak_across_tasks(client):
 
     reward = client.post(
         "/rewards",
-        json={"title": "New brushes", "ruleType": "streak", "threshold": 3, "taskIds": [a["id"], b["id"]]},
+        json={
+            "title": "New brushes",
+            "ruleType": "streak",
+            "threshold": 3,
+            "categoryId": "fun",
+            "taskIds": [a["id"], b["id"]],
+        },
     ).json()
     assert reward["progress"]["current"] == 2 and reward["status"] == "locked"
     assert complete(client, a["id"])["unlockedRewards"][0]["title"] == "New brushes"
@@ -180,13 +195,17 @@ def test_reward_already_met_unlocks_on_create_and_rejects_unknown_tasks(client):
     task = make_task(client, area_id(client, "fun", "Outings"))
     complete(client, task["id"])
     reward = client.post(
-        "/rewards", json={"title": "Movie", "ruleType": "completions", "threshold": 1, "taskIds": [task["id"]]}
+        "/rewards",
+        json={"title": "Movie", "ruleType": "completions", "threshold": 1, "categoryId": "fun", "taskIds": [task["id"]]},
     ).json()
     assert reward["status"] == "unlocked"
 
-    bad = client.post("/rewards", json={"title": "X", "ruleType": "completions", "threshold": 1, "taskIds": [999]})
+    bad = client.post(
+        "/rewards", json={"title": "X", "ruleType": "completions", "threshold": 1, "categoryId": "fun", "taskIds": [999]}
+    )
     assert bad.status_code == 422
-    assert client.post("/rewards", json={"title": "X", "ruleType": "points", "threshold": 1}).status_code == 422
+    points = {"title": "X", "ruleType": "points", "threshold": 1, "categoryId": "fun"}
+    assert client.post("/rewards", json=points).status_code == 422
 
 
 # ── Dashboard (BFF: different shape for a different client) ────────────────────
@@ -198,7 +217,10 @@ def test_dashboard_summary_is_flat_snake_case(client):
     complete(client, task["id"], days_ago=1)
     complete(client, task["id"])
     complete(client, task["id"], days_ago=40)
-    client.post("/rewards", json={"title": "Treat", "ruleType": "streak", "threshold": 5, "taskIds": [task["id"]]})
+    client.post(
+        "/rewards",
+        json={"title": "Treat", "ruleType": "streak", "threshold": 5, "categoryId": "household", "taskIds": [task["id"]]},
+    )
 
     summary = client.get("/dashboard/summary").json()
     assert summary["totals"]["completions"] == 3

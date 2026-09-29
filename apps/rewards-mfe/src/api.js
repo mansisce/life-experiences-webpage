@@ -82,6 +82,7 @@ export function createApi({ baseUrl, token }) {
     activity: (id) => request("GET", `/tasks/${id}/activity`),
 
     rewards: (filters = {}) => request("GET", `/rewards${query(filters)}`),
+    areaRewards: (areaId) => request("GET", `/areas/${areaId}/rewards`),
     createReward: (reward) => request("POST", "/rewards", reward),
     updateReward: (id, changes) => request("PATCH", `/rewards/${id}`, changes),
     setRewardTasks: (id, taskIds) => request("PUT", `/rewards/${id}/tasks`, { taskIds }),

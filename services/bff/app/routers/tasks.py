@@ -8,12 +8,12 @@ from sqlalchemy import case, select
 
 from .. import schemas
 from ..deps import NowDep, SessionDep, SettingsDep
-from ..models import Activity, Area, Reward, Task, reward_tasks
+from ..models import Activity, Area, Task
 from ..services import (
     evaluate_unlocks,
     get_or_404,
-    locked_rewards_for_task,
     reward_progress_map,
+    rewards_for_task,
     rewards_out,
     task_stats,
     to_task_out,
@@ -87,21 +87,21 @@ async def get_task(task_id: int, session: SessionDep, settings: SettingsDep, now
     task = await get_or_404(session, Task, task_id)
     area = await get_or_404(session, Area, task.area_id)
     stats = await task_stats(session, [task], settings.tz, today)
-    rewards = (
-        await session.scalars(
-            select(Reward)
-            .join(reward_tasks, reward_tasks.c.reward_id == Reward.id)
-            .where(reward_tasks.c.task_id == task_id)
-            .order_by(Reward.created_at)
-        )
-    ).all()
-    progress, _ = await reward_progress_map(session, rewards, settings.tz, today)
+    matches = await rewards_for_task(session, task, area)
+    progress = (await reward_progress_map(session, [r for r, _ in matches], settings.tz, today)).progress
     return schemas.TaskDetail(
         **to_task_out(task, stats[task.id]).model_dump(),
         area=schemas.AreaRef(id=area.id, name=area.name, category_id=area.category_id),
         rewards=[
-            schemas.RewardRef(id=r.id, title=r.title, status=r.status, progress_percent=progress[r.id].percent)
-            for r in rewards
+            schemas.RewardRef(
+                id=r.id,
+                title=r.title,
+                status=r.status,
+                progress_percent=progress[r.id].percent,
+                match_mode=r.match_mode,
+                match=how,
+            )
+            for r, how in matches
         ],
     )
 
@@ -143,7 +143,10 @@ async def complete_task(
         task.status = "done"
     await session.flush()  # make the new activity visible to the queries below, inside this transaction
 
-    unlocked = await evaluate_unlocks(session, await locked_rewards_for_task(session, task.id), settings.tz, now)
+    # BR-R15: every locked reward this task counts towards, tagged or by scope.
+    area = await get_or_404(session, Area, task.area_id)
+    candidates = [r for r, _ in await rewards_for_task(session, task, area) if r.status == "locked"]
+    unlocked = await evaluate_unlocks(session, candidates, settings.tz, now)
     await session.commit()
 
     today = now.astimezone(settings.tz).date()

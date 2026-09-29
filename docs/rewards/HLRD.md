@@ -178,7 +178,7 @@ flowchart LR
 | T2 | Build the MFE; mount it on `#/rewards`; remove the old in-site rewards + `/rewards` Express routes | ✅ (branch) |
 | T3 | Build the Streamlit insights client | ✅ |
 | T3a | Schema migrations (Alembic) + export/import, so schema changes never cost existing data | ✅ (branch) |
-| T3b | Reward scope and matching (HLR-9), shipped as the first data-preserving migration | ⏳ next, after T3a |
+| T3b | Reward scope and matching (HLR-9), shipped as a data-preserving migration (`0003_reward_scope`) | ✅ (branch) |
 | T3c | User-managed tiles (CRUD), no seeding, optional starter set (HLR-1 update) | ✅ (branch) |
 | T3d | Notes, contacts and files on tiles and areas (HLR-10) | ✅ (branch) |
 | T3e | Task planning and visibility: milestones, due date/time, days to complete, announce/silent (HLR-11) | ⏳ next |
@@ -222,7 +222,7 @@ No data migration from Neo4j is planned. The old feature held no production data
 | HLR-2 | Task management | Create, prioritise, filter, change status/frequency/relevance | LLR-2.x | ✅ |
 | HLR-3 | Completion & streaks | Log completions with note/backfill; activity log; current/best streak | LLR-3.x | ✅ |
 | HLR-4 | Rewards | Create, tag, progress, auto-unlock, claim | LLR-4.1–4.8 | ✅ |
-| HLR-9 | Reward scope and matching | Rewards live in the same tiles and areas as tasks; tasks are matched to rewards inside that scope (selected tasks, or all tasks in scope); existing rewards migrated without data loss | LLR-4.9–4.18 | ⏳ next |
+| HLR-9 | Reward scope and matching | Rewards live in the same tiles and areas as tasks; tasks are matched to rewards inside that scope (selected tasks, or all tasks in scope); existing rewards migrated without data loss | LLR-4.9–4.18 | ✅ |
 | HLR-10 | Notes, contacts and files | Every tile and area holds notes, contacts (customer care, service executives, vendors) and files (bills, warranty cards), grouped by topic such as "Bosch Dishwasher", with tap-to-call and search | LLR-10.x | ✅ |
 | HLR-11 | Task planning and visibility | Tasks can be milestones (badge, filter, "milestone completed" reward rule, bigger celebration), have a due date and time and a days-to-complete target, and be announced or silent (silent = hidden from the public view and completed without celebration) | LLR-11.x | ⏳ next |
 | HLR-12 | Reward ideas and wishlist | Capture a reward idea in seconds (e.g. a book for Shiragi spotted at the library) without a rule; turn it into a real reward later, or mark it bought or dropped; every reward says who it's for | LLR-12.x | ⏳ next |

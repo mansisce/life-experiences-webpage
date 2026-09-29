@@ -13,16 +13,23 @@ const ROUTES = [
   ["category", /^\/c\/([\w-]+)(\/details)?$/],
   ["area", /^\/a\/(\d+)(\/details)?$/],
   ["task", /^\/t\/(\d+)$/],
+  // The Rewards tab mirrors the Areas tab: tiles -> a tile's areas -> an area's rewards.
   ["rewards", /^\/my-rewards$/],
+  ["rewardsTile", /^\/my-rewards\/c\/([\w-]+)$/],
+  ["rewardsArea", /^\/my-rewards\/a\/(\d+)$/],
 ];
 
-/** `tab` is "details" on a tile's or area's Notes & contacts tab, otherwise "main". */
-export function matchRoute(path) {
+/**
+ * `tab` is "details" on a tile's or area's Notes & contacts tab, otherwise "main".
+ * `query` is anything after "?", e.g. "new=1" opens the new-reward form.
+ */
+export function matchRoute(fullPath) {
+  const [path, query = ""] = fullPath.split("?");
   for (const [name, pattern] of ROUTES) {
     const match = path.match(pattern);
-    if (match) return { name, param: match[1], tab: match[2] ? "details" : "main" };
+    if (match) return { name, param: match[1] ?? null, tab: match[2] ? "details" : "main", query };
   }
-  return { name: "tiles", param: null, tab: "main" };
+  return { name: "tiles", param: null, tab: "main", query };
 }
 
 export function useHashRoute(basePath) {
@@ -46,7 +53,11 @@ export function makeLinks(basePath) {
     areaDetails: (id) => `#${basePath}/a/${id}/details`,
     details: (type, id) => `#${basePath}/${type === "area" ? "a" : "c"}/${id}/details`,
     task: (id) => `#${basePath}/t/${id}`,
-    rewards: () => `#${basePath}/my-rewards`,
+    // rewards() = all tiles; rewards({ tile }) = a tile; rewards({ area }) = an area; add new: 1 to open the form.
+    rewards: ({ tile, area, new: open } = {}) => {
+      const where = area ? `/a/${area}` : tile ? `/c/${tile}` : "";
+      return `#${basePath}/my-rewards${where}${open ? "?new=1" : ""}`;
+    },
   };
 }
 
