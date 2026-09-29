@@ -9,6 +9,7 @@ dependencies = [
     "aiosqlite>=0.20",
     "pydantic-settings>=2.6",
     "tzdata>=2024.1",
+    "alembic>=1.14",
 ]
 
 [dependency-groups]

@@ -4,13 +4,15 @@ Run locally from services/bff:   uv run fastapi dev app/main.py
 Interactive API docs:            http://localhost:8000/docs
 """
 
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import Settings
-from .db import Base, make_engine, make_sessionmaker
+from .db import make_engine, make_sessionmaker
+from .migrate import migrate
 from .deps import require_demo_token
 from .routers import areas, dashboard, rewards, tasks
 from .seed import seed_if_empty
@@ -23,9 +25,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(app: FastAPI):
         # Runs once on startup (before `yield`) and once on shutdown (after) — like a
         # useEffect with an empty dependency array and a cleanup function.
+        # Schema changes arrive as migrations that upgrade the existing database in place (with a
+        # backup first), never by recreating tables. Alembic is synchronous, so run it off the loop.
+        await asyncio.to_thread(migrate, settings.database_url)
         engine = make_engine(settings.database_url)
-        async with engine.begin() as conn:
-            await conn.run_sync(Base.metadata.create_all)  # MVP: no migrations, create missing tables
         app.state.sessionmaker = make_sessionmaker(engine)
         settings.photo_dir.mkdir(parents=True, exist_ok=True)
         async with app.state.sessionmaker() as session:

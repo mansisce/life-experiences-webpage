@@ -1,0 +1,9 @@
+Alembic migrations for the Rewards BFF.
+
+The BFF applies these automatically on startup (app/migrate.py): databases from before migrations
+are stamped at 0001_baseline, and an SQLite copy is saved to data/backups/ before any upgrade.
+
+To change a table: edit app/models.py, then
+    uv run alembic revision --autogenerate -m "what changed" --rev-id 000N_short_name
+review the generated file (data migrations are written by hand), and run the tests.
+tests/test_migrations_and_backup.py fails if models and migrations ever drift apart.
