@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useRewards } from "../context.js";
 import { useResource } from "../lib/useResource.js";
+import DetailsPanel from "../components/details.jsx";
 import {
   Chips,
   Empty,
@@ -15,6 +16,7 @@ import {
   ScreenHeader,
   STATUSES,
   StreakBadge,
+  SubTabs,
   useAction,
 } from "../components/ui.jsx";
 
@@ -129,7 +131,7 @@ function TaskList({ areaId, filters, reloadKey }) {
   );
 }
 
-export default function AreaScreen({ areaId }) {
+export default function AreaScreen({ areaId, tab = "main" }) {
   const { api, links } = useRewards();
   const area = useResource(() => api.area(areaId), [api, areaId]);
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
@@ -149,7 +151,17 @@ export default function AreaScreen({ areaId }) {
             title={a.name}
             subtitle={`${a.activeTaskCount} active task${a.activeTaskCount === 1 ? "" : "s"}`}
           />
-
+          <SubTabs
+            label={`${a.name} sections`}
+            tabs={[
+              ["Tasks", links.area(areaId), tab !== "details"],
+              ["Notes & contacts", links.areaDetails(areaId), tab === "details"],
+            ]}
+          />
+          {tab === "details" ? (
+            <DetailsPanel ownerType="area" ownerId={areaId} />
+          ) : (
+          <>
           {/* Phase 4: photo upload + AI suggestions panel goes here, running in parallel with the manual form. */}
           <AddTaskForm areaId={areaId} onCreated={() => (setReloadKey((k) => k + 1), area.refresh())} />
 
@@ -167,6 +179,8 @@ export default function AreaScreen({ areaId }) {
             </div>
           )}
           <TaskList areaId={areaId} filters={filters} reloadKey={reloadKey} />
+          </>
+          )}
         </section>
       )}
     </Resource>

@@ -15,6 +15,9 @@ from app.migrate import BASELINE_REVISION, migrate
 from .test_api import area_id, complete, make_task
 
 
+BASELINE_TABLES = ["categories", "areas", "tasks", "activities", "rewards", "reward_tasks", "photos", "suggestions"]
+
+
 def url_for(path) -> str:
     return f"sqlite+aiosqlite:///{path.as_posix()}"
 
@@ -33,7 +36,8 @@ def test_pre_migration_database_is_stamped_not_rebuilt(tmp_path):
     """A database made by the old create_all() keeps every row when migrations arrive."""
     db = tmp_path / "legacy.db"
     engine = create_engine(f"sqlite:///{db.as_posix()}")
-    Base.metadata.create_all(engine)
+    # Only the tables create_all() made before migrations existed (the 0001 baseline).
+    Base.metadata.create_all(engine, tables=[Base.metadata.tables[name] for name in BASELINE_TABLES])
     engine.dispose()
     with sqlite3.connect(db) as conn:
         conn.execute("INSERT INTO categories (id, name, icon, sort_order) VALUES ('fun', 'Fun', 'x', 0)")
@@ -47,6 +51,11 @@ def test_pre_migration_database_is_stamped_not_rebuilt(tmp_path):
     with sqlite3.connect(db) as conn:
         assert conn.execute("SELECT name FROM areas").fetchall() == [("Hobbies",)]
         assert conn.execute("SELECT version_num FROM alembic_version").fetchone()[0] >= BASELINE_REVISION
+        # Later migrations ran on top of the adopted baseline, adding their tables...
+        tables = {r[0] for r in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+        assert {"notes", "contacts", "attachments"} <= tables
+    # ...and a copy of the database was saved before upgrading it.
+    assert list((tmp_path / "backups").glob("legacy-*-pre-*.db"))
 
 
 def test_migrate_is_idempotent(tmp_path):

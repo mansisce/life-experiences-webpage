@@ -8,10 +8,10 @@ Two families live here on purpose — the BFF principle:
 - `FlatModel`: flat, snake_case records for Streamlit, which drops straight into pandas.
 """
 
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from pydantic.alias_generators import to_camel
 
 Priority = Literal["high", "medium", "low"]
@@ -81,6 +81,9 @@ class DeletePreview(ApiModel):
     tasks: int
     completions: int
     rewards_losing_tasks: int
+    notes: int
+    contacts: int
+    files: int
 
 
 class AreaCreate(ApiModel):
@@ -308,3 +311,139 @@ class DashboardSummary(FlatModel):
     streaks: list[StreakRow]
     rewards: list[RewardProgressRow]
     suggestions: SuggestionStats
+
+
+# ── Notes, contacts and files (HLR-10) ────────────────────────────────────────
+
+ContactRole = Literal["customer_care", "service_executive", "technician", "vendor", "other"]
+PhoneLabel = Literal["mobile", "landline", "toll_free", "other"]
+OwnerType = Literal["category", "area"]
+Topic = Field(default=None, max_length=60)
+
+
+class Phone(ApiModel):
+    number: str = Field(min_length=3, max_length=30, pattern=r"^[0-9+()\-\s]+$")
+    label: PhoneLabel = "mobile"
+    whatsapp: bool = False
+
+
+class NoteCreate(ApiModel):
+    topic: str | None = Topic
+    title: str | None = Field(default=None, max_length=120)
+    body: str = Field(min_length=1, max_length=5000)
+
+
+class NoteUpdate(ApiModel):
+    topic: str | None = Topic
+    title: str | None = Field(default=None, max_length=120)
+    body: str | None = Field(default=None, min_length=1, max_length=5000)
+
+
+class NoteOut(ApiModel):
+    id: int
+    topic: str | None
+    title: str | None
+    body: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class ContactCreate(ApiModel):
+    topic: str | None = Topic
+    name: str = Field(min_length=1, max_length=80)
+    organisation: str | None = Field(default=None, max_length=80)
+    role: ContactRole = "other"
+    phones: list[Phone] = Field(default_factory=list, max_length=3)
+    email: EmailStr | None = None
+    website: str | None = Field(default=None, max_length=500)
+    last_visit: date | None = None
+    notes: str = Field(default="", max_length=1000)
+
+
+class ContactUpdate(ApiModel):
+    topic: str | None = Topic
+    name: str | None = Field(default=None, min_length=1, max_length=80)
+    organisation: str | None = Field(default=None, max_length=80)
+    role: ContactRole | None = None
+    phones: list[Phone] | None = Field(default=None, max_length=3)
+    email: EmailStr | None = None
+    website: str | None = Field(default=None, max_length=500)
+    last_visit: date | None = None
+    notes: str | None = Field(default=None, max_length=1000)
+
+
+class PhoneOut(Phone):
+    tel: str  # dialable, e.g. "+919845012345" or "18002662345"
+    whatsapp_url: str | None
+
+
+class ContactOut(ApiModel):
+    id: int
+    topic: str | None
+    name: str
+    organisation: str | None
+    role: ContactRole
+    phones: list[PhoneOut]
+    email: str | None
+    website: str | None
+    last_visit: date | None
+    notes: str
+    created_at: datetime
+    updated_at: datetime
+
+
+class FileUpdate(ApiModel):
+    topic: str | None = Topic
+    title: str | None = Field(default=None, min_length=1, max_length=120)
+    doc_date: date | None = None
+    amount: float | None = Field(default=None, ge=0, le=100_000_000)
+
+
+class FileOut(ApiModel):
+    id: int
+    topic: str | None
+    title: str
+    doc_date: date | None
+    amount: float | None
+    original_name: str
+    content_type: str
+    size_bytes: int
+    is_image: bool
+    url: str  # signed, short-lived; works in <img src> and <a href>
+    created_at: datetime
+
+
+class TopicGroup(ApiModel):
+    topic: str | None  # None = "General"
+    last_executive: ContactOut | None
+    contacts: list[ContactOut]
+    files: list[FileOut]
+    notes: list[NoteOut]
+
+
+class DetailCounts(ApiModel):
+    notes: int
+    contacts: int
+    files: int
+
+
+class DetailsOut(ApiModel):
+    """Everything on a tile's or area's Notes & contacts tab, grouped by topic, in one response."""
+
+    owner_type: OwnerType
+    owner_id: str
+    path: str  # e.g. "Household › Kitchen"
+    topics: list[TopicGroup]
+    topic_names: list[str]  # suggestions for the topic field
+    counts: DetailCounts
+
+
+class SearchHit(ApiModel):
+    kind: Literal["note", "contact", "file"]
+    id: int
+    title: str
+    snippet: str
+    topic: str | None
+    owner_type: OwnerType
+    owner_id: str
+    path: str

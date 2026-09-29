@@ -282,26 +282,26 @@ Conventions: **LLR** = detailed functional requirement · **BR-R** = business ru
 | LLR-8.10 | Tile endpoints: `POST /categories`, `PATCH /categories/{id}` (name, icon), `DELETE /categories/{id}`, `PUT /categories/order` and `PUT /categories/{id}/areas/order`, `POST /categories/starter` (LLR-1.8, returns what was added) | ✅ |
 | LLR-8.12 | Task create/update accept `isMilestone`, `visibility` (`announced` \| `silent`), `dueAt` (ISO date-time, optional) and `targetDays` (optional); `GET /areas/{id}/tasks` adds filters `milestone=true` and `due=overdue\|today\|week` and `sort=due`. Responses served without the passcode omit silent tasks entirely (BR-R23) | ⏳ next |
 | LLR-8.13 | Rewards accept `status: "idea"` on create (rule, threshold and tile then optional), `forWhom`, `visibility`, `link`, `seenAt` (where seen) and a cover image; `POST /rewards/{id}/activate` (rule, threshold, tile, tasks) turns an idea into a locked reward; `POST /rewards/{id}/close` with `outcome` (`bought` \| `dropped`); `GET /rewards` filters `status=idea\|closed` and `forWhom=` | ⏳ next |
-| LLR-8.11 | Details endpoints for both owners (`/categories/{id}` and `/areas/{id}`): `…/details` (grouped by topic), `…/notes`, `…/contacts`, `…/files` (multipart upload); `PATCH`/`DELETE` on `/notes/{id}`, `/contacts/{id}`, `/files/{id}`; `GET /files/{id}/download`; `GET /search?q=` | ⏳ next |
+| LLR-8.11 | Details endpoints for both owners (`/categories/{id}` and `/areas/{id}`): `…/details` (grouped by topic), `…/notes`, `…/contacts`, `…/files` (multipart upload); `PATCH`/`DELETE` on `/notes/{id}`, `/contacts/{id}`, `/files/{id}`; `GET /files/{id}/download`; `GET /search?q=` | ✅ |
 
-### LLR-10 Notes, contacts and files (HLR-10) ⏳ next
+### LLR-10 Notes, contacts and files (HLR-10) ✅
 
 Each **tile** and each **area** has a *Notes & contacts* section (Q16, Q18). Every note, contact and file can carry an optional **topic** (e.g. "Bosch Dishwasher", "Pest Control") that groups related items.
 
 | ID | Requirement | Status |
 |---|---|---|
-| LLR-10.1 | The tile screen and the area screen each have a **Notes & contacts** tab next to their main content. It lists topics as groups (items without a topic under "General"), each showing its contacts, files and notes | ⏳ next |
-| LLR-10.2 | **Topic** is free text (1–60 characters), optional, and offers existing topics from the same tile or area as suggestions, so "Bosch Dishwasher" isn't typed three different ways | ⏳ next |
-| LLR-10.3 | **Contact**: name (required, 1–80); organisation or brand (e.g. Bosch, Kent, IFB, LG); role (*Customer care*, *Service executive*, *Technician*, *Vendor or shop*, *Other*); up to 3 phone numbers with labels (mobile, toll-free, WhatsApp); email; website; last visit or contact date; notes (≤ 1000); topic | ⏳ next |
-| LLR-10.4 | Phone numbers are stored as entered and shown with actions: **Call** (`tel:`), **WhatsApp** (`wa.me`, for numbers marked WhatsApp) and **Copy**. Email gets **Email** (`mailto:`). All actions are one tap on a phone | ⏳ next |
-| LLR-10.5 | **Past executives**: within a topic, contacts with the role *Service executive* or *Technician* are listed newest last-visit first. The topic header shows the **last executive** (name, date, call button) | ⏳ next |
-| LLR-10.6 | **Note**: text 1–5000 characters, optional title and topic; shows created and last-edited time; newest first | ⏳ next |
-| LLR-10.7 | **File** (bills, invoices, warranty cards, manuals): PDF, JPG, PNG, WebP or HEIC, up to 10 MB each, checked by content; title (required), optional date, amount (₹) and topic. Files open in the browser or download; images show a thumbnail | ⏳ next |
-| LLR-10.8 | Notes, contacts and files can be edited and deleted (with confirmation), and moved between topics by editing the topic | ⏳ next |
-| LLR-10.9 | **Search** across every tile and area by contact name, organisation, topic, phone digits (spaces and dashes ignored), note text and file title. Results show where each hit lives (e.g. "Household › Kitchen › Bosch Dishwasher") and link to it | ⏳ next |
-| LLR-10.10 | Deleting an area or tile deletes its notes, contacts and files, and the confirmation counts them (LLR-1.12). Stored files are removed only after the database change commits | ⏳ next |
-| LLR-10.11 | Visibility follows the rewards setting (Q17): readable in the read-only view when public reads are on; creating, editing, deleting and uploading need the owner passcode | ⏳ next |
-| LLR-10.12 | The JSON export (`app.backup`) includes notes and contacts, and lists files by title and stored name; the server backup covers the files folder as well as the database | ⏳ next |
+| LLR-10.1 | The tile screen and the area screen each have a **Notes & contacts** tab next to their main content. It lists topics as groups (items without a topic under "General"), each showing its contacts, files and notes | ✅ |
+| LLR-10.2 | **Topic** is free text (1–60 characters), optional, and offers existing topics from the same tile or area as suggestions, so "Bosch Dishwasher" isn't typed three different ways | ✅ |
+| LLR-10.3 | **Contact**: name (required, 1–80); organisation or brand (e.g. Bosch, Kent, IFB, LG); role (*Customer care*, *Service executive*, *Technician*, *Vendor or shop*, *Other*); up to 3 phone numbers with labels (mobile, toll-free, WhatsApp); email; website; last visit or contact date; notes (≤ 1000); topic | ✅ |
+| LLR-10.4 | Phone numbers are stored as entered and shown with actions: **Call** (`tel:`), **WhatsApp** (`wa.me`, for numbers marked WhatsApp) and **Copy**. Email gets **Email** (`mailto:`). All actions are one tap on a phone | ✅ |
+| LLR-10.5 | **Past executives**: within a topic, contacts with the role *Service executive* or *Technician* are listed newest last-visit first. The topic header shows the **last executive** (name, date, call button) | ✅ |
+| LLR-10.6 | **Note**: text 1–5000 characters, optional title and topic; shows created and last-edited time; newest first | ✅ |
+| LLR-10.7 | **File** (bills, invoices, warranty cards, manuals): PDF, JPG, PNG, WebP or HEIC, up to 10 MB each, checked by content; title (required), optional date, amount (₹) and topic. Files open in the browser or download; images show a thumbnail | ✅ |
+| LLR-10.8 | Notes, contacts and files can be edited and deleted (with confirmation), and moved between topics by editing the topic | ✅ |
+| LLR-10.9 | **Search** across every tile and area by contact name, organisation, topic, phone digits (spaces and dashes ignored), note text and file title. Results show where each hit lives (e.g. "Household › Kitchen › Bosch Dishwasher") and link to it | ✅ |
+| LLR-10.10 | Deleting an area or tile deletes its notes, contacts and files, and the confirmation counts them (LLR-1.12). Stored files are removed only after the database change commits | ✅ |
+| LLR-10.11 | Visibility follows the rewards setting (Q17): readable in the read-only view when public reads are on; creating, editing, deleting and uploading need the owner passcode | ✅ |
+| LLR-10.12 | The JSON export (`app.backup`) includes notes and contacts, and lists files by title and stored name; the server backup covers the files folder as well as the database | 🟡 export built; server backup of the files folder comes with hosting |
 
 **Business rules: tiles and details**
 
@@ -398,9 +398,9 @@ A reward can start life as an **idea**: something you might get later, captured 
 
 | Screen | Must show | States | Primary actions |
 |---|---|---|---|
-| Tiles | Tiles: icon, name, area count, active task count; "Edit tiles" mode (↑ ↓ ✎ 🗑, "+ New tile", "Add suggested tiles"); ⏳ search box (LLR-10.9) | loading, error+retry; empty: "Create your first tile" + "Add suggested tiles" | open tile; create, edit, reorder, delete tile (typed-name dialog) |
-| Tile (category) | Breadcrumb; areas with active count; ⏳ tabs *Areas* / *Notes & contacts* | loading, error, empty ("No areas yet"), not found | add, rename (inline), reorder (↑ ↓), delete (confirm) area; edit or delete this tile; ⏳ tile-level notes, contacts, files |
-| ⏳ Notes & contacts (tab on tile and area) | Topic groups ("General" last); per topic: last executive, contacts (role, organisation, phones with Call / WhatsApp / Copy), files (thumbnail or PDF icon, date, amount), notes | loading, error, empty ("No notes or contacts yet"), read-only (no edit controls) | add note, contact, file; edit, delete, change topic |
+| Tiles | Tiles: icon, name, area count, active task count; "Edit tiles" mode (↑ ↓ ✎ 🗑, "+ New tile", "Add suggested tiles"); search box (LLR-10.9) | loading, error+retry; empty: "Create your first tile" + "Add suggested tiles" | open tile; create, edit, reorder, delete tile (typed-name dialog) |
+| Tile (category) | Breadcrumb; areas with active count; tabs *Areas* / *Notes & contacts* | loading, error, empty ("No areas yet"), not found | add, rename (inline), reorder (↑ ↓), delete (confirm) area; edit or delete this tile; tile-level notes, contacts, files |
+| Notes & contacts (tab on tile and area) | Topic groups ("General" last); per topic: last executive, contacts (role, organisation, phones with Call / WhatsApp / Copy), files (thumbnail or PDF icon, date, amount), notes | loading, error, empty ("No notes or contacts yet"), read-only (no edit controls) | add note, contact, file; edit, delete, change topic |
 | Area | Breadcrumb; active count; add form (⏳ with **More options**: milestone, announce/silent, due date and time, days to complete); filters (collapsible; ⏳ milestones, overdue/due today/this week, sort by due); task rows (title, frequency, source, status, streak 🔥, priority select, ✓; ⏳ 🏁 milestone, due chip, 🔕 silent); ⏳ "Rewards you can earn here" (matching rewards with progress) | loading, error, "No tasks yet" / "No tasks match these filters"; ⏳ "No rewards for this area yet" + create link prefilled with this scope | add task, filter, reprioritise, quick complete, open task; ⏳ create reward for this area |
 | Task | Breadcrumb; stats (current, best, completions); log completion (when + note); matching rewards (tagged, or ⏳ "Counts automatically") + tag select limited to in-scope rewards; settings chips; activity log | loading, error, "No completions yet", inactive-task notice | complete, tag reward, change settings |
 | Rewards | Status filter (⏳ plus *Ideas* and *Closed*); ⏳ for-whom filter; ⏳ "+ Idea" quick capture; ⏳ idea cards (photo, title, for whom, where seen, *Turn into reward*, *Bought*, *Dropped*); ⏳ tile and area filters; create form (⏳ tile → area → match mode, then task picker limited to scope, grouped by area); cards: image, title, ⏳ scope breadcrumb + match mode, status, rule, progress, tags | loading, error, empty per filter; ⏳ *Needs a tile* badge | create, claim, edit tasks, ⏳ change scope (locked only) |
@@ -422,8 +422,8 @@ Touch and accessibility: controls ≥ 44 px high (chips ≥ 36 px), inputs 16 px
 | ⏳ Duplicate tile | "'<name>' already exists" |
 | ⏳ Delete tile | "Delete <tile>? This removes <n> areas, <n> tasks, <n> completions, <n> rewards and <n> notes, contacts and files. A backup is saved first. Type <tile> to confirm." |
 | ⏳ Starter set | "Added <n> tiles and <n> areas" / "You already have all the suggested tiles" |
-| ⏳ File too large or wrong type | "Files must be PDF, JPG, PNG, WebP or HEIC, up to 10 MB" |
-| ⏳ No details yet | "No notes or contacts yet. Add a customer-care number, the last executive or a bill." |
+| File too large or wrong type | "Files must be PDF, JPG, PNG, WebP or HEIC, up to 10 MB" |
+| No details yet | "No notes or contacts yet. Add a customer-care number, the last executive or a bill." |
 | ⏳ Milestone celebration | "🏁 Milestone reached: <title>!" (with share prompt when announced) |
 | ⏳ Share text | "Done: <title> 🔥 <n>-day streak" / "Milestone reached: <title> 🏁" |
 | ⏳ Silent completion | "Logged" |
@@ -463,7 +463,7 @@ Touch and accessibility: controls ≥ 44 px high (chips ≥ 36 px), inputs 16 px
 | LLR-1.7–1.13; BR-R17–R19; LLR-8.10 | `/categories*` | `test_fresh_database_has_no_tiles`, `test_starter_set_is_idempotent`, `test_starter_set_fills_in_missing_areas_only`, `test_tile_crud_and_unique_names`, `test_new_tile_ids_stay_unique`, `test_reorder_tiles_and_areas`, `test_delete_tile_needs_typed_name_snapshots_and_cascades`, `test_restart_never_reseeds`, `test_upgrade_keeps_existing_tiles` |
 | LLR-12.1–12.9; BR-R27–R30; LLR-8.13 | `/rewards*` | ⏳ planned: `test_idea_needs_only_title`, `test_idea_never_unlocks_or_counts`, `test_activate_idea_keeps_details_and_evaluates`, `test_close_and_reopen_idea`, `test_ideas_silent_by_default`, `test_filter_by_for_whom`, `test_migration_defaults_existing_rewards` |
 | LLR-11.1–11.13; BR-R22–R26; LLR-8.12 | tasks, rewards, `/dashboard/summary` | ⏳ planned: `test_task_planning_fields_round_trip`, `test_overdue_rules`, `test_milestone_reward_needs_all_milestones`, `test_silent_tasks_invisible_without_passcode`, `test_silent_completion_has_no_celebration_flag`, `test_migration_defaults_existing_tasks` |
-| LLR-10.1–10.12; BR-R20–R21; LLR-8.11 | details, files, `/search` | ⏳ planned: `test_details_grouped_by_topic`, `test_last_executive_is_latest_visit`, `test_file_upload_rules`, `test_search_matches_phone_digits`, `test_read_only_view_shows_details_but_blocks_edits` |
+| LLR-10.1–10.12; BR-R20–R21; LLR-8.11 | details, files, `/search` | `test_details_grouped_by_topic_with_last_executive`, `test_tile_level_details_for_home_wide_services`, `test_contact_validation`, `test_edit_and_delete_items`, `test_file_upload_rules_and_signed_download`, `test_search_matches_names_topics_and_phone_digits`, `test_deleting_owner_removes_details_and_files`, `test_export_import_includes_details`; read-only view test comes with the passcode work |
 | LLR-2.1, 2.3–2.5, 2.8, 2.9 | `POST /areas/{id}/tasks`, `GET /areas/{id}/tasks`, `PATCH /tasks/{id}`, `GET /tasks` | `test_create_filter_and_reprioritise_tasks` |
 | LLR-3.1, 3.6, 3.7; BR-R2–R4 | `POST /tasks/{id}/complete`, `GET /tasks/{id}/activity`, `GET /tasks/{id}` | `test_completions_build_streak_and_activity_log`, `test_daily_streak`, `test_weekly_streak` |
 | LLR-3.3–3.5; BR-R4, R5 | `POST /tasks/{id}/complete` | `test_completion_rules`, `test_one_off_streak_is_done_or_not` |

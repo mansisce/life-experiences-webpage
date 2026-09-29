@@ -4,15 +4,16 @@ import asyncio
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query, status
-from sqlalchemy import delete, distinct, func, select
+from sqlalchemy import delete, distinct, func, or_, select
 
 from .. import schemas
 from ..deps import SessionDep, SettingsDep
 from ..migrate import backup_sqlite, sqlite_file
-from ..models import Activity, Area, Category, Task, reward_tasks
+from ..models import Activity, Area, Attachment, Category, Contact, Note, Task, reward_tasks
 from ..seed import add_starter_set, next_tile_order, slugify, unique_tile_id
 from ..services import get_or_404
 from .areas import active_counts, area_out
+from .details import remove_stored_files, stored_names_under
 
 router = APIRouter(tags=["categories & areas"])
 
@@ -118,6 +119,12 @@ async def _delete_preview(session, category: Category) -> schemas.DeletePreview:
         rewards_losing_tasks=await session.scalar(
             select(func.count(distinct(reward_tasks.c.reward_id))).where(reward_tasks.c.task_id.in_(task_ids))
         ),
+        **{
+            key: await session.scalar(
+                select(func.count()).where(or_(model.category_id == category.id, model.area_id.in_(area_ids)))
+            )
+            for key, model in (("notes", Note), ("contacts", Contact), ("files", Attachment))
+        },
     )
 
 
@@ -142,7 +149,11 @@ async def delete_category(
     if db_file is not None and db_file.exists():
         await asyncio.to_thread(backup_sqlite, db_file, f"pre-delete-tile-{category.id}")
 
-    # Areas cascade to tasks, completions, reward tags, photos and suggestions (ON DELETE CASCADE).
+    area_ids = list(await session.scalars(select(Area.id).where(Area.category_id == category.id)))
+    stored = await stored_names_under(session, category_id=category.id, area_ids=area_ids)
+    # Areas cascade to tasks, completions, reward tags, notes, contacts and files (ON DELETE CASCADE);
+    # the tile's own notes, contacts and files cascade from the tile.
     await session.execute(delete(Area).where(Area.category_id == category.id))
     await session.delete(category)
     await session.commit()
+    remove_stored_files(settings, stored)  # only after the rows are gone (LLR-10.10)

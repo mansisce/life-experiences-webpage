@@ -106,6 +106,19 @@ export function ScreenHeader({ crumbs = [], title, subtitle, actions }) {
   );
 }
 
+/** Link tabs within a screen (each tab has its own URL, so it can be deep-linked). */
+export function SubTabs({ tabs, label }) {
+  return (
+    <nav className="rw-subtabs" aria-label={label}>
+      {tabs.map(([text, href, current]) => (
+        <a key={href} href={href} aria-current={current ? "page" : undefined}>
+          {text}
+        </a>
+      ))}
+    </nav>
+  );
+}
+
 /** Segmented single-choice control; `allowNone` adds an "All" option for filters. */
 export function Chips({ options, value, onChange, allowNone = false, label }) {
   const all = allowNone ? [["", "All"], ...options] : options;

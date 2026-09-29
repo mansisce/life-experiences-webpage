@@ -18,14 +18,15 @@ function detailMessage(body, status) {
 export function createApi({ baseUrl, token }) {
   async function request(method, path, body) {
     let response;
+    const isForm = body instanceof FormData; // file uploads: the browser sets the multipart header
     try {
       response = await fetch(`${baseUrl}${path}`, {
         method,
         headers: {
           Authorization: `Bearer ${token}`,
-          ...(body !== undefined && { "Content-Type": "application/json" }),
+          ...(body !== undefined && !isForm && { "Content-Type": "application/json" }),
         },
-        body: body !== undefined ? JSON.stringify(body) : undefined,
+        body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
       });
     } catch {
       throw new ApiError("Can't reach the rewards service. Is the BFF running?", 0);
@@ -41,7 +42,24 @@ export function createApi({ baseUrl, token }) {
     return entries.length ? `?${new URLSearchParams(entries)}` : "";
   };
 
+  // Notes, contacts and files belong to a tile ("category") or an area.
+  const owner = (type, id) => `/${type === "area" ? "areas" : "categories"}/${id}`;
+
   return {
+    details: (type, id) => request("GET", `${owner(type, id)}/details`),
+    addNote: (type, id, note) => request("POST", `${owner(type, id)}/notes`, note),
+    updateNote: (id, changes) => request("PATCH", `/notes/${id}`, changes),
+    deleteNote: (id) => request("DELETE", `/notes/${id}`),
+    addContact: (type, id, contact) => request("POST", `${owner(type, id)}/contacts`, contact),
+    updateContact: (id, changes) => request("PATCH", `/contacts/${id}`, changes),
+    deleteContact: (id) => request("DELETE", `/contacts/${id}`),
+    uploadFile: (type, id, formData) => request("POST", `${owner(type, id)}/files`, formData),
+    updateFile: (id, changes) => request("PATCH", `/files/${id}`, changes),
+    deleteFile: (id) => request("DELETE", `/files/${id}`),
+    search: (q) => request("GET", `/search${query({ q })}`),
+    // File links from the BFF are signed and relative; make them absolute for <img>/<a>.
+    fileUrl: (relative) => `${baseUrl}${relative}`,
+
     categories: () => request("GET", "/categories"),
     createTile: (tile) => request("POST", "/categories", tile),
     updateTile: (id, changes) => request("PATCH", `/categories/${id}`, changes),

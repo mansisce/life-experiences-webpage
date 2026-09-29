@@ -2,8 +2,9 @@ import { useState } from "react";
 import { useRewards } from "../context.js";
 import { navigate } from "../lib/router.js";
 import { useResource } from "../lib/useResource.js";
-import { Empty, Resource, ScreenHeader, useAction } from "../components/ui.jsx";
+import { Empty, Resource, ScreenHeader, SubTabs, useAction } from "../components/ui.jsx";
 import { DeleteTileDialog, moveItem, TileForm } from "../components/tiles.jsx";
+import DetailsPanel from "../components/details.jsx";
 
 function AreaRow({ area, index, count, onMove, onRename, onDelete, busy }) {
   const { links } = useRewards();
@@ -56,7 +57,7 @@ function AreaRow({ area, index, count, onMove, onRename, onDelete, busy }) {
   );
 }
 
-export default function CategoryScreen({ categoryId }) {
+export default function CategoryScreen({ categoryId, tab = "main" }) {
   const { api, links, toast } = useRewards();
   const categories = useResource(() => api.categories(), [api]);
   const [newName, setNewName] = useState("");
@@ -125,6 +126,17 @@ export default function CategoryScreen({ categoryId }) {
               }
             />
             {editingTile && <TileForm initial={category} submitLabel="Save" busy={busy} onSubmit={saveTile} onCancel={() => setEditingTile(false)} />}
+            <SubTabs
+              label={`${category.name} sections`}
+              tabs={[
+                ["Areas", links.category(categoryId), tab !== "details"],
+                ["Notes & contacts", links.categoryDetails(categoryId), tab === "details"],
+              ]}
+            />
+            {tab === "details" ? (
+              <DetailsPanel ownerType="category" ownerId={categoryId} />
+            ) : (
+            <>
             {category.areas.length === 0 ? (
               <Empty title="No areas yet">Add the first one below.</Empty>
             ) : (
@@ -143,15 +155,17 @@ export default function CategoryScreen({ categoryId }) {
                 ))}
               </ul>
             )}
-            {deletingTile && (
-              <DeleteTileDialog tile={category} onCancel={() => setDeletingTile(false)} onDeleted={() => navigate(links.tiles())} />
-            )}
             <form className="rw-card rw-inline-form" onSubmit={add}>
               <input aria-label="New area name" placeholder="New area, e.g. Study corner" value={newName} onChange={(e) => setNewName(e.target.value)} maxLength={80} required />
               <button type="submit" className="rw-btn rw-btn--primary" disabled={busy || !newName.trim()}>
                 Add area
               </button>
             </form>
+            </>
+            )}
+            {deletingTile && (
+              <DeleteTileDialog tile={category} onCancel={() => setDeletingTile(false)} onDeleted={() => navigate(links.tiles())} />
+            )}
           </section>
         );
       }}

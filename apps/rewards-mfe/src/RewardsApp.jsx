@@ -49,9 +49,9 @@ class ScreenBoundary extends Component {
 function Screen({ route }) {
   switch (route.name) {
     case "category":
-      return <CategoryScreen key={route.param} categoryId={route.param} />;
+      return <CategoryScreen key={route.param} categoryId={route.param} tab={route.tab} />;
     case "area":
-      return <AreaScreen key={route.param} areaId={Number(route.param)} />;
+      return <AreaScreen key={route.param} areaId={Number(route.param)} tab={route.tab} />;
     case "task":
       return <TaskScreen key={route.param} taskId={Number(route.param)} />;
     case "rewards":

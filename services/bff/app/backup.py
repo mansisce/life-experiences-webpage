@@ -13,10 +13,11 @@ from a newer schema than this code knows about.
 import argparse
 import json
 import sys
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
+from decimal import Decimal
 from pathlib import Path
 
-from sqlalchemy import DateTime, Engine, create_engine, delete, event, func, insert, select, text
+from sqlalchemy import Date, DateTime, Engine, Numeric, create_engine, delete, event, func, insert, select, text
 
 from . import models  # noqa: F401  (registers every table on Base.metadata)
 from .config import Settings
@@ -39,7 +40,11 @@ def sync_engine(database_url: str) -> Engine:
 
 
 def _encode(value):
-    return value.isoformat() if isinstance(value, datetime) else value
+    if isinstance(value, (datetime, date)):
+        return value.isoformat()
+    if isinstance(value, Decimal):
+        return str(value)  # exact, unlike a float
+    return value
 
 
 def _is_datetime(column) -> bool:
@@ -48,9 +53,15 @@ def _is_datetime(column) -> bool:
 
 
 def _decode(column, value):
-    if value is not None and _is_datetime(column):
+    if value is None:
+        return None
+    if _is_datetime(column):
         parsed = datetime.fromisoformat(value)
         return parsed if parsed.tzinfo else parsed.replace(tzinfo=UTC)
+    if isinstance(column.type, Date):
+        return date.fromisoformat(value)
+    if isinstance(column.type, Numeric):
+        return Decimal(value)
     return value
 
 

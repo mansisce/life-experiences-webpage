@@ -4,9 +4,10 @@ from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import func, select
 
 from .. import schemas
-from ..deps import SessionDep
+from ..deps import SessionDep, SettingsDep
 from ..models import Area, Category, Task
 from ..services import get_or_404
+from .details import remove_stored_files, stored_names_under
 
 router = APIRouter(tags=["categories & areas"])
 
@@ -74,8 +75,10 @@ async def rename_area(area_id: int, body: schemas.AreaUpdate, session: SessionDe
 
 
 @router.delete("/areas/{area_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_area(area_id: int, session: SessionDep):
-    """Deletes the area and (via ON DELETE CASCADE) its tasks, activity, photos and suggestions."""
+async def delete_area(area_id: int, session: SessionDep, settings: SettingsDep):
+    """Deletes the area and (via ON DELETE CASCADE) its tasks, activity, notes, contacts and files."""
     area = await get_or_404(session, Area, area_id)
+    stored = await stored_names_under(session, area_ids=[area.id])
     await session.delete(area)
     await session.commit()
+    remove_stored_files(settings, stored)  # only after the rows are gone (LLR-10.10)

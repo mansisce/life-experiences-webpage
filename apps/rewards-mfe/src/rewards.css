@@ -68,6 +68,43 @@
 .rw-app .rw-tile strong { font-size: 1.1rem; }
 .rw-app .rw-tile small { color: var(--rw-muted); }
 
+/* ── Sub-tabs, notes & contacts, search ─────────────────── */
+.rw-app .rw-subtabs { display: flex; gap: 4px; margin: 0 0 16px; border-bottom: 1px solid var(--rw-line); }
+.rw-app .rw-subtabs a {
+  display: grid; place-items: center; min-height: var(--rw-tap); padding: 0 14px; margin-bottom: -1px;
+  text-decoration: none; font-weight: 700; color: var(--rw-muted); border-bottom: 3px solid transparent;
+}
+.rw-app .rw-subtabs a[aria-current="page"] { color: var(--rw-ink); border-bottom-color: var(--rw-accent); }
+.rw-app .rw-details { display: grid; gap: 12px; }
+.rw-app .rw-details-actions { margin-bottom: 4px; }
+.rw-app .rw-topic { display: grid; gap: 8px; }
+.rw-app .rw-topic-head { display: grid; gap: 6px; padding: 12px 14px; border-radius: 12px; background: var(--rw-band); }
+.rw-app .rw-topic-head h3 { font-size: 1.05rem; }
+.rw-app .rw-last-exec { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; font-size: 0.9rem; }
+.rw-app .rw-detail-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.rw-app .rw-detail-list .rw-card { margin: 0; }
+.rw-app .rw-item-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.rw-app .rw-item-head > div { display: grid; min-width: 0; }
+.rw-app .rw-contact, .rw-app .rw-note { display: grid; gap: 8px; }
+.rw-app .rw-phone { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.rw-app .rw-phone-number { flex: 1 1 100%; font-variant-numeric: tabular-nums; }
+.rw-app .rw-btn--small { min-height: 36px; padding: 0 12px; font-size: 0.9rem; display: inline-grid; place-items: center; text-decoration: none; }
+.rw-app a.rw-btn--primary { color: #fff; }
+.rw-app .rw-phone-row { display: grid; grid-template-columns: 1fr auto; gap: 6px; align-items: center; }
+.rw-app .rw-phone-row input[type="tel"] { grid-column: 1 / -1; }
+.rw-app .rw-phone-row .rw-select { width: auto; }
+.rw-app .rw-file { display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: center; }
+.rw-app .rw-file-thumb {
+  width: 56px; height: 56px; border-radius: 10px; overflow: hidden; display: grid; place-items: center;
+  background: var(--rw-band); font-size: 1.6rem; text-decoration: none;
+}
+.rw-app .rw-file-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.rw-app .rw-file-body { display: grid; min-width: 0; }
+.rw-app .rw-file-body a { text-decoration: none; overflow-wrap: anywhere; }
+.rw-app .rw-prewrap { white-space: pre-wrap; overflow-wrap: anywhere; }
+.rw-app .rw-error-text { color: var(--rw-danger); }
+.rw-app .rw-search { display: grid; gap: 8px; margin-bottom: 16px; }
+
 /* ── Tile management ─────────────────────────────────────── */
 .rw-app .rw-onboarding { display: grid; gap: 12px; }
 .rw-app .rw-starter { display: grid; gap: 8px; justify-items: start; padding: 4px 4px 0; }

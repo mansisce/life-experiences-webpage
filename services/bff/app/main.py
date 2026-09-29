@@ -14,7 +14,7 @@ from .config import Settings
 from .db import make_engine, make_sessionmaker
 from .migrate import migrate
 from .deps import require_demo_token
-from .routers import areas, categories, dashboard, rewards, tasks
+from .routers import areas, categories, dashboard, details, rewards, tasks
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -30,6 +30,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         engine = make_engine(settings.database_url)
         app.state.sessionmaker = make_sessionmaker(engine)
         settings.photo_dir.mkdir(parents=True, exist_ok=True)
+        settings.files_dir.mkdir(parents=True, exist_ok=True)
         # Nothing is seeded: a new database starts with no tiles (LLR-1.7). The starter set is
         # added only on request (POST /categories/starter); existing tiles are never touched.
         yield
@@ -50,8 +51,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"status": "ok"}
 
     protected = [Depends(require_demo_token)]
-    for router in (categories.router, areas.router, tasks.router, rewards.router, dashboard.router):
+    for router in (categories.router, areas.router, tasks.router, rewards.router, dashboard.router, details.router):
         app.include_router(router, dependencies=protected)
+    # File downloads check a signed link or the header themselves (<img>/<a> can't send headers).
+    app.include_router(details.download_router)
 
     return app
 

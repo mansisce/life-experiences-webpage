@@ -10,18 +10,19 @@ function subPath(basePath) {
 }
 
 const ROUTES = [
-  ["category", /^\/c\/([\w-]+)$/],
-  ["area", /^\/a\/(\d+)$/],
+  ["category", /^\/c\/([\w-]+)(\/details)?$/],
+  ["area", /^\/a\/(\d+)(\/details)?$/],
   ["task", /^\/t\/(\d+)$/],
   ["rewards", /^\/my-rewards$/],
 ];
 
+/** `tab` is "details" on a tile's or area's Notes & contacts tab, otherwise "main". */
 export function matchRoute(path) {
   for (const [name, pattern] of ROUTES) {
     const match = path.match(pattern);
-    if (match) return { name, param: match[1] };
+    if (match) return { name, param: match[1], tab: match[2] ? "details" : "main" };
   }
-  return { name: "tiles", param: null };
+  return { name: "tiles", param: null, tab: "main" };
 }
 
 export function useHashRoute(basePath) {
@@ -40,7 +41,10 @@ export function makeLinks(basePath) {
   return {
     tiles: () => `#${basePath}`,
     category: (id) => `#${basePath}/c/${id}`,
+    categoryDetails: (id) => `#${basePath}/c/${id}/details`,
     area: (id) => `#${basePath}/a/${id}`,
+    areaDetails: (id) => `#${basePath}/a/${id}/details`,
+    details: (type, id) => `#${basePath}/${type === "area" ? "a" : "c"}/${id}/details`,
     task: (id) => `#${basePath}/t/${id}`,
     rewards: () => `#${basePath}/my-rewards`,
   };

@@ -18,6 +18,13 @@ class Settings(BaseSettings):
 
     database_url: str = f"sqlite+aiosqlite:///{(DATA_DIR / 'rewards.db').as_posix()}"
     photo_dir: Path = DATA_DIR / "photos"
+    # Uploaded bills and documents (HLR-10). Private: served only through the BFF, never as static files.
+    files_dir: Path = DATA_DIR / "files"
+    # Key for short-lived signed download links (so <img> and <a> tags can open files without a
+    # header). Empty = derive from the demo token; set a long random value in production.
+    signing_key: str = ""
+    # Country code added to 10-digit numbers for WhatsApp links (India).
+    default_country_code: str = "91"
     # Demo-only shared token instead of real auth. Clients send `Authorization: Bearer <token>`.
     demo_token: str = "demo-token"
     # JSON list in env, e.g. BFF_CORS_ORIGINS='["https://mansilly.vercel.app"]'

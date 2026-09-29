@@ -3,6 +3,7 @@ import { useRewards } from "../context.js";
 import { useResource } from "../lib/useResource.js";
 import { ErrorState, Loading, ScreenHeader, useAction } from "../components/ui.jsx";
 import { DeleteTileDialog, moveItem, TileForm } from "../components/tiles.jsx";
+import { DetailsSearch } from "../components/details.jsx";
 
 function StarterButton({ onAdded, primary = false }) {
   const { api, toast } = useRewards();
@@ -150,6 +151,8 @@ export default function TilesScreen() {
           )}
         </>
       ) : (
+        <>
+        <DetailsSearch />
         <div className="rw-tiles">
           {tiles.map((c) => {
             const active = c.areas.reduce((sum, a) => sum + a.activeTaskCount, 0);
@@ -166,6 +169,7 @@ export default function TilesScreen() {
             );
           })}
         </div>
+        </>
       )}
 
       {deleting && (

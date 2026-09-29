@@ -34,6 +34,7 @@ def settings(tmp_path) -> Settings:
     return Settings(
         database_url=f"sqlite+aiosqlite:///{(tmp_path / 'test.db').as_posix()}",
         photo_dir=tmp_path / "photos",
+        files_dir=tmp_path / "files",
         demo_token=TOKEN,
         timezone="Asia/Kolkata",
         _env_file=None,

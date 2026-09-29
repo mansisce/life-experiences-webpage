@@ -84,7 +84,10 @@ def test_delete_tile_needs_typed_name_snapshots_and_cascades(client, tmp_path):
     ).json()
 
     preview = client.get("/categories/household/delete-preview").json()
-    assert preview == {"name": "Household", "areas": 13, "tasks": 1, "completions": 1, "rewardsLosingTasks": 1}
+    assert preview == {
+        "name": "Household", "areas": 13, "tasks": 1, "completions": 1, "rewardsLosingTasks": 1,
+        "notes": 0, "contacts": 0, "files": 0,
+    }
 
     assert client.delete("/categories/household").status_code == 422  # confirmName is required
     assert client.delete("/categories/household", params={"confirmName": "Fun"}).status_code == 422
