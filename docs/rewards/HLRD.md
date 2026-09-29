@@ -48,6 +48,7 @@ This capstone replaces it with a **Rewards microfrontend**:
 | D7 | User interview | Tasks are often done and logged later | Backfill completions ("yesterday") |
 | D8 | User interview | Wants weekly insight, not just a to-do list | Separate analytics client (Streamlit) |
 | D9 | Roadmap | An Android app is planned | API-first BFF; mobile-first UI |
+| D10 | PO review of MVP (2026-09-28) | Rewards float free of the tile/area structure: a reward can be tagged to any task anywhere, so it isn't clear which part of life a reward belongs to | Rewards use the **same tiles and areas** as tasks, and are matched to tasks inside that scope (HLR-9) |
 
 ### 2.4 Assumptions
 
@@ -118,6 +119,8 @@ flowchart LR
   B --> C[Add tasks manually]
   B -. post-MVP .-> P[Snap area photo] --> Q[AI suggests tasks] --> R[Mark Relevant / Not / Ignore] --> C
   C --> D[Complete task, now or backfill]
+  B --> K[See rewards you can earn in this area or tile]
+  K -. matched by tile / area .-> F
   D --> E[Streak updates per day/week]
   E --> F{Reward rule met?}
   F -- yes --> G[🎉 Unlocked → Claim]
@@ -149,6 +152,7 @@ flowchart LR
 | G2 | Frequency | Daily only | Daily, weekly, one-off | Extend |
 | G3 | Streaks | Daily streak per goal | Per-task streak in days or weeks; current + best; backfill-safe | Replace |
 | G4 | Reward rules | Goal/milestone-bound | Tag to many tasks; *N completions* or *streak of N*; auto-unlock; claim | Replace |
+| G4b | Reward taxonomy | 6 goal categories, separate from anything else | Rewards share the task taxonomy: a tile (required) and optionally one area; tasks and rewards are matched within that scope | New |
 | G5 | Prioritisation | None | High/Med/Low; filter by priority, status, relevance | New |
 | G6 | AI assistance | None | Photo → suggested tasks with human approval | New (post-MVP) |
 | G7 | Insights | 3 summary cards | Dashboard: by tile/area/day, streaks, reward progress, AI acceptance | New |
@@ -163,6 +167,8 @@ flowchart LR
 | T1 | Build the BFF and seed tiles/areas | ✅ |
 | T2 | Build the MFE; mount it on `#/rewards`; remove the old in-site rewards + `/rewards` Express routes | ✅ (branch) |
 | T3 | Build the Streamlit insights client | ✅ |
+| T3a | Schema migrations (Alembic) + export/import, so schema changes never cost existing data | ✅ (branch) |
+| T3b | Reward scope and matching (HLR-9), shipped as the first data-preserving migration | ⏳ next, after T3a |
 | T4 | Deploy the MFE + BFF; set the host's remote URL; merge to `main` | ⏳ |
 | T5 | Integration services: vision → events/outbox → reminders | ⏳ |
 | T6 | Mobile BFF surface; Android client | ⏳ future |
@@ -175,7 +181,7 @@ No data migration from Neo4j is planned. The old feature held no production data
 
 | In scope (MVP) | Post-MVP (capstone extensions) | Out of scope |
 |---|---|---|
-| Tiles/areas CRUD, tasks, completions, streaks, rewards, claim | Photo → AI suggestions (vision adapter) | Android app build |
+| Tiles/areas CRUD, tasks, completions, streaks, rewards, claim; rewards scoped to the same tiles/areas and matched to tasks | Photo → AI suggestions (vision adapter) | Android app build |
 | React MFE + host integration | Domain events + outbox; reminders (push/email) | Real auth / multi-user |
 | FastAPI BFF with per-client shapes | Calendar ICS feed; object storage; AI weekly coach | Other microfrontends |
 | Streamlit insights | Mobile BFF surface; OIDC | WhatsApp, Apify, Snowflake |
@@ -201,7 +207,8 @@ No data migration from Neo4j is planned. The old feature held no production data
 | HLR-1 | Tiles & areas | Browse 3 tiles; seeded, editable areas | LLR-1.x | ✅ |
 | HLR-2 | Task management | Create, prioritise, filter, change status/frequency/relevance | LLR-2.x | ✅ |
 | HLR-3 | Completion & streaks | Log completions with note/backfill; activity log; current/best streak | LLR-3.x | ✅ |
-| HLR-4 | Rewards | Create, tag, progress, auto-unlock, claim | LLR-4.x | ✅ |
+| HLR-4 | Rewards | Create, tag, progress, auto-unlock, claim | LLR-4.1–4.8 | ✅ |
+| HLR-9 | Reward scope and matching | Rewards live in the same tiles and areas as tasks; tasks are matched to rewards inside that scope (selected tasks, or all tasks in scope); existing rewards migrated without data loss | LLR-4.9–4.18 | ⏳ next |
 | HLR-5 | Insights dashboard | Aggregates, filters, cached reads, claim from dashboard | LLR-5.x | ✅ |
 | HLR-6 | AI task suggestions | Photos → suggestions → decisions → tasks; non-blocking | LLR-6.x | ⏳ |
 | HLR-7 | Module composition | Independently delivered MFE with host fallback | LLR-7.x | ✅ |
@@ -251,3 +258,4 @@ The MVP is accepted when the demo runs without manual workarounds:
 4. Tag a *3 completions* reward → complete again → unlock toast → claim.
 5. The Streamlit dashboard reflects completions, streaks and the claim.
 6. With the remote or BFF stopped, the site shows the documented fallbacks.
+7. (HLR-9) Kitchen shows "Rewards you can earn here" for rewards scoped to Household or Household › Kitchen, and the Kitchen task can only be tagged to those.
