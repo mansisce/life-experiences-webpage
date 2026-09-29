@@ -268,7 +268,7 @@ def normalise_status(raw: str, req_id: str) -> str:
 
 NEXT_EPICS = {"HLR-9", "HLR-10", "HLR-11", "HLR-12"}
 # Rules and NFRs from tables without a status column that describe work not built yet.
-NOT_YET_BUILT = {"BR-R17", "BR-R18", "BR-R19", "NFR-D9", "NFR-D10", "NFR-D11"}
+NOT_YET_BUILT = {"NFR-D9", "NFR-D10", "NFR-D11"}
 
 
 def collect_requirements(docs: list[tuple[str, list[dict]]]) -> list[dict]:

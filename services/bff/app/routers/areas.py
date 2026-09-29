@@ -1,4 +1,4 @@
-"""Tiles (categories) and sub-tiles (areas)."""
+"""Areas (sub-tiles). Tile endpoints live in categories.py."""
 
 from fastapi import APIRouter, HTTPException, status
 from sqlalchemy import func, select
@@ -11,7 +11,7 @@ from ..services import get_or_404
 router = APIRouter(tags=["categories & areas"])
 
 
-async def _active_counts(session, area_ids: list[int]) -> dict[int, int]:
+async def active_counts(session, area_ids: list[int]) -> dict[int, int]:
     if not area_ids:
         return {}
     rows = await session.execute(
@@ -30,33 +30,17 @@ async def _ensure_unique_name(session, category_id: str, name: str, exclude_id: 
         raise HTTPException(status.HTTP_409_CONFLICT, f"'{name}' already exists in this category")
 
 
-def _area_out(area: Area, counts: dict[int, int]) -> schemas.AreaOut:
+def area_out(area: Area, counts: dict[int, int]) -> schemas.AreaOut:
     return schemas.AreaOut(
         id=area.id, category_id=area.category_id, name=area.name, active_task_count=counts.get(area.id, 0)
     )
-
-
-@router.get("/categories", response_model=list[schemas.CategoryOut])
-async def list_categories(session: SessionDep):
-    categories = (await session.scalars(select(Category).order_by(Category.sort_order))).all()
-    areas = (await session.scalars(select(Area).order_by(Area.sort_order, Area.id))).all()
-    counts = await _active_counts(session, [a.id for a in areas])
-    return [
-        schemas.CategoryOut(
-            id=c.id,
-            name=c.name,
-            icon=c.icon,
-            areas=[_area_out(a, counts) for a in areas if a.category_id == c.id],
-        )
-        for c in categories
-    ]
 
 
 @router.get("/areas/{area_id}", response_model=schemas.AreaDetail)
 async def get_area(area_id: int, session: SessionDep):
     area = await get_or_404(session, Area, area_id)
     category = await get_or_404(session, Category, area.category_id)
-    counts = await _active_counts(session, [area.id])
+    counts = await active_counts(session, [area.id])
     return schemas.AreaDetail(
         id=area.id,
         name=area.name,
@@ -76,7 +60,7 @@ async def create_area(body: schemas.AreaCreate, session: SessionDep):
     area = Area(category_id=body.category_id, name=name, sort_order=next_order)
     session.add(area)
     await session.commit()
-    return _area_out(area, {})
+    return area_out(area, {})
 
 
 @router.patch("/areas/{area_id}", response_model=schemas.AreaOut)
@@ -86,7 +70,7 @@ async def rename_area(area_id: int, body: schemas.AreaUpdate, session: SessionDe
     await _ensure_unique_name(session, area.category_id, name, exclude_id=area.id)
     area.name = name
     await session.commit()
-    return _area_out(area, await _active_counts(session, [area.id]))
+    return area_out(area, await active_counts(session, [area.id]))
 
 
 @router.delete("/areas/{area_id}", status_code=status.HTTP_204_NO_CONTENT)

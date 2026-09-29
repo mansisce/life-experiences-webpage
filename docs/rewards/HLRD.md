@@ -179,7 +179,7 @@ flowchart LR
 | T3 | Build the Streamlit insights client | ✅ |
 | T3a | Schema migrations (Alembic) + export/import, so schema changes never cost existing data | ✅ (branch) |
 | T3b | Reward scope and matching (HLR-9), shipped as the first data-preserving migration | ⏳ next, after T3a |
-| T3c | User-managed tiles (CRUD), no seeding, optional starter set (HLR-1 update) | ⏳ next |
+| T3c | User-managed tiles (CRUD), no seeding, optional starter set (HLR-1 update) | ✅ (branch) |
 | T3d | Notes, contacts and files on tiles and areas (HLR-10) | ⏳ next |
 | T3e | Task planning and visibility: milestones, due date/time, days to complete, announce/silent (HLR-11) | ⏳ next |
 | T3f | Reward ideas and wishlist, "For whom" on rewards (HLR-12) | ⏳ next |
@@ -218,7 +218,7 @@ No data migration from Neo4j is planned. The old feature held no production data
 
 | ID | Epic | Summary | Traces to (LLRD) | MVP |
 |---|---|---|---|---|
-| HLR-1 | Tiles & areas | User-managed tiles and areas (create, edit, reorder, delete); empty start with an optional starter set | LLR-1.x | 🟡 areas ✅, tiles CRUD ⏳ next |
+| HLR-1 | Tiles & areas | User-managed tiles and areas (create, edit, reorder, delete); empty start with an optional starter set | LLR-1.x | ✅ |
 | HLR-2 | Task management | Create, prioritise, filter, change status/frequency/relevance | LLR-2.x | ✅ |
 | HLR-3 | Completion & streaks | Log completions with note/backfill; activity log; current/best streak | LLR-3.x | ✅ |
 | HLR-4 | Rewards | Create, tag, progress, auto-unlock, claim | LLR-4.1–4.8 | ✅ |

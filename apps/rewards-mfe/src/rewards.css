@@ -67,9 +67,18 @@
 .rw-app .rw-tile-icon { grid-row: span 2; font-size: 2rem; width: 52px; height: 52px; display: grid; place-items: center; border-radius: 14px; background: var(--rw-band); }
 .rw-app .rw-tile strong { font-size: 1.1rem; }
 .rw-app .rw-tile small { color: var(--rw-muted); }
-.rw-app .rw-tile--career .rw-tile-icon { background: #e4ecf4; }
-.rw-app .rw-tile--household .rw-tile-icon { background: #e6f0ea; }
-.rw-app .rw-tile--fun .rw-tile-icon { background: #f8efd9; }
+
+/* ── Tile management ─────────────────────────────────────── */
+.rw-app .rw-onboarding { display: grid; gap: 12px; }
+.rw-app .rw-starter { display: grid; gap: 8px; justify-items: start; padding: 4px 4px 0; }
+.rw-app .rw-icon-input { flex: 0 0 64px !important; width: 64px; text-align: center; font-size: 22px !important; }
+.rw-app .rw-btn--danger { background: var(--rw-danger); color: #fff; }
+.rw-app .rw-overlay {
+  position: fixed; inset: 0; z-index: 60; display: grid; align-items: end; justify-items: center;
+  padding: 16px; background: rgb(24 32 28 / 0.45);
+}
+.rw-app .rw-dialog { width: min(100%, 480px); margin: 0; box-shadow: 0 16px 48px rgb(0 0 0 / 0.25); }
+@media (min-width: 640px) { .rw-app .rw-overlay { align-items: center; } }
 
 /* ── Lists & rows ────────────────────────────────────────── */
 .rw-app .rw-list { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 8px; }

@@ -43,6 +43,13 @@ export function createApi({ baseUrl, token }) {
 
   return {
     categories: () => request("GET", "/categories"),
+    createTile: (tile) => request("POST", "/categories", tile),
+    updateTile: (id, changes) => request("PATCH", `/categories/${id}`, changes),
+    tileDeletePreview: (id) => request("GET", `/categories/${id}/delete-preview`),
+    deleteTile: (id, confirmName) => request("DELETE", `/categories/${id}${query({ confirmName })}`),
+    reorderTiles: (ids) => request("PUT", "/categories/order", { ids }),
+    reorderAreas: (tileId, ids) => request("PUT", `/categories/${tileId}/areas/order`, { ids }),
+    addStarterSet: () => request("POST", "/categories/starter"),
     area: (id) => request("GET", `/areas/${id}`),
     createArea: (categoryId, name) => request("POST", "/areas", { categoryId, name }),
     renameArea: (id, name) => request("PATCH", `/areas/${id}`, { name }),

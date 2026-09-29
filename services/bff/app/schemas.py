@@ -52,6 +52,37 @@ class CategoryOut(ApiModel):
     areas: list[AreaOut]
 
 
+class CategoryCreate(ApiModel):
+    name: str = Field(min_length=1, max_length=40)
+    icon: str = Field(default="📁", min_length=1, max_length=16)
+
+
+class CategoryUpdate(ApiModel):
+    name: str | None = Field(default=None, min_length=1, max_length=40)
+    icon: str | None = Field(default=None, min_length=1, max_length=16)
+
+
+class OrderUpdate(ApiModel):
+    """The complete list of ids in their new order."""
+
+    ids: list[int | str] = Field(min_length=1)
+
+
+class StarterResult(ApiModel):
+    tiles_added: int
+    areas_added: int
+
+
+class DeletePreview(ApiModel):
+    """What deleting a tile would remove, for the confirmation dialog (LLR-1.12)."""
+
+    name: str
+    areas: int
+    tasks: int
+    completions: int
+    rewards_losing_tasks: int
+
+
 class AreaCreate(ApiModel):
     category_id: str
     name: str = Name

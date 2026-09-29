@@ -35,7 +35,8 @@ def test_requires_demo_token(client):
     assert client.get("/health", headers={"Authorization": ""}).status_code == 200
 
 
-def test_seeded_tiles_and_sub_tiles(client):
+def test_starter_set_contents(client):
+    """The optional starter set (LLR-1.8); `client` adds it, a fresh database has none."""
     categories = client.get("/categories").json()
     assert [c["id"] for c in categories] == ["career", "household", "fun"]
     names = {c["id"]: [a["name"] for a in c["areas"]] for c in categories}

@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useRewards } from "../context.js";
+import { navigate } from "../lib/router.js";
 import { useResource } from "../lib/useResource.js";
 import { Empty, Resource, ScreenHeader, useAction } from "../components/ui.jsx";
+import { DeleteTileDialog, moveItem, TileForm } from "../components/tiles.jsx";
 
-function AreaRow({ area, onRename, onDelete, busy }) {
+function AreaRow({ area, index, count, onMove, onRename, onDelete, busy }) {
   const { links } = useRewards();
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(area.name);
@@ -37,6 +39,12 @@ function AreaRow({ area, onRename, onDelete, busy }) {
         <small>{area.activeTaskCount ? `${area.activeTaskCount} active` : "No active tasks"}</small>
       </a>
       <div className="rw-row-actions">
+        <button type="button" className="rw-icon-btn" aria-label={`Move ${area.name} up`} disabled={busy || index === 0} onClick={() => onMove(index, -1)}>
+          ↑
+        </button>
+        <button type="button" className="rw-icon-btn" aria-label={`Move ${area.name} down`} disabled={busy || index === count - 1} onClick={() => onMove(index, 1)}>
+          ↓
+        </button>
         <button type="button" className="rw-icon-btn" aria-label={`Rename ${area.name}`} onClick={() => setEditing(true)}>
           ✎
         </button>
@@ -52,7 +60,21 @@ export default function CategoryScreen({ categoryId }) {
   const { api, links, toast } = useRewards();
   const categories = useResource(() => api.categories(), [api]);
   const [newName, setNewName] = useState("");
+  const [editingTile, setEditingTile] = useState(false);
+  const [deletingTile, setDeletingTile] = useState(false);
   const [busy, run] = useAction(toast);
+
+  const moveArea = async (areas, index, delta) => {
+    const reordered = moveItem(areas, index, delta);
+    if (reordered !== areas && (await run(() => api.reorderAreas(categoryId, reordered.map((a) => a.id))))) categories.refresh();
+  };
+
+  const saveTile = async (changes) => {
+    if (await run(() => api.updateTile(categoryId, changes), "Saved")) {
+      setEditingTile(false);
+      categories.refresh();
+    }
+  };
 
   const add = async (e) => {
     e.preventDefault();
@@ -85,15 +107,44 @@ export default function CategoryScreen({ categoryId }) {
         if (!category) return <Empty title="Tile not found">It may have been removed. Go back to all tiles.</Empty>;
         return (
           <section>
-            <ScreenHeader crumbs={[["All tiles", links.tiles()]]} title={`${category.icon} ${category.name}`} subtitle="Tap an area to see and add tasks." />
+            <ScreenHeader
+              crumbs={[["All tiles", links.tiles()]]}
+              title={`${category.icon} ${category.name}`}
+              subtitle="Tap an area to see and add tasks."
+              actions={
+                !editingTile && (
+                  <div className="rw-row-actions">
+                    <button type="button" className="rw-icon-btn" aria-label={`Edit ${category.name}`} onClick={() => setEditingTile(true)}>
+                      ✎
+                    </button>
+                    <button type="button" className="rw-icon-btn" aria-label={`Delete ${category.name}`} onClick={() => setDeletingTile(true)}>
+                      🗑
+                    </button>
+                  </div>
+                )
+              }
+            />
+            {editingTile && <TileForm initial={category} submitLabel="Save" busy={busy} onSubmit={saveTile} onCancel={() => setEditingTile(false)} />}
             {category.areas.length === 0 ? (
               <Empty title="No areas yet">Add the first one below.</Empty>
             ) : (
               <ul className="rw-list">
-                {category.areas.map((a) => (
-                  <AreaRow key={a.id} area={a} onRename={rename} onDelete={remove} busy={busy} />
+                {category.areas.map((a, i) => (
+                  <AreaRow
+                    key={a.id}
+                    area={a}
+                    index={i}
+                    count={category.areas.length}
+                    onMove={(index, delta) => moveArea(category.areas, index, delta)}
+                    onRename={rename}
+                    onDelete={remove}
+                    busy={busy}
+                  />
                 ))}
               </ul>
+            )}
+            {deletingTile && (
+              <DeleteTileDialog tile={category} onCancel={() => setDeletingTile(false)} onDeleted={() => navigate(links.tiles())} />
             )}
             <form className="rw-card rw-inline-form" onSubmit={add}>
               <input aria-label="New area name" placeholder="New area, e.g. Study corner" value={newName} onChange={(e) => setNewName(e.target.value)} maxLength={80} required />

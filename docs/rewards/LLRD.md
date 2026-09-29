@@ -91,17 +91,17 @@ Conventions: **LLR** = detailed functional requirement · **BR-R** = business ru
 | LLR-1.5 | The user can delete an area after confirmation. Its tasks, completions, photos and suggestions are removed with it | ✅ |
 | LLR-1.6 | The confirmation text states how many active tasks will be deleted | 🟡 |
 
-#### User-managed tiles (HLR-1 update) ⏳ next
+#### User-managed tiles (HLR-1 update) ✅
 
 | ID | Requirement | Status |
 |---|---|---|
-| LLR-1.7 | A new database starts with **no tiles**. The tiles screen shows "Create your first tile" and an optional **Add suggested tiles** button. Nothing is seeded automatically | ⏳ next |
-| LLR-1.8 | **Add suggested tiles** adds the starter set (Career/Office/Work with Learning and Projects; Household with the 13 areas in Q2; Fun with Hobbies and Outings). It only adds tiles and areas whose names don't already exist, so it never duplicates or overwrites anything and can be pressed again safely | ⏳ next |
-| LLR-1.9 | **Create a tile**: name 1–40 characters, trimmed, unique ignoring case (409 on duplicate); icon (one emoji, optional, default 📁). New tiles go to the end | ⏳ next |
-| LLR-1.10 | **Edit a tile**: change its name (same rules) and icon. Areas, tasks, rewards and links keep working, because they refer to the tile's id, not its name | ⏳ next |
-| LLR-1.11 | **Reorder** tiles, and areas within a tile (move up/down; drag on wider screens). The order is saved and used everywhere, including the dashboard | ⏳ next |
-| LLR-1.12 | **Delete a tile**: the confirmation lists what will be removed (areas, tasks, completions, rewards scoped to it, notes, contacts, files) and requires typing the tile's name. A database snapshot is taken first (BR-R18) | ⏳ next |
-| LLR-1.13 | Existing databases keep their current tiles and areas when this ships: the upgrade removes nothing. They become ordinary user-managed tiles that can be edited or deleted | ⏳ next |
+| LLR-1.7 | A new database starts with **no tiles**. The tiles screen shows "Create your first tile" and an optional **Add suggested tiles** button. Nothing is seeded automatically | ✅ |
+| LLR-1.8 | **Add suggested tiles** adds the starter set (Career/Office/Work with Learning and Projects; Household with the 13 areas in Q2; Fun with Hobbies and Outings). It only adds tiles and areas whose names don't already exist, so it never duplicates or overwrites anything and can be pressed again safely | ✅ |
+| LLR-1.9 | **Create a tile**: name 1–40 characters, trimmed, unique ignoring case (409 on duplicate); icon (one emoji, optional, default 📁). New tiles go to the end | ✅ |
+| LLR-1.10 | **Edit a tile**: change its name (same rules) and icon. Areas, tasks, rewards and links keep working, because they refer to the tile's id, not its name | ✅ |
+| LLR-1.11 | **Reorder** tiles, and areas within a tile (move up/down; drag on wider screens). The order is saved and used everywhere, including the dashboard | ✅ (up/down; drag on wide screens later) |
+| LLR-1.12 | **Delete a tile**: the confirmation lists what will be removed (areas, tasks, completions, rewards scoped to it, notes, contacts, files) and requires typing the tile's name. A database snapshot is taken first (BR-R18) | ✅ |
+| LLR-1.13 | Existing databases keep their current tiles and areas when this ships: the upgrade removes nothing. They become ordinary user-managed tiles that can be edited or deleted | ✅ |
 
 **AC-1.7 to 1.12**
 - *Given* a fresh database *when* the Rewards screen opens *then* it shows "Create your first tile" and no tiles.
@@ -279,7 +279,7 @@ Conventions: **LLR** = detailed functional requirement · **BR-R** = business ru
 | LLR-8.7 | Reward create/update accept `categoryId` (required on create), `areaId` (optional) and `match` (`selected` \| `all_in_scope`); reward responses include `scope {categoryId, categoryName, areaId, areaName}`, `match` and `needsTile` | ⏳ (HLR-9) |
 | LLR-8.8 | `GET /rewards` accepts `categoryId` and `areaId` filters. `GET /areas/{id}/rewards` returns the rewards that match that area (LLR-4.14). Task detail's `rewards` lists every reward matching the task, with how it matches (`tagged` or `scope`) | ⏳ (HLR-9) |
 | LLR-8.9 | Schema changes are applied by versioned migrations on startup, never by dropping and recreating tables; a backup of the database file is written before each upgrade (Q14) | ✅ |
-| LLR-8.10 | Tile endpoints: `POST /categories`, `PATCH /categories/{id}` (name, icon), `DELETE /categories/{id}`, `PUT /categories/order` and `PUT /categories/{id}/areas/order`, `POST /categories/starter` (LLR-1.8, returns what was added) | ⏳ next |
+| LLR-8.10 | Tile endpoints: `POST /categories`, `PATCH /categories/{id}` (name, icon), `DELETE /categories/{id}`, `PUT /categories/order` and `PUT /categories/{id}/areas/order`, `POST /categories/starter` (LLR-1.8, returns what was added) | ✅ |
 | LLR-8.12 | Task create/update accept `isMilestone`, `visibility` (`announced` \| `silent`), `dueAt` (ISO date-time, optional) and `targetDays` (optional); `GET /areas/{id}/tasks` adds filters `milestone=true` and `due=overdue\|today\|week` and `sort=due`. Responses served without the passcode omit silent tasks entirely (BR-R23) | ⏳ next |
 | LLR-8.13 | Rewards accept `status: "idea"` on create (rule, threshold and tile then optional), `forWhom`, `visibility`, `link`, `seenAt` (where seen) and a cover image; `POST /rewards/{id}/activate` (rule, threshold, tile, tasks) turns an idea into a locked reward; `POST /rewards/{id}/close` with `outcome` (`bought` \| `dropped`); `GET /rewards` filters `status=idea\|closed` and `forWhom=` | ⏳ next |
 | LLR-8.11 | Details endpoints for both owners (`/categories/{id}` and `/areas/{id}`): `…/details` (grouped by topic), `…/notes`, `…/contacts`, `…/files` (multipart upload); `PATCH`/`DELETE` on `/notes/{id}`, `/contacts/{id}`, `/files/{id}`; `GET /files/{id}/download`; `GET /search?q=` | ⏳ next |
@@ -398,8 +398,8 @@ A reward can start life as an **idea**: something you might get later, captured 
 
 | Screen | Must show | States | Primary actions |
 |---|---|---|---|
-| Tiles | Tiles: icon, name, area count, active task count; ⏳ "+ New tile"; ⏳ search box (LLR-10.9) | loading, error+retry; ⏳ empty: "Create your first tile" + "Add suggested tiles" | open tile; ⏳ create, edit, reorder, delete tile |
-| Tile (category) | Breadcrumb; areas with active count; ⏳ tabs *Areas* / *Notes & contacts* | loading, error, empty ("No areas yet"), not found | add, rename (inline), delete (confirm) area; ⏳ edit or delete this tile; ⏳ tile-level notes, contacts, files |
+| Tiles | Tiles: icon, name, area count, active task count; "Edit tiles" mode (↑ ↓ ✎ 🗑, "+ New tile", "Add suggested tiles"); ⏳ search box (LLR-10.9) | loading, error+retry; empty: "Create your first tile" + "Add suggested tiles" | open tile; create, edit, reorder, delete tile (typed-name dialog) |
+| Tile (category) | Breadcrumb; areas with active count; ⏳ tabs *Areas* / *Notes & contacts* | loading, error, empty ("No areas yet"), not found | add, rename (inline), reorder (↑ ↓), delete (confirm) area; edit or delete this tile; ⏳ tile-level notes, contacts, files |
 | ⏳ Notes & contacts (tab on tile and area) | Topic groups ("General" last); per topic: last executive, contacts (role, organisation, phones with Call / WhatsApp / Copy), files (thumbnail or PDF icon, date, amount), notes | loading, error, empty ("No notes or contacts yet"), read-only (no edit controls) | add note, contact, file; edit, delete, change topic |
 | Area | Breadcrumb; active count; add form (⏳ with **More options**: milestone, announce/silent, due date and time, days to complete); filters (collapsible; ⏳ milestones, overdue/due today/this week, sort by due); task rows (title, frequency, source, status, streak 🔥, priority select, ✓; ⏳ 🏁 milestone, due chip, 🔕 silent); ⏳ "Rewards you can earn here" (matching rewards with progress) | loading, error, "No tasks yet" / "No tasks match these filters"; ⏳ "No rewards for this area yet" + create link prefilled with this scope | add task, filter, reprioritise, quick complete, open task; ⏳ create reward for this area |
 | Task | Breadcrumb; stats (current, best, completions); log completion (when + note); matching rewards (tagged, or ⏳ "Counts automatically") + tag select limited to in-scope rewards; settings chips; activity log | loading, error, "No completions yet", inactive-task notice | complete, tag reward, change settings |
@@ -458,9 +458,9 @@ Touch and accessibility: controls ≥ 44 px high (chips ≥ 36 px), inputs 16 px
 
 | LLR | Endpoint(s) | Automated test(s) |
 |---|---|---|
-| LLR-1.1 (superseded) | lifespan seed, `GET /categories` | `test_seeded_tiles_and_sub_tiles` (to be replaced by the LLR-1.7 tests) |
+| LLR-1.1 (superseded) | — | replaced by `test_starter_set_contents` and the LLR-1.7 tests |
 | LLR-1.3–1.5 | `POST/PATCH/DELETE /areas` | `test_area_add_rename_delete` |
-| LLR-1.7–1.13; BR-R17–R19; LLR-8.10 | `/categories*` | ⏳ planned: `test_fresh_database_has_no_tiles`, `test_starter_set_is_idempotent`, `test_tile_crud_and_unique_names`, `test_delete_tile_snapshots_and_cascades`, `test_upgrade_keeps_existing_tiles` |
+| LLR-1.7–1.13; BR-R17–R19; LLR-8.10 | `/categories*` | `test_fresh_database_has_no_tiles`, `test_starter_set_is_idempotent`, `test_starter_set_fills_in_missing_areas_only`, `test_tile_crud_and_unique_names`, `test_new_tile_ids_stay_unique`, `test_reorder_tiles_and_areas`, `test_delete_tile_needs_typed_name_snapshots_and_cascades`, `test_restart_never_reseeds`, `test_upgrade_keeps_existing_tiles` |
 | LLR-12.1–12.9; BR-R27–R30; LLR-8.13 | `/rewards*` | ⏳ planned: `test_idea_needs_only_title`, `test_idea_never_unlocks_or_counts`, `test_activate_idea_keeps_details_and_evaluates`, `test_close_and_reopen_idea`, `test_ideas_silent_by_default`, `test_filter_by_for_whom`, `test_migration_defaults_existing_rewards` |
 | LLR-11.1–11.13; BR-R22–R26; LLR-8.12 | tasks, rewards, `/dashboard/summary` | ⏳ planned: `test_task_planning_fields_round_trip`, `test_overdue_rules`, `test_milestone_reward_needs_all_milestones`, `test_silent_tasks_invisible_without_passcode`, `test_silent_completion_has_no_celebration_flag`, `test_migration_defaults_existing_tasks` |
 | LLR-10.1–10.12; BR-R20–R21; LLR-8.11 | details, files, `/search` | ⏳ planned: `test_details_grouped_by_topic`, `test_last_executive_is_latest_visit`, `test_file_upload_rules`, `test_search_matches_phone_digits`, `test_read_only_view_shows_details_but_blocks_edits` |

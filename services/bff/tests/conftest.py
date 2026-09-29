@@ -30,16 +30,32 @@ def clock() -> Clock:
 
 
 @pytest.fixture
-def client(tmp_path, clock):
-    settings = Settings(
+def settings(tmp_path) -> Settings:
+    return Settings(
         database_url=f"sqlite+aiosqlite:///{(tmp_path / 'test.db').as_posix()}",
         photo_dir=tmp_path / "photos",
         demo_token=TOKEN,
         timezone="Asia/Kolkata",
         _env_file=None,
     )
+
+
+def make_client(settings: Settings, clock: Clock) -> TestClient:
     app = create_app(settings)
     app.dependency_overrides[get_now] = clock
-    # `with` runs the lifespan: tables are created and seed data loaded, as on a real start.
-    with TestClient(app, headers={"Authorization": f"Bearer {TOKEN}"}) as test_client:
+    return TestClient(app, headers={"Authorization": f"Bearer {TOKEN}"})
+
+
+@pytest.fixture
+def empty_client(settings, clock):
+    """A brand-new database: no tiles at all (LLR-1.7)."""
+    # `with` runs the lifespan (migrations), as on a real start.
+    with make_client(settings, clock) as test_client:
         yield test_client
+
+
+@pytest.fixture
+def client(empty_client):
+    """A database with the starter set added, which most tests build on."""
+    assert empty_client.post("/categories/starter").status_code == 200
+    return empty_client

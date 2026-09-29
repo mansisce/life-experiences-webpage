@@ -14,8 +14,7 @@ from .config import Settings
 from .db import make_engine, make_sessionmaker
 from .migrate import migrate
 from .deps import require_demo_token
-from .routers import areas, dashboard, rewards, tasks
-from .seed import seed_if_empty
+from .routers import areas, categories, dashboard, rewards, tasks
 
 
 def create_app(settings: Settings | None = None) -> FastAPI:
@@ -31,8 +30,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         engine = make_engine(settings.database_url)
         app.state.sessionmaker = make_sessionmaker(engine)
         settings.photo_dir.mkdir(parents=True, exist_ok=True)
-        async with app.state.sessionmaker() as session:
-            await seed_if_empty(session)
+        # Nothing is seeded: a new database starts with no tiles (LLR-1.7). The starter set is
+        # added only on request (POST /categories/starter); existing tiles are never touched.
         yield
         await engine.dispose()
 
@@ -51,7 +50,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         return {"status": "ok"}
 
     protected = [Depends(require_demo_token)]
-    for router in (areas.router, tasks.router, rewards.router, dashboard.router):
+    for router in (categories.router, areas.router, tasks.router, rewards.router, dashboard.router):
         app.include_router(router, dependencies=protected)
 
     return app
