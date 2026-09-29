@@ -8,6 +8,7 @@ Requirements Register, with a formula-driven Traceability rollup per epic.
 """
 
 import re
+import sys
 from datetime import date
 from pathlib import Path
 
@@ -222,16 +223,28 @@ def parent_epic(req_id: str) -> str:
             return "HLR-9"
         if major == 8 and minor in (7, 8):
             return "HLR-9"
+        if major == 8 and minor == 10:
+            return "HLR-1"
+        if major == 8 and minor == 11:
+            return "HLR-10"
         return f"HLR-{major}"
     if m := re.match(r"^BR-R(\d+)$", req_id):
         n = int(m[1])
-        return "HLR-3" if n <= 6 else "HLR-4" if n <= 11 else "HLR-9"
+        if n <= 6:
+            return "HLR-3"
+        if n <= 11:
+            return "HLR-4"
+        if n <= 16:
+            return "HLR-9"
+        return "HLR-1" if n <= 19 else "HLR-10"
     if req_id.startswith(("NFR-D", "HNFR")):
         return "Cross-cutting"
     return ""
 
 
 def normalise_status(raw: str, req_id: str) -> str:
+    if "next" in raw.lower():  # e.g. "🟡 areas ✅, tiles CRUD ⏳ next": the open work wins
+        return "Next"
     if "✅" in raw or raw.startswith("Built"):
         return "Built & tested"
     if "🟡" in raw:
@@ -243,6 +256,11 @@ def normalise_status(raw: str, req_id: str) -> str:
     if req_id.startswith(("BR-R", "NFR-D", "HNFR", "BR-")):
         return ""
     return "Planned"
+
+
+NEXT_EPICS = {"HLR-9", "HLR-10"}
+# Rules and NFRs from tables without a status column that describe work not built yet.
+NOT_YET_BUILT = {"BR-R17", "BR-R18", "BR-R19", "NFR-D9", "NFR-D10"}
 
 
 def collect_requirements(docs: list[tuple[str, list[dict]]]) -> list[dict]:
@@ -275,8 +293,14 @@ def collect_requirements(docs: list[tuple[str, list[dict]]]) -> list[dict]:
                         status = ""  # outcomes, measured over time; not "built"
                     elif not status:  # tables without a status column
                         status = {"Non-functional (high level)": "Built (manual test)"}.get(kind, "Built & tested")
-                    if parent == "HLR-9" and status in ("Planned", "Built & tested"):
-                        status = "Next"  # HLR-9 is the agreed next build
+                    if parent in NEXT_EPICS and status in ("Planned", "Built & tested") and not (
+                        parent == "HLR-1" and kind == "Functional (LLR)"  # built area CRUD stays built
+                    ):
+                        status = "Next"  # agreed next builds; not implemented yet
+                    if req_id in NOT_YET_BUILT:
+                        status = "Next"
+                    if text.startswith("Superseded"):
+                        status = "Out of scope"
                     found[req_id] = {
                         "id": req_id,
                         "type": kind,
@@ -409,7 +433,7 @@ def write_readme(ws, generated: str):
     ws.column_dimensions["A"].width = 130
 
 
-def build() -> Path:
+def build(output: Path = OUTPUT) -> Path:
     hlrd = parse_sections((DOCS / "HLRD.md").read_text(encoding="utf-8"))
     llrd = parse_sections((DOCS / "LLRD.md").read_text(encoding="utf-8"))
     requirements = collect_requirements([("HLRD", hlrd), ("LLRD", llrd)])
@@ -432,10 +456,13 @@ def build() -> Path:
     for ws in wb.worksheets:
         ws.sheet_view.zoomScale = 100
     wb.calculation.fullCalcOnLoad = True  # Excel computes the Traceability formulas on open
-    wb.save(OUTPUT)
-    print(f"{OUTPUT}  ({len(requirements)} requirements, {len(wb.sheetnames)} sheets)")
-    return OUTPUT
+    try:
+        wb.save(output)
+    except PermissionError:
+        raise SystemExit(f"Can't write {output}: close it in Excel first, then run this again.") from None
+    print(f"{output}  ({len(requirements)} requirements, {len(wb.sheetnames)} sheets)")
+    return output
 
 
 if __name__ == "__main__":
-    build()
+    build(Path(sys.argv[1]) if len(sys.argv) > 1 else OUTPUT)

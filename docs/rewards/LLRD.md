@@ -16,8 +16,8 @@ Conventions: **LLR** = detailed functional requirement · **BR-R** = business ru
 
 | # | Question | Answer / decision | Source |
 |---|---|---|---|
-| Q1 | Which tiles exist and are they editable? | 3 fixed tiles (Career/Office/Work, Household, Fun); **areas** are editable | Brief |
-| Q2 | Household seed list? | Kitchen, Kitchen Utility Area, Laundry, Master Bathroom, Guest Bathroom, Master Bedroom, Guest Room, Hall, Balcony, Books, Makeup, Wardrobe, Shiragi Toys (13). "Kitchen Utility" dropped as a duplicate | PO decision, 2026-09-28 |
+| Q1 | Which tiles exist and are they editable? | ~~3 fixed tiles; only areas editable~~ Superseded by Q15: tiles are fully user-managed | Brief, revised 2026-09-29 |
+| Q2 | Household starter list (originally the seed list; now the optional starter set, LLR-1.8)? | Kitchen, Kitchen Utility Area, Laundry, Master Bathroom, Guest Bathroom, Master Bedroom, Guest Room, Hall, Balcony, Books, Makeup, Wardrobe, Shiragi Toys (13). "Kitchen Utility" dropped as a duplicate | PO decision, 2026-09-28 |
 | Q3 | What counts as a streak for weekly tasks? | Consecutive Monday–Sunday weeks with ≥ 1 completion | Design decision |
 | Q4 | When does a streak break? | Only after a **whole** period is missed (done yesterday but not yet today = still alive) | Design decision |
 | Q5 | How can the demo show a streak going up in minutes? | Backfill: log a completion for yesterday or the day before | PO accepted |
@@ -30,6 +30,10 @@ Conventions: **LLR** = detailed functional requirement · **BR-R** = business ru
 | Q12 | How are tasks matched to a reward? | Two modes. **Selected tasks** (default): tag specific tasks, all inside the scope. **All tasks in scope**: every non-archived task in the area (or tile) counts automatically, including tasks added later | Design decision, 2026-09-28 |
 | Q13 | Where is data hosted? | SQLite on the DigitalOcean droplet (1 GB RAM, 25 GB disk), backed up continuously by Litestream; MFE on Vercel; photos in object storage later | PO decision, 2026-09-28 |
 | Q14 | Can schema changes lose existing (test) data? | No. Every schema change ships as an Alembic migration that upgrades the file in place, with an automatic backup first; export/import to JSON is available for moves | PO requirement, 2026-09-28 |
+| Q15 | Should tiles be seeded? | No. Tiles are user-managed (create, edit, reorder, delete). A fresh install starts empty, with an optional one-click starter set | PO decision, 2026-09-29 |
+| Q16 | How structured are the notes and contacts? | Simple: notes, contacts and files, each with an optional **topic** (e.g. "Bosch Dishwasher") that groups them. "Past executives" are contacts with the role *Service executive* and a last-visit date | PO decision, 2026-09-29 |
+| Q17 | Who can see notes, contacts and files? | The same as rewards: visible in the read-only view when public reads are on; editing needs the owner passcode. Risk logged in HLRD §9 | PO decision, 2026-09-29 |
+| Q18 | Can tiles hold notes and contacts, or only areas? | Both. Home-wide services (e.g. Pest Control) live on the tile; appliance-specific ones on the area (e.g. Kitchen › Bosch Dishwasher) | PO decision, 2026-09-29 |
 
 ### 1.2 Open items
 
@@ -48,7 +52,8 @@ Conventions: **LLR** = detailed functional requirement · **BR-R** = business ru
 | Feature | As-Is (old in-site rewards) | To-Be (Rewards MFE) | LLR |
 |---|---|---|---|
 | Navigation | Goals / Rewards tabs, modal-heavy | Tiles → Areas → Area → Task; Rewards tab; deep links `#/rewards/...` | LLR-1, LLR-7 |
-| Categories | 6 fixed + custom categories for goals | 3 fixed tiles; add/rename/delete areas | LLR-1.x |
+| Categories | 6 fixed + custom categories for goals | User-managed tiles and areas (create, edit, reorder, delete); empty start with an optional starter set | LLR-1.x |
+| Service records | None (phone contacts, chats, paper bills) | Notes, contacts and files on every tile and area, grouped by topic, tap-to-call, search | LLR-10.x |
 | Unit of work | Goal (title, description, type, target days) | Task (title, notes, priority, frequency, status, relevance, source) | LLR-2.x |
 | Logging | "Log today": did it?, duration, note | Complete now or backfill 1–2 days; note | LLR-3.x |
 | Streak | Daily streak per goal | Per task, daily or weekly periods; current + best | LLR-3.x |
@@ -68,12 +73,31 @@ Conventions: **LLR** = detailed functional requirement · **BR-R** = business ru
 
 | ID | Requirement | Status |
 |---|---|---|
-| LLR-1.1 | On first start the system seeds tiles and areas per Q2. Seeding never runs again once any tile exists (user edits are preserved) | ✅ |
+| LLR-1.1 | **Superseded by LLR-1.7 (Q15).** Was: on first start the system seeds tiles and areas per Q2 | ✅ (to be replaced) |
 | LLR-1.2 | The tiles screen shows each tile's icon, name, area count and active task count | 🟡 |
 | LLR-1.3 | The user can add an area to a tile. The name is 1–80 characters, trimmed, and **unique within the tile ignoring case** | ✅ |
 | LLR-1.4 | The user can rename an area under the same rules as LLR-1.3 | ✅ |
 | LLR-1.5 | The user can delete an area after confirmation. Its tasks, completions, photos and suggestions are removed with it | ✅ |
 | LLR-1.6 | The confirmation text states how many active tasks will be deleted | 🟡 |
+
+#### User-managed tiles (HLR-1 update) ⏳ next
+
+| ID | Requirement | Status |
+|---|---|---|
+| LLR-1.7 | A new database starts with **no tiles**. The tiles screen shows "Create your first tile" and an optional **Add suggested tiles** button. Nothing is seeded automatically | ⏳ next |
+| LLR-1.8 | **Add suggested tiles** adds the starter set (Career/Office/Work with Learning and Projects; Household with the 13 areas in Q2; Fun with Hobbies and Outings). It only adds tiles and areas whose names don't already exist, so it never duplicates or overwrites anything and can be pressed again safely | ⏳ next |
+| LLR-1.9 | **Create a tile**: name 1–40 characters, trimmed, unique ignoring case (409 on duplicate); icon (one emoji, optional, default 📁). New tiles go to the end | ⏳ next |
+| LLR-1.10 | **Edit a tile**: change its name (same rules) and icon. Areas, tasks, rewards and links keep working, because they refer to the tile's id, not its name | ⏳ next |
+| LLR-1.11 | **Reorder** tiles, and areas within a tile (move up/down; drag on wider screens). The order is saved and used everywhere, including the dashboard | ⏳ next |
+| LLR-1.12 | **Delete a tile**: the confirmation lists what will be removed (areas, tasks, completions, rewards scoped to it, notes, contacts, files) and requires typing the tile's name. A database snapshot is taken first (BR-R18) | ⏳ next |
+| LLR-1.13 | Existing databases keep their current tiles and areas when this ships: the upgrade removes nothing. They become ordinary user-managed tiles that can be edited or deleted | ⏳ next |
+
+**AC-1.7 to 1.12**
+- *Given* a fresh database *when* the Rewards screen opens *then* it shows "Create your first tile" and no tiles.
+- *Given* a tile "Home" exists *when* the user presses "Add suggested tiles" *then* Career/Office/Work, Household and Fun are added, "Home" is untouched, and pressing it again adds nothing.
+- *Given* a tile "Household" exists *when* the user creates "household" *then* it's rejected: "'household' already exists" (409).
+- *Given* "Household" is renamed to "Home and family" *then* its areas, tasks and rewards are unchanged and deep links still open it.
+- *Given* the user deletes "Fun" and types "Fun" to confirm *then* Fun, its areas, tasks, completions, scoped rewards and details are removed, and a snapshot exists in `data/backups/`.
 
 **AC-1.3**
 - *Given* Fun contains "Hobbies" *when* the user adds "hobbies" *then* it's rejected with "'hobbies' already exists in this category" (409) and nothing is created.
@@ -244,6 +268,45 @@ Conventions: **LLR** = detailed functional requirement · **BR-R** = business ru
 | LLR-8.7 | Reward create/update accept `categoryId` (required on create), `areaId` (optional) and `match` (`selected` \| `all_in_scope`); reward responses include `scope {categoryId, categoryName, areaId, areaName}`, `match` and `needsTile` | ⏳ (HLR-9) |
 | LLR-8.8 | `GET /rewards` accepts `categoryId` and `areaId` filters. `GET /areas/{id}/rewards` returns the rewards that match that area (LLR-4.14). Task detail's `rewards` lists every reward matching the task, with how it matches (`tagged` or `scope`) | ⏳ (HLR-9) |
 | LLR-8.9 | Schema changes are applied by versioned migrations on startup, never by dropping and recreating tables; a backup of the database file is written before each upgrade (Q14) | ✅ |
+| LLR-8.10 | Tile endpoints: `POST /categories`, `PATCH /categories/{id}` (name, icon), `DELETE /categories/{id}`, `PUT /categories/order` and `PUT /categories/{id}/areas/order`, `POST /categories/starter` (LLR-1.8, returns what was added) | ⏳ next |
+| LLR-8.11 | Details endpoints for both owners (`/categories/{id}` and `/areas/{id}`): `…/details` (grouped by topic), `…/notes`, `…/contacts`, `…/files` (multipart upload); `PATCH`/`DELETE` on `/notes/{id}`, `/contacts/{id}`, `/files/{id}`; `GET /files/{id}/download`; `GET /search?q=` | ⏳ next |
+
+### LLR-10 Notes, contacts and files (HLR-10) ⏳ next
+
+Each **tile** and each **area** has a *Notes & contacts* section (Q16, Q18). Every note, contact and file can carry an optional **topic** (e.g. "Bosch Dishwasher", "Pest Control") that groups related items.
+
+| ID | Requirement | Status |
+|---|---|---|
+| LLR-10.1 | The tile screen and the area screen each have a **Notes & contacts** tab next to their main content. It lists topics as groups (items without a topic under "General"), each showing its contacts, files and notes | ⏳ next |
+| LLR-10.2 | **Topic** is free text (1–60 characters), optional, and offers existing topics from the same tile or area as suggestions, so "Bosch Dishwasher" isn't typed three different ways | ⏳ next |
+| LLR-10.3 | **Contact**: name (required, 1–80); organisation or brand (e.g. Bosch, Kent, IFB, LG); role (*Customer care*, *Service executive*, *Technician*, *Vendor or shop*, *Other*); up to 3 phone numbers with labels (mobile, toll-free, WhatsApp); email; website; last visit or contact date; notes (≤ 1000); topic | ⏳ next |
+| LLR-10.4 | Phone numbers are stored as entered and shown with actions: **Call** (`tel:`), **WhatsApp** (`wa.me`, for numbers marked WhatsApp) and **Copy**. Email gets **Email** (`mailto:`). All actions are one tap on a phone | ⏳ next |
+| LLR-10.5 | **Past executives**: within a topic, contacts with the role *Service executive* or *Technician* are listed newest last-visit first. The topic header shows the **last executive** (name, date, call button) | ⏳ next |
+| LLR-10.6 | **Note**: text 1–5000 characters, optional title and topic; shows created and last-edited time; newest first | ⏳ next |
+| LLR-10.7 | **File** (bills, invoices, warranty cards, manuals): PDF, JPG, PNG, WebP or HEIC, up to 10 MB each, checked by content; title (required), optional date, amount (₹) and topic. Files open in the browser or download; images show a thumbnail | ⏳ next |
+| LLR-10.8 | Notes, contacts and files can be edited and deleted (with confirmation), and moved between topics by editing the topic | ⏳ next |
+| LLR-10.9 | **Search** across every tile and area by contact name, organisation, topic, phone digits (spaces and dashes ignored), note text and file title. Results show where each hit lives (e.g. "Household › Kitchen › Bosch Dishwasher") and link to it | ⏳ next |
+| LLR-10.10 | Deleting an area or tile deletes its notes, contacts and files, and the confirmation counts them (LLR-1.12). Stored files are removed only after the database change commits | ⏳ next |
+| LLR-10.11 | Visibility follows the rewards setting (Q17): readable in the read-only view when public reads are on; creating, editing, deleting and uploading need the owner passcode | ⏳ next |
+| LLR-10.12 | The JSON export (`app.backup`) includes notes and contacts, and lists files by title and stored name; the server backup covers the files folder as well as the database | ⏳ next |
+
+**Business rules: tiles and details**
+
+| ID | Rule |
+|---|---|
+| BR-R17 | Tile names are unique ignoring case; area names are unique within their tile ignoring case |
+| BR-R18 | Deleting a tile removes everything under it (areas, tasks, completions, rewards scoped to it, notes, contacts, files) in one transaction, after a database snapshot is saved to `data/backups/` |
+| BR-R19 | The starter set only adds tiles and areas whose names are missing; it never renames, merges or deletes |
+| BR-R20 | Details belong to exactly one owner: a tile or an area. Moving an area to another tile isn't supported, so details never change tile |
+| BR-R21 | The "last executive" of a topic is the *Service executive* or *Technician* contact in that topic with the latest last-visit date; contacts without a date come after dated ones |
+
+**AC-10 (your examples)**
+- *Given* Household › Kitchen *when* the user adds contacts "Bosch Customer Care" (Customer care, toll-free number) and "Ramesh" (Service executive, last visit 12 Aug 2026), both with topic "Bosch Dishwasher", uploads the installation bill and adds a note "Filter cleaned; next service due in 6 months" *then* the **Bosch Dishwasher** topic shows all four, with Ramesh as the last executive.
+- *Given* a topic "Kent Water Purifier" with executives visiting in March and August *then* the August executive is shown as the last executive, and both appear under past executives.
+- *Given* "IFB Washing Machine" (Laundry), "LG Fridge" (Kitchen) and "Pigeon Net" (Balcony) contacts *when* the user searches "IFB" *then* the result shows "Household › Laundry › IFB Washing Machine".
+- *Given* Household (tile level) with topic "Pest Control" *then* its last executive shows on the Household tile's Notes & contacts tab, not under any area.
+- *Given* a saved number "98450 12345" *when* the user searches "9845012345" *then* the contact is found, and tapping **Call** on a phone dials it.
+- *Given* the read-only view (no passcode) *then* notes, contacts and files are visible, but the add, edit, delete and upload controls are hidden (Q17).
 
 ---
 
@@ -251,8 +314,9 @@ Conventions: **LLR** = detailed functional requirement · **BR-R** = business ru
 
 | Screen | Must show | States | Primary actions |
 |---|---|---|---|
-| Tiles | 3 tiles: icon, name, area count, active task count | loading, error+retry, empty | open tile |
-| Tile (category) | Breadcrumb; areas with active count | loading, error, empty ("No areas yet"), not found | add, rename (inline), delete (confirm) |
+| Tiles | Tiles: icon, name, area count, active task count; ⏳ "+ New tile"; ⏳ search box (LLR-10.9) | loading, error+retry; ⏳ empty: "Create your first tile" + "Add suggested tiles" | open tile; ⏳ create, edit, reorder, delete tile |
+| Tile (category) | Breadcrumb; areas with active count; ⏳ tabs *Areas* / *Notes & contacts* | loading, error, empty ("No areas yet"), not found | add, rename (inline), delete (confirm) area; ⏳ edit or delete this tile; ⏳ tile-level notes, contacts, files |
+| ⏳ Notes & contacts (tab on tile and area) | Topic groups ("General" last); per topic: last executive, contacts (role, organisation, phones with Call / WhatsApp / Copy), files (thumbnail or PDF icon, date, amount), notes | loading, error, empty ("No notes or contacts yet"), read-only (no edit controls) | add note, contact, file; edit, delete, change topic |
 | Area | Breadcrumb; active count; add form; filters (collapsible); task rows (title, frequency, source, status, streak 🔥, priority select, ✓); ⏳ "Rewards you can earn here" (matching rewards with progress) | loading, error, "No tasks yet" / "No tasks match these filters"; ⏳ "No rewards for this area yet" + create link prefilled with this scope | add task, filter, reprioritise, quick complete, open task; ⏳ create reward for this area |
 | Task | Breadcrumb; stats (current, best, completions); log completion (when + note); matching rewards (tagged, or ⏳ "Counts automatically") + tag select limited to in-scope rewards; settings chips; activity log | loading, error, "No completions yet", inactive-task notice | complete, tag reward, change settings |
 | Rewards | Status filter; ⏳ tile and area filters; create form (⏳ tile → area → match mode, then task picker limited to scope, grouped by area); cards: image, title, ⏳ scope breadcrumb + match mode, status, rule, progress, tags | loading, error, empty per filter; ⏳ *Needs a tile* badge | create, claim, edit tasks, ⏳ change scope (locked only) |
@@ -271,6 +335,11 @@ Touch and accessibility: controls ≥ 44 px high (chips ≥ 36 px), inputs 16 px
 | Claim locked reward | "This reward is still locked" |
 | Unknown tagged tasks | "Unknown task ids: [..]" |
 | Unlock | "🎉 Reward unlocked: <title>" |
+| ⏳ Duplicate tile | "'<name>' already exists" |
+| ⏳ Delete tile | "Delete <tile>? This removes <n> areas, <n> tasks, <n> completions, <n> rewards and <n> notes, contacts and files. A backup is saved first. Type <tile> to confirm." |
+| ⏳ Starter set | "Added <n> tiles and <n> areas" / "You already have all the suggested tiles" |
+| ⏳ File too large or wrong type | "Files must be PDF, JPG, PNG, WebP or HEIC, up to 10 MB" |
+| ⏳ No details yet | "No notes or contacts yet. Add a customer-care number, the last executive or a bill." |
 | ⏳ Tag outside scope | "“<task>” isn't in <tile> › <area>" |
 | ⏳ Area from another tile | "<area> isn't part of <tile>" |
 | ⏳ Reward needs a tile | "Pick a tile for this reward to keep editing it" |
@@ -286,16 +355,20 @@ Touch and accessibility: controls ≥ 44 px high (chips ≥ 36 px), inputs 16 px
 | NFR-D3 | Dashboard issues ≤ 1 BFF read per window per 30 s | `st.cache_data` TTL |
 | NFR-D4 | No horizontal scroll at 375 px width | measured `scrollWidth` = viewport |
 | NFR-D5 | Stats for N tasks use one activity query (no N+1) | code review (`task_stats`) |
-| NFR-D6 | Every business rule BR-R1…R16 has ≥ 1 automated test | traceability §7 |
+| NFR-D6 | Every business rule BR-R1…R21 has ≥ 1 automated test | traceability §7 |
 | NFR-D8 | No schema change may delete or rewrite existing rows except as specified (LLR-4.18); every migration has an upgrade test run against a copy of a pre-migration database | migration tests |
+| NFR-D9 | Uploaded files are stored outside any public web folder with random names, served only through the BFF, and count against a 2 GB soft limit on the droplet (warning shown); moving to object storage later changes no requirement | code review, upload tests |
+| NFR-D10 | Search over notes, contacts and files returns in ≤ 300 ms for 5,000 items | test with generated data |
 | NFR-D7 | Naive datetimes never reach storage | `UTCDateTime` raises |
 
 ## 7. Traceability matrix
 
 | LLR | Endpoint(s) | Automated test(s) |
 |---|---|---|
-| LLR-1.1 | lifespan seed, `GET /categories` | `test_seeded_tiles_and_sub_tiles` |
+| LLR-1.1 (superseded) | lifespan seed, `GET /categories` | `test_seeded_tiles_and_sub_tiles` (to be replaced by the LLR-1.7 tests) |
 | LLR-1.3–1.5 | `POST/PATCH/DELETE /areas` | `test_area_add_rename_delete` |
+| LLR-1.7–1.13; BR-R17–R19; LLR-8.10 | `/categories*` | ⏳ planned: `test_fresh_database_has_no_tiles`, `test_starter_set_is_idempotent`, `test_tile_crud_and_unique_names`, `test_delete_tile_snapshots_and_cascades`, `test_upgrade_keeps_existing_tiles` |
+| LLR-10.1–10.12; BR-R20–R21; LLR-8.11 | details, files, `/search` | ⏳ planned: `test_details_grouped_by_topic`, `test_last_executive_is_latest_visit`, `test_file_upload_rules`, `test_search_matches_phone_digits`, `test_read_only_view_shows_details_but_blocks_edits` |
 | LLR-2.1, 2.3–2.5, 2.8, 2.9 | `POST /areas/{id}/tasks`, `GET /areas/{id}/tasks`, `PATCH /tasks/{id}`, `GET /tasks` | `test_create_filter_and_reprioritise_tasks` |
 | LLR-3.1, 3.6, 3.7; BR-R2–R4 | `POST /tasks/{id}/complete`, `GET /tasks/{id}/activity`, `GET /tasks/{id}` | `test_completions_build_streak_and_activity_log`, `test_daily_streak`, `test_weekly_streak` |
 | LLR-3.3–3.5; BR-R4, R5 | `POST /tasks/{id}/complete` | `test_completion_rules`, `test_one_off_streak_is_done_or_not` |

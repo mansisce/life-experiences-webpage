@@ -48,6 +48,8 @@ This capstone replaces it with a **Rewards microfrontend**:
 | D7 | User interview | Tasks are often done and logged later | Backfill completions ("yesterday") |
 | D8 | User interview | Wants weekly insight, not just a to-do list | Separate analytics client (Streamlit) |
 | D9 | Roadmap | An Android app is planned | API-first BFF; mobile-first UI |
+| D11 | PO review of the requirements workbook (2026-09-29) | Preset tiles don't fit everyone's life; the user wants to create, rename, reorder and delete tiles themselves | Tiles become fully user-managed (CRUD); nothing seeded, with an optional one-click starter set (HLR-1) |
+| D12 | PO review (2026-09-29) | When an appliance breaks, the useful information is scattered: customer-care numbers, the last executive who visited, bills, notes (e.g. Bosch dishwasher, Kent water purifier, IFB washing machine, LG fridge, pigeon net, pest control) | Tiles and areas hold **notes, contacts and files**, grouped by topic (HLR-10) |
 | D10 | PO review of MVP (2026-09-28) | Rewards float free of the tile/area structure: a reward can be tagged to any task anywhere, so it isn't clear which part of life a reward belongs to | Rewards use the **same tiles and areas** as tasks, and are matched to tasks inside that scope (HLR-9) |
 
 ### 2.4 Assumptions
@@ -106,6 +108,7 @@ flowchart LR
 | Architecture | Bundled into the host; Neo4j via shared Express API | No independent deploy/failure; not reusable by Android; heavy DB for simple data |
 | Resilience | Single request path; errors surface raw | Rewards failure affects the page |
 | AI | None | Deciding what to do is manual |
+| Service information | Customer-care numbers in phone contacts, executives' numbers in old WhatsApp chats, paper bills in a drawer | When an appliance breaks, finding the last executive or the bill takes longer than the fix |
 
 ---
 
@@ -120,6 +123,7 @@ flowchart LR
   B -. post-MVP .-> P[Snap area photo] --> Q[AI suggests tasks] --> R[Mark Relevant / Not / Ignore] --> C
   C --> D[Complete task, now or backfill]
   B --> K[See rewards you can earn in this area or tile]
+  B --> N[Notes and contacts: call the last executive, find the bill]
   K -. matched by tile / area .-> F
   D --> E[Streak updates per day/week]
   E --> F{Reward rule met?}
@@ -159,6 +163,8 @@ flowchart LR
 | G8 | Delivery | Bundled into host | Independently built and deployed MFE; host fallback | Re-architect |
 | G9 | Backend | Express + Neo4j shared with other features | Dedicated BFF, typed contracts, OpenAPI, relational store | Re-architect |
 | G10 | Clients | Web only | Web, analytics, Android-ready API | New |
+| G11 | Tile management | 6 fixed goal categories (plus custom ones) | Tiles fully user-managed (create, edit, reorder, delete); empty start with an optional starter set | Replace |
+| G12 | Service records | Scattered across phone contacts, chats and paper | Notes, contacts and files on every tile and area, grouped by topic, with tap-to-call | New |
 
 ### 4.4 Transition plan
 
@@ -169,6 +175,8 @@ flowchart LR
 | T3 | Build the Streamlit insights client | ✅ |
 | T3a | Schema migrations (Alembic) + export/import, so schema changes never cost existing data | ✅ (branch) |
 | T3b | Reward scope and matching (HLR-9), shipped as the first data-preserving migration | ⏳ next, after T3a |
+| T3c | User-managed tiles (CRUD), no seeding, optional starter set (HLR-1 update) | ⏳ next |
+| T3d | Notes, contacts and files on tiles and areas (HLR-10) | ⏳ next |
 | T4 | Deploy the MFE + BFF; set the host's remote URL; merge to `main` | ⏳ |
 | T5 | Integration services: vision → events/outbox → reminders | ⏳ |
 | T6 | Mobile BFF surface; Android client | ⏳ future |
@@ -181,7 +189,7 @@ No data migration from Neo4j is planned. The old feature held no production data
 
 | In scope (MVP) | Post-MVP (capstone extensions) | Out of scope |
 |---|---|---|
-| Tiles/areas CRUD, tasks, completions, streaks, rewards, claim; rewards scoped to the same tiles/areas and matched to tasks | Photo → AI suggestions (vision adapter) | Android app build |
+| Tile and area CRUD (no seeding, optional starter set), tasks, completions, streaks, rewards, claim; rewards scoped to the same tiles/areas and matched to tasks; notes, contacts and files on tiles and areas | Photo → AI suggestions (vision adapter) | Android app build |
 | React MFE + host integration | Domain events + outbox; reminders (push/email) | Real auth / multi-user |
 | FastAPI BFF with per-client shapes | Calendar ICS feed; object storage; AI weekly coach | Other microfrontends |
 | Streamlit insights | Mobile BFF surface; OIDC | WhatsApp, Apify, Snowflake |
@@ -204,11 +212,12 @@ No data migration from Neo4j is planned. The old feature held no production data
 
 | ID | Epic | Summary | Traces to (LLRD) | MVP |
 |---|---|---|---|---|
-| HLR-1 | Tiles & areas | Browse 3 tiles; seeded, editable areas | LLR-1.x | ✅ |
+| HLR-1 | Tiles & areas | User-managed tiles and areas (create, edit, reorder, delete); empty start with an optional starter set | LLR-1.x | 🟡 areas ✅, tiles CRUD ⏳ next |
 | HLR-2 | Task management | Create, prioritise, filter, change status/frequency/relevance | LLR-2.x | ✅ |
 | HLR-3 | Completion & streaks | Log completions with note/backfill; activity log; current/best streak | LLR-3.x | ✅ |
 | HLR-4 | Rewards | Create, tag, progress, auto-unlock, claim | LLR-4.1–4.8 | ✅ |
 | HLR-9 | Reward scope and matching | Rewards live in the same tiles and areas as tasks; tasks are matched to rewards inside that scope (selected tasks, or all tasks in scope); existing rewards migrated without data loss | LLR-4.9–4.18 | ⏳ next |
+| HLR-10 | Notes, contacts and files | Every tile and area holds notes, contacts (customer care, service executives, vendors) and files (bills, warranty cards), grouped by topic such as "Bosch Dishwasher", with tap-to-call and search | LLR-10.x | ⏳ next |
 | HLR-5 | Insights dashboard | Aggregates, filters, cached reads, claim from dashboard | LLR-5.x | ✅ |
 | HLR-6 | AI task suggestions | Photos → suggestions → decisions → tasks; non-blocking | LLR-6.x | ⏳ |
 | HLR-7 | Module composition | Independently delivered MFE with host fallback | LLR-7.x | ✅ |
@@ -247,6 +256,8 @@ Vercel (host + MFE hosting); a Python host for the BFF (post-MVP deploy); the An
 | Remote not deployed when merged → `#/rewards` shows fallback | M | M | Deploy the MFE + BFF before merging to `main` (T4) |
 | AI suggestions low quality | M | L | Human approval per suggestion; acceptance-rate metric in the dashboard |
 | Scope creep into other modules | M | M | Capstone limited to Rewards; roadmap items gated by priority |
+| Contacts and bills visible in the public read-only view (PO decision Q17): executives' personal numbers and your bills exposed once hosted | M | H | Acceptable locally; revisit before going public (option: hide details from visitors while keeping rewards public) |
+| Deleting a tile removes everything under it | L | H | Typed-name confirmation listing what will go, plus an automatic database snapshot first (BR-R18) |
 | React version drift host ↔ remote | L | H | Shared singleton; pinned versions; smoke check |
 
 ## 10. Acceptance (MVP)
@@ -259,3 +270,5 @@ The MVP is accepted when the demo runs without manual workarounds:
 5. The Streamlit dashboard reflects completions, streaks and the claim.
 6. With the remote or BFF stopped, the site shows the documented fallbacks.
 7. (HLR-9) Kitchen shows "Rewards you can earn here" for rewards scoped to Household or Household › Kitchen, and the Kitchen task can only be tagged to those.
+8. (HLR-1) On a fresh database, create a tile "Home", rename it, add areas; "Add suggested tiles" adds the starter set without duplicating "Home".
+9. (HLR-10) Kitchen › Notes & contacts shows a "Bosch Dishwasher" topic with its customer-care number, past executives with visit dates, bills and notes; tapping a number starts a call on the phone. Household (tile level) holds "Pest Control" with its last executive.
