@@ -19,7 +19,9 @@ Frequency = Literal["daily", "weekly", "one_off"]
 TaskStatus = Literal["active", "done", "archived"]
 Relevance = Literal["relevant", "not_relevant", "ignore"]
 Source = Literal["ai", "manual"]
-RuleType = Literal["completions", "streak"]
+RuleType = Literal["completions", "streak", "milestone"]
+Visibility = Literal["announced", "silent"]
+TargetDays = Field(default=None, ge=1, le=3650)
 RewardStatus = Literal["locked", "unlocked", "claimed"]
 # selected: only tagged tasks count; all: every non-archived task in the reward's scope counts (HLR-9)
 MatchMode = Literal["selected", "all"]
@@ -119,11 +121,20 @@ class TaskCreate(ApiModel):
     notes: str = Field(default="", max_length=2000)
     priority: Priority = "medium"
     frequency: Frequency = "weekly"
+    # Planning and visibility (HLR-11), all optional. A naive due date is in the user's timezone.
+    is_milestone: bool = False
+    visibility: Visibility = "announced"
+    due_at: datetime | None = None
+    target_days: int | None = TargetDays
 
 
 class TaskUpdate(ApiModel):
     title: str | None = Field(default=None, min_length=1, max_length=200)
     notes: str | None = Field(default=None, max_length=2000)
+    is_milestone: bool | None = None
+    visibility: Visibility | None = None
+    due_at: datetime | None = None  # null clears it
+    target_days: int | None = TargetDays  # null clears it
     priority: Priority | None = None
     frequency: Frequency | None = None
     status: TaskStatus | None = None
@@ -140,6 +151,11 @@ class TaskOut(ApiModel):
     frequency: Frequency
     status: TaskStatus
     relevance: Relevance
+    is_milestone: bool
+    visibility: Visibility
+    due_at: datetime | None
+    target_days: int | None
+    overdue: bool  # active, has a due date, and it's in the past (BR-R22)
     created_at: datetime
     completion_count: int
     current_streak: int
@@ -314,9 +330,20 @@ class SuggestionStats(FlatModel):
     acceptance_rate: float | None  # relevant / decided; None until something is decided
 
 
+class MilestoneRow(FlatModel):
+    task_id: int
+    task_title: str
+    category_name: str
+    area_name: str
+    due_at: datetime | None
+    state: Literal["done", "overdue", "upcoming"]  # done = completed at least once
+    silent: bool
+
+
 class Totals(FlatModel):
     completions: int
     active_tasks: int
+    overdue_tasks: int
     active_streaks: int
     rewards_unlocked: int
     rewards_claimed: int
@@ -330,6 +357,7 @@ class DashboardSummary(FlatModel):
     completions_by_area: list[AreaCompletions]
     completions_by_day: list[DailyCompletions]
     streaks: list[StreakRow]
+    milestones: list[MilestoneRow]
     rewards: list[RewardProgressRow]
     suggestions: SuggestionStats
 

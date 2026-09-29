@@ -14,7 +14,7 @@ from sqlalchemy import func, select
 from .. import schemas
 from ..deps import NowDep, SessionDep, SettingsDep
 from ..models import Activity, Area, Category, Reward, Suggestion, Task
-from ..services import reward_progress_map, task_stats
+from ..services import is_overdue, reward_progress_map, task_stats
 
 router = APIRouter(tags=["dashboard"])
 
@@ -65,6 +65,24 @@ async def dashboard_summary(
         reverse=True,
     )
 
+    # Milestones (HLR-11): done first-time or not, due soonest first; no due date last.
+    milestones = sorted(
+        (
+            schemas.MilestoneRow(
+                task_id=t.id,
+                task_title=t.title,
+                category_name=category_by_id[area_by_id[t.area_id].category_id].name,
+                area_name=area_by_id[t.area_id].name,
+                due_at=t.due_at,
+                state="done" if stats[t.id].completion_count else "overdue" if is_overdue(t, now) else "upcoming",
+                silent=t.visibility == "silent",
+            )
+            for t in tasks
+            if t.is_milestone and t.status != "archived"
+        ),
+        key=lambda row: (row.due_at is None, row.due_at or now),
+    )
+
     rewards = (await session.scalars(select(Reward).order_by(Reward.created_at))).all()
     progress = (await reward_progress_map(session, rewards, tz, today)).progress
 
@@ -79,6 +97,7 @@ async def dashboard_summary(
         totals=schemas.Totals(
             completions=len(activity),
             active_tasks=sum(1 for t in tasks if t.status == "active"),
+            overdue_tasks=sum(1 for t in tasks if is_overdue(t, now)),
             active_streaks=len(streaks),
             rewards_unlocked=sum(1 for r in rewards if r.status == "unlocked"),
             rewards_claimed=sum(1 for r in rewards if r.status == "claimed"),
@@ -99,6 +118,7 @@ async def dashboard_summary(
         ],
         completions_by_day=[schemas.DailyCompletions(date=d, completions=n) for d, n in sorted(per_day.items())],
         streaks=streaks,
+        milestones=milestones,
         rewards=[
             schemas.RewardProgressRow(
                 reward_id=r.id,

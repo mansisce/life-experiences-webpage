@@ -2,15 +2,15 @@ import { useState } from "react";
 import { useRewards } from "../context.js";
 import { groupByArea } from "../lib/groupByArea.js";
 import { useResource } from "../lib/useResource.js";
-import { Chips, Empty, ErrorState, FREQUENCIES, labelOf, Loading, PriorityBadge, ScreenHeader, STATUSES, useAction } from "../components/ui.jsx";
+import { Chips, Empty, ErrorState, FREQUENCIES, labelOf, Loading, PlanBadges, PriorityBadge, ScreenHeader, STATUSES, useAction } from "../components/ui.jsx";
 
 function TaskRow({ task, rewardCount, onChanged }) {
-  const { api, links, toast, celebrate } = useRewards();
+  const { api, links, toast, completed } = useRewards();
   const [busy, run] = useAction(toast);
   const complete = async () => {
-    const result = await run(() => api.completeTask(task.id, {}), `Logged “${task.title}”`);
+    const result = await run(() => api.completeTask(task.id, {}));
     if (result) {
-      celebrate(result.unlockedRewards);
+      completed(result);
       onChanged();
     }
   };
@@ -26,6 +26,7 @@ function TaskRow({ task, rewardCount, onChanged }) {
       <a className="rw-row-main" href={links.task(task.id)}>
         <strong>{task.title}</strong>
         <small>{details.join(" · ")}</small>
+        <PlanBadges task={task} />
       </a>
       <div className="rw-row-actions">
         <PriorityBadge priority={task.priority} />

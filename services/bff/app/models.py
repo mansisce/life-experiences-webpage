@@ -8,7 +8,7 @@ BFF hand React, Streamlit and later Android different shapes from the same data.
 from datetime import date, datetime
 from decimal import Decimal
 
-from sqlalchemy import JSON, CheckConstraint, Column, Date, ForeignKey, Numeric, String, Table, Text
+from sqlalchemy import JSON, CheckConstraint, Column, Date, ForeignKey, Numeric, String, Table, Text, false
 from sqlalchemy.orm import Mapped, mapped_column
 
 from .db import Base, UTCDateTime, utcnow
@@ -49,6 +49,11 @@ class Task(Base):
     frequency: Mapped[str] = mapped_column(String(10), default="weekly")  # daily | weekly | one_off
     status: Mapped[str] = mapped_column(String(10), default="active")  # active | done | archived
     relevance: Mapped[str] = mapped_column(String(15), default="relevant")  # relevant | not_relevant | ignore
+    # Planning and visibility (HLR-11): all optional and independent of each other (BR-R26).
+    is_milestone: Mapped[bool] = mapped_column(default=False, server_default=false())
+    visibility: Mapped[str] = mapped_column(String(10), default="announced", server_default="announced")  # announced | silent
+    due_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
+    target_days: Mapped[int | None] = mapped_column(default=None)  # "days to complete", 1..3650
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow, onupdate=utcnow)
 
@@ -79,7 +84,7 @@ class Reward(Base):
     title: Mapped[str] = mapped_column(String(200))
     description: Mapped[str] = mapped_column(Text, default="")
     image_url: Mapped[str | None] = mapped_column(String(500), default=None)
-    rule_type: Mapped[str] = mapped_column(String(15))  # completions | streak
+    rule_type: Mapped[str] = mapped_column(String(15))  # completions | streak | milestone
     threshold: Mapped[int]
     status: Mapped[str] = mapped_column(String(10), default="locked")  # locked | unlocked | claimed
     # Scope (HLR-9): a tile, optionally narrowed to one of its areas. category_id is NULL only for

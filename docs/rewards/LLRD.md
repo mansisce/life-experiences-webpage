@@ -48,7 +48,7 @@ Conventions: **LLR** = detailed functional requirement · **BR-R** = business ru
 |---|---|---|---|
 | O1 | ~~Hosting choice~~ Closed by Q13 | PO | — |
 | O5 | Can one reward ever span two tiles (e.g. a treat for Career + Fun)? Current rule: no; create one reward per tile. Revisit if it comes up in real use | PO | Built with "no" (HLR-9); revisit after real use |
-| O7 | A *milestone completed* reward with several milestone tasks: unlock when **all** are done (current rule, BR-R25) or when **any** is done? | PO | Before HLR-11 build |
+| O7 | A *milestone completed* reward with several milestone tasks: unlock when **all** are done (current rule, BR-R25) or when **any** is done? | PO | Built with **all** (HLR-11); revisit after real use |
 | O8 | Should new tasks default to *Silent* instead of *Announced* once the site is public? | PO | Before going live |
 | O2 | Confirm no data needs migrating from the old Neo4j rewards | PO | Before merging to `main` |
 | O3 | Reminder channel for the web (push vs email) | PO | Integration phase |
@@ -281,7 +281,7 @@ Conventions: **LLR** = detailed functional requirement · **BR-R** = business ru
 | LLR-8.8 | Task detail's `rewards` lists every reward the task counts for, with how (`tagged` = linked, or `scope` for older all-tasks-in-an-area rewards) | ✅ |
 | LLR-8.9 | Schema changes are applied by versioned migrations on startup, never by dropping and recreating tables; a backup of the database file is written before each upgrade (Q14) | ✅ |
 | LLR-8.10 | Tile endpoints: `POST /categories`, `PATCH /categories/{id}` (name, icon), `DELETE /categories/{id}`, `PUT /categories/order` and `PUT /categories/{id}/areas/order`, `POST /categories/starter` (LLR-1.8, returns what was added) | ✅ |
-| LLR-8.12 | Task create/update accept `isMilestone`, `visibility` (`announced` \| `silent`), `dueAt` (ISO date-time, optional) and `targetDays` (optional); `GET /areas/{id}/tasks` adds filters `milestone=true` and `due=overdue\|today\|week` and `sort=due`. Responses served without the passcode omit silent tasks entirely (BR-R23) | ⏳ next |
+| LLR-8.12 | Task create/update accept `isMilestone`, `visibility` (`announced` \| `silent`), `dueAt` (ISO date-time, optional) and `targetDays` (optional); `GET /areas/{id}/tasks` adds filters `milestone=true` and `due=overdue\|today\|week` and `sort=due`. Responses served without the passcode omit silent tasks entirely (BR-R23) | ✅ (hiding silent tasks from visitors comes with the passcode) |
 | LLR-8.13 | Rewards accept `status: "idea"` on create (rule, threshold and tile then optional), `forWhom`, `visibility`, `link`, `seenAt` (where seen) and a cover image; `POST /rewards/{id}/activate` (rule, threshold, tile, tasks) turns an idea into a locked reward; `POST /rewards/{id}/close` with `outcome` (`bought` \| `dropped`); `GET /rewards` filters `status=idea\|closed` and `forWhom=` | ⏳ next |
 | LLR-8.11 | Details endpoints for both owners (`/categories/{id}` and `/areas/{id}`): `…/details` (grouped by topic), `…/notes`, `…/contacts`, `…/files` (multipart upload); `PATCH`/`DELETE` on `/notes/{id}`, `/contacts/{id}`, `/files/{id}`; `GET /files/{id}/download`; `GET /search?q=` | ✅ |
 
@@ -322,25 +322,25 @@ Each **tile** and each **area** has a *Notes & contacts* section (Q16, Q18). Eve
 - *Given* a saved number "98450 12345" *when* the user searches "9845012345" *then* the contact is found, and tapping **Call** on a phone dials it.
 - *Given* the read-only view (no passcode) *then* notes, contacts and files are visible, but the add, edit, delete and upload controls are hidden (Q17).
 
-### LLR-11 Task planning and visibility (HLR-11) ⏳ next
+### LLR-11 Task planning and visibility (HLR-11) ✅
 
 Four new, optional task attributes (Q19 to Q22). They sit under **More options** in the add form, so adding a quick task on a phone stays one field and one tap.
 
 | ID | Requirement | Status |
 |---|---|---|
-| LLR-11.1 | **Milestone**: yes/no (default no), set when creating or editing a task | ⏳ next |
-| LLR-11.2 | Milestones show a 🏁 badge on task rows and task detail. The area task list has a **Milestones only** filter, and the dashboard has a *Milestones* table (title, tile › area, due, done / overdue / upcoming) | ⏳ next |
-| LLR-11.3 | Completing an **announced** milestone shows the **milestone celebration**: a larger, longer celebration than a normal completion (respects reduced motion), with its own share prompt | ⏳ next |
-| LLR-11.4 | New reward rule **Milestone completed** (alongside *N completions* and *streak of N*). The reward unlocks when every milestone task it matches has at least one completion (BR-R25). Creating one that matches no milestone task is rejected (422) | ⏳ next |
-| LLR-11.5 | **Announce or keep silent**: each task is *Announced* (default) or *Silent*, set when creating or editing it (Q20, Q22) | ⏳ next |
-| LLR-11.6 | **Silent** tasks and their completions never appear in anything served without the owner passcode: lists, counts, streaks, activity, dashboard aggregates or reward task lists (BR-R23). With the passcode they're shown with a 🔕 marker | ⏳ next |
-| LLR-11.7 | Completing an **announced** task shows the celebration toast and a **Share on WhatsApp** prompt (prefilled text, e.g. "Done: Wipe counters 🔥 3-day streak"). Completing a **silent** task shows only a quiet "Logged" confirmation, with no share prompt (BR-R24) | ⏳ next |
-| LLR-11.8 | **Due date and time** (optional): a local date and time, stored in UTC. Tasks show a chip: *Overdue* (red), *Due today*, *Due in N days* (within 7 days) or the date. The area list can be filtered by *Overdue*, *Due today* and *Due this week*, and sorted by due date | ⏳ next |
-| LLR-11.9 | **Days to complete** (optional): a whole number from 1 to 3650, shown as "Planned: N days". Task detail also shows "Day X of N", counted from the task's creation date | ⏳ next |
-| LLR-11.10 | Due date and days to complete are **independent**: changing one never changes the other, and they may disagree (Q21, BR-R26) | ⏳ next |
-| LLR-11.11 | All four attributes can be edited on task detail at any time. A due date in the past is allowed (the task is simply overdue) | ⏳ next |
-| LLR-11.12 | **Existing tasks are migrated without data loss**: milestone = no, visibility = announced, no due date, no days to complete. Nothing else changes | ⏳ next |
-| LLR-11.13 | The dashboard adds an **Overdue** KPI and the *Milestones* table (LLR-11.2); the owner-only dashboard includes silent tasks, marked 🔕 | ⏳ next |
+| LLR-11.1 | **Milestone**: yes/no (default no), set when creating or editing a task | ✅ |
+| LLR-11.2 | Milestones show a 🏁 badge on task rows (area list, Tasks list, Link screen) and task detail. The area task list has a **Milestones only** filter, and the dashboard has a *Milestones* table (title, tile › area, due, done / overdue / upcoming) | ✅ |
+| LLR-11.3 | Completing an **announced** milestone shows the **milestone celebration**: a larger, longer celebration than a normal completion (respects reduced motion), with its own share prompt | ✅ |
+| LLR-11.4 | New reward rule **Milestone completed** (alongside *N completions* and *streak of N*). The reward unlocks when every milestone task linked to it has at least one completion (BR-R25). With no milestone linked yet it shows 0 of 0 and never unlocks (tasks are linked later, on the Link screen) | ✅ |
+| LLR-11.5 | **Announce or keep silent**: each task is *Announced* (default) or *Silent*, set when creating or editing it (Q20, Q22) | ✅ |
+| LLR-11.6 | **Silent** tasks and their completions never appear in anything served without the owner passcode: lists, counts, streaks, activity, dashboard aggregates or reward task lists (BR-R23). With the passcode they're shown with a 🔕 marker | 🟡 🔕 marker and quiet completion built; hiding from visitors comes with the owner passcode (hosting) |
+| LLR-11.7 | Completing an **announced** task shows the celebration toast and a **Share on WhatsApp** prompt (prefilled text, e.g. "Done: Wipe counters 🔥 3-day streak"). Completing a **silent** task shows only a quiet "Logged" confirmation, with no share prompt (BR-R24) | ✅ |
+| LLR-11.8 | **Due date and time** (optional): a local date and time, stored in UTC. Tasks show a chip: *Overdue* (red), *Due today*, *Due in N days* (within 7 days) or the date. The area list can be filtered by *Overdue*, *Due today* and *Due this week*, and sorted by due date | ✅ |
+| LLR-11.9 | **Days to complete** (optional): a whole number from 1 to 3650, shown as "Planned: N days". Task detail also shows "Day X of N", counted from the task's creation date | ✅ |
+| LLR-11.10 | Due date and days to complete are **independent**: changing one never changes the other, and they may disagree (Q21, BR-R26) | ✅ |
+| LLR-11.11 | All four attributes can be edited on task detail at any time. A due date in the past is allowed (the task is simply overdue) | ✅ |
+| LLR-11.12 | **Existing tasks are migrated without data loss**: milestone = no, visibility = announced, no due date, no days to complete. Nothing else changes | ✅ |
+| LLR-11.13 | The dashboard adds an **Overdue** KPI and the *Milestones* table (LLR-11.2); the owner-only dashboard includes silent tasks, marked 🔕 | ✅ |
 
 **Business rules: task planning and visibility**
 
@@ -463,7 +463,7 @@ Touch and accessibility: controls ≥ 44 px high (chips ≥ 36 px), inputs 16 px
 | LLR-1.3–1.5 | `POST/PATCH/DELETE /areas` | `test_area_add_rename_delete` |
 | LLR-1.7–1.13; BR-R17–R19; LLR-8.10 | `/categories*` | `test_fresh_database_has_no_tiles`, `test_starter_set_is_idempotent`, `test_starter_set_fills_in_missing_areas_only`, `test_tile_crud_and_unique_names`, `test_new_tile_ids_stay_unique`, `test_reorder_tiles_and_areas`, `test_delete_tile_needs_typed_name_snapshots_and_cascades`, `test_restart_never_reseeds`, `test_upgrade_keeps_existing_tiles` |
 | LLR-12.1–12.9; BR-R27–R30; LLR-8.13 | `/rewards*` | ⏳ planned: `test_idea_needs_only_title`, `test_idea_never_unlocks_or_counts`, `test_activate_idea_keeps_details_and_evaluates`, `test_close_and_reopen_idea`, `test_ideas_silent_by_default`, `test_filter_by_for_whom`, `test_migration_defaults_existing_rewards` |
-| LLR-11.1–11.13; BR-R22–R26; LLR-8.12 | tasks, rewards, `/dashboard/summary` | ⏳ planned: `test_task_planning_fields_round_trip`, `test_overdue_rules`, `test_milestone_reward_needs_all_milestones`, `test_silent_tasks_invisible_without_passcode`, `test_silent_completion_has_no_celebration_flag`, `test_migration_defaults_existing_tasks` |
+| LLR-11.1–11.13; BR-R22–R26; LLR-8.12 | tasks, rewards, `/dashboard/summary` | `test_task_planning_fields_round_trip`, `test_overdue_rules`, `test_due_filters_milestones_and_sort`, `test_milestone_reward_needs_all_milestones`, `test_dashboard_overdue_and_milestones`, `test_migration_defaults_existing_tasks`; quiet completion and celebrations verified in the browser; ⏳ `test_silent_tasks_invisible_without_passcode` comes with the passcode |
 | LLR-10.1–10.12; BR-R20–R21; LLR-8.11 | details, files, `/search` | `test_details_grouped_by_topic_with_last_executive`, `test_tile_level_details_for_home_wide_services`, `test_contact_validation`, `test_edit_and_delete_items`, `test_file_upload_rules_and_signed_download`, `test_search_matches_names_topics_and_phone_digits`, `test_deleting_owner_removes_details_and_files`, `test_export_import_includes_details`; read-only view test comes with the passcode work |
 | LLR-2.1, 2.3–2.5, 2.8, 2.9 | `POST /areas/{id}/tasks`, `GET /areas/{id}/tasks`, `PATCH /tasks/{id}`, `GET /tasks` | `test_create_filter_and_reprioritise_tasks` |
 | LLR-2.10 | `PATCH /tasks/{id}`, `DELETE /tasks/{id}` | `test_edit_and_delete_task` |

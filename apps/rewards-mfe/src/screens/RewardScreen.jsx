@@ -2,13 +2,14 @@ import { useState } from "react";
 import { useRewards } from "../context.js";
 import { navigate } from "../lib/router.js";
 import { useResource } from "../lib/useResource.js";
-import { ProgressBar, Resource, ScreenHeader, useAction } from "../components/ui.jsx";
-import { areaOptions, ruleText, whereText } from "../components/rewards.jsx";
+import { Chips, ProgressBar, Resource, ScreenHeader, useAction } from "../components/ui.jsx";
+import { areaOptions, RULES, ruleText, whereText } from "../components/rewards.jsx";
 
 function EditReward({ reward, tiles, onSaved, onCancel }) {
   const { api, toast } = useRewards();
   const [title, setTitle] = useState(reward.title);
   const [threshold, setThreshold] = useState(reward.threshold);
+  const [ruleType, setRuleType] = useState(reward.ruleType);
   const [areaId, setAreaId] = useState(reward.areaId ?? "");
   const [description, setDescription] = useState(reward.description);
   const [imageUrl, setImageUrl] = useState(reward.imageUrl ?? "");
@@ -16,13 +17,16 @@ function EditReward({ reward, tiles, onSaved, onCancel }) {
   const submit = async (e) => {
     e.preventDefault();
     const changes = { title: title.trim(), description: description.trim(), imageUrl: imageUrl.trim() || null, areaId: areaId ? Number(areaId) : null };
-    if (reward.status === "locked") changes.threshold = Number(threshold);
+    if (reward.status === "locked") Object.assign(changes, { ruleType, threshold: Number(threshold) || 1 });
     if (await run(() => api.updateReward(reward.id, changes), "Saved")) onSaved();
   };
   return (
     <form className="rw-card rw-form" onSubmit={submit} aria-label="Edit reward">
       <input aria-label="Reward" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} autoFocus required />
       {reward.status === "locked" && (
+        <Chips label="How it unlocks" options={reward.ruleType === "streak" ? [...RULES, ["streak", "Streak"]] : RULES} value={ruleType} onChange={setRuleType} />
+      )}
+      {reward.status === "locked" && ruleType !== "milestone" && (
         <label className="rw-number">
           Unlocks after
           <input type="number" aria-label="Completions needed" min={1} max={365} value={threshold} onChange={(e) => setThreshold(e.target.value)} required />

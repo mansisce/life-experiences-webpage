@@ -3,7 +3,11 @@ import { useRewards } from "../context.js";
 import { navigate } from "../lib/router.js";
 import { useResource } from "../lib/useResource.js";
 import { CompletionCalendar, dayKey, startOfDay } from "../components/calendar.jsx";
+import { PlanFields } from "../components/plan.jsx";
 import {
+  fromLocalInput,
+  PlanBadges,
+  toLocalInput,
   Chips,
   Empty,
   ErrorState,
@@ -23,7 +27,7 @@ const timeNow = () => new Date().toTimeString().slice(0, 5); // "HH:MM", local
 
 /** Pick a day on the calendar (and optionally a time), add a note, log it. */
 function LogCompletion({ task, log, onLogged }) {
-  const { api, toast, celebrate } = useRewards();
+  const { api, toast, completed } = useRewards();
   const [day, setDay] = useState(() => startOfDay(new Date()));
   const [time, setTime] = useState(timeNow);
   const [note, setNote] = useState("");
@@ -52,11 +56,11 @@ function LogCompletion({ task, log, onLogged }) {
     const [hours, minutes] = time.split(":").map(Number);
     const when = new Date(day.getFullYear(), day.getMonth(), day.getDate(), hours || 0, minutes || 0);
     const completedAt = new Date(Math.min(when.getTime(), Date.now())).toISOString(); // never in the future
-    const result = await run(() => api.completeTask(task.id, { note: note.trim(), completedAt }), `Logged for ${dayText}`);
+    const result = await run(() => api.completeTask(task.id, { note: note.trim(), completedAt }));
     if (result) {
       setNote("");
       setTime(timeNow());
-      celebrate(result.unlockedRewards);
+      completed(result);
       onLogged();
     }
   };
@@ -97,6 +101,40 @@ function ActivityLog({ log }) {
         </li>
       ))}
     </ol>
+  );
+}
+
+/** Milestone, announce/silent, due date/time and days to complete: all optional and independent (BR-R26). */
+function PlanningCard({ task, onSaved }) {
+  const { api, toast } = useRewards();
+  const initial = {
+    isMilestone: task.isMilestone,
+    visibility: task.visibility,
+    dueAt: toLocalInput(task.dueAt),
+    targetDays: task.targetDays ? String(task.targetDays) : "",
+  };
+  const [plan, setPlan] = useState(initial);
+  const [busy, run] = useAction(toast);
+  const changed = JSON.stringify(plan) !== JSON.stringify(initial);
+  const save = async () => {
+    const body = { ...plan, dueAt: fromLocalInput(plan.dueAt), targetDays: plan.targetDays ? Number(plan.targetDays) : null };
+    if (await run(() => api.updateTask(task.id, body), "Planning saved")) onSaved();
+  };
+  return (
+    <div className="rw-card rw-form">
+      <h3>Planning</h3>
+      <PlanFields value={plan} onChange={(changes) => setPlan((p) => ({ ...p, ...changes }))} />
+      <div className="rw-inline-form">
+        <button type="button" className="rw-btn rw-btn--primary" disabled={busy || !changed} onClick={save}>
+          {busy ? "Saving…" : "Save planning"}
+        </button>
+        {(plan.dueAt || plan.targetDays) && (
+          <button type="button" className="rw-link-btn" onClick={() => setPlan((p) => ({ ...p, dueAt: "", targetDays: "" }))}>
+            Clear dates
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -205,6 +243,8 @@ export default function TaskScreen({ taskId }) {
             t.notes && <p className="rw-notes">{t.notes}</p>
           )}
 
+          <PlanBadges task={t} detail />
+
           <dl className="rw-stats">
             <div>
               <dt>Current streak</dt>
@@ -223,6 +263,8 @@ export default function TaskScreen({ taskId }) {
           <LogCompletion task={t} log={log} onLogged={() => (task.refresh(), log.refresh())} />
 
           <TaskRewards task={t} />
+
+          <PlanningCard key={`${t.isMilestone}-${t.visibility}-${t.dueAt}-${t.targetDays}`} task={t} onSaved={task.refresh} />
 
           <div className="rw-card rw-form" aria-busy={busy}>
             <h3>Settings</h3>

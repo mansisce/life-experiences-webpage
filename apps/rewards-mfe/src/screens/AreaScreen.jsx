@@ -3,7 +3,10 @@ import { useRewards } from "../context.js";
 import { useResource } from "../lib/useResource.js";
 import DetailsPanel from "../components/details.jsx";
 import { AreaRewardsPanel } from "../components/rewards.jsx";
+import { PlanFields } from "../components/plan.jsx";
 import {
+  fromLocalInput,
+  PlanBadges,
   Chips,
   Empty,
   ErrorState,
@@ -21,22 +24,39 @@ import {
   useAction,
 } from "../components/ui.jsx";
 
-const EMPTY_TASK = { title: "", notes: "", priority: "medium", frequency: "weekly" };
+const EMPTY_TASK = { title: "", notes: "", priority: "medium", frequency: "weekly", isMilestone: false, visibility: "announced", dueAt: "", targetDays: "" };
 // Default view shows active tasks; that alone doesn't count as "filtered" for the empty state.
-const DEFAULT_FILTERS = { priority: "", status: "active", relevance: "" };
+const DEFAULT_FILTERS = { priority: "", status: "active", relevance: "", milestone: "", due: "", sort: "priority" };
+const MILESTONE_FILTER = [["true", "🏁 Milestones only"]];
+const DUE_FILTERS = [
+  ["overdue", "Overdue"],
+  ["today", "Due today"],
+  ["week", "Due this week"],
+];
+const SORTS = [
+  ["priority", "By priority"],
+  ["due", "By due date"],
+];
 
 function AddTaskForm({ areaId, onCreated }) {
   const { api, toast } = useRewards();
   const [task, setTask] = useState(EMPTY_TASK);
   const [showNotes, setShowNotes] = useState(false);
+  const [showMore, setShowMore] = useState(false);
   const [busy, run] = useAction(toast);
   const set = (field) => (value) => setTask((t) => ({ ...t, [field]: value }));
 
   const submit = async (e) => {
     e.preventDefault();
-    const created = await run(() => api.createTask(areaId, { ...task, title: task.title.trim() }), "Task added");
+    const body = {
+      ...task,
+      title: task.title.trim(),
+      dueAt: fromLocalInput(task.dueAt),
+      targetDays: task.targetDays ? Number(task.targetDays) : null,
+    };
+    const created = await run(() => api.createTask(areaId, body), "Task added");
     if (created) {
-      setTask((t) => ({ ...EMPTY_TASK, priority: t.priority, frequency: t.frequency }));
+      setTask((t) => ({ ...EMPTY_TASK, priority: t.priority, frequency: t.frequency, visibility: t.visibility }));
       setShowNotes(false);
       onCreated(created);
     }
@@ -57,6 +77,13 @@ function AddTaskForm({ areaId, onCreated }) {
       <Chips label="Priority" options={PRIORITIES} value={task.priority} onChange={set("priority")} />
       <span className="rw-field-label">How often</span>
       <Chips label="Frequency" options={FREQUENCIES} value={task.frequency} onChange={set("frequency")} />
+      {showMore ? (
+        <PlanFields value={task} onChange={(changes) => setTask((t) => ({ ...t, ...changes }))} />
+      ) : (
+        <button type="button" className="rw-link-btn" onClick={() => setShowMore(true)}>
+          + More options: milestone, due date, silent
+        </button>
+      )}
       <button type="submit" className="rw-btn rw-btn--primary rw-btn--block" disabled={busy || !task.title.trim()}>
         {busy ? "Adding…" : "Add task"}
       </button>
@@ -65,13 +92,13 @@ function AddTaskForm({ areaId, onCreated }) {
 }
 
 function TaskRow({ task, onChanged }) {
-  const { api, links, toast, celebrate } = useRewards();
+  const { api, links, toast, completed } = useRewards();
   const [busy, run] = useAction(toast);
 
   const complete = async () => {
-    const result = await run(() => api.completeTask(task.id, {}), `Logged “${task.title}”`);
+    const result = await run(() => api.completeTask(task.id, {}));
     if (result) {
-      celebrate(result.unlockedRewards);
+      completed(result);
       onChanged();
     }
   };
@@ -90,6 +117,7 @@ function TaskRow({ task, onChanged }) {
           {task.relevance !== "relevant" && ` · ${labelOf(RELEVANCE, task.relevance)}`}
           {task.completionCount > 0 && ` · done ${task.completionCount}×`}
         </small>
+        <PlanBadges task={task} />
       </a>
       <div className="rw-row-actions">
         <StreakBadge current={task.currentStreak} best={task.bestStreak} />
@@ -115,11 +143,15 @@ function TaskRow({ task, onChanged }) {
 
 function TaskList({ areaId, filters, reloadKey, onCompleted }) {
   const { api } = useRewards();
-  const tasks = useResource(() => api.areaTasks(areaId, filters), [api, areaId, filters.priority, filters.status, filters.relevance, reloadKey]);
+  const tasks = useResource(
+    () => api.areaTasks(areaId, filters),
+    [api, areaId, filters.priority, filters.status, filters.relevance, filters.milestone, filters.due, filters.sort, reloadKey]
+  );
 
   if (tasks.loading && tasks.data === undefined) return <Loading label="Loading tasks…" />;
   if (tasks.error && tasks.data === undefined) return <ErrorState error={tasks.error} onRetry={tasks.reload} />;
-  const filtered = filters.priority || filters.relevance || (filters.status && filters.status !== DEFAULT_FILTERS.status);
+  const filtered =
+    filters.priority || filters.relevance || filters.milestone || filters.due || (filters.status && filters.status !== DEFAULT_FILTERS.status);
   if (tasks.data.length === 0) {
     return filtered ? <Empty title="No tasks match these filters" /> : <Empty title="No tasks yet">Add one above to get started.</Empty>;
   }
@@ -180,6 +212,9 @@ export default function AreaScreen({ areaId, tab = "main", query = "" }) {
               <Chips label="Filter by priority" options={PRIORITIES} value={filters.priority} onChange={setFilter("priority")} allowNone />
               <Chips label="Filter by status" options={STATUSES} value={filters.status} onChange={setFilter("status")} allowNone />
               <Chips label="Filter by relevance" options={RELEVANCE} value={filters.relevance} onChange={setFilter("relevance")} allowNone />
+              <Chips label="Milestones" options={MILESTONE_FILTER} value={filters.milestone} onChange={setFilter("milestone")} allowNone />
+              <Chips label="Filter by due date" options={DUE_FILTERS} value={filters.due} onChange={setFilter("due")} allowNone />
+              <Chips label="Sort" options={SORTS} value={filters.sort} onChange={setFilter("sort")} />
             </div>
           )}
           <TaskList areaId={areaId} filters={filters} reloadKey={reloadKey} onCompleted={area.refresh} />

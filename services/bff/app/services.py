@@ -3,7 +3,7 @@
 from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import UTC, date, datetime
 from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, status
@@ -11,7 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from . import schemas
-from .domain import Progress, compute_streak, reward_progress
+from .domain import Progress, compute_streak, milestone_progress, reward_progress
 from .models import Activity, Area, Category, Reward, Task, reward_tasks
 
 
@@ -59,7 +59,12 @@ async def task_stats(
     return stats
 
 
-def to_task_out(task: Task, stats: TaskStats) -> schemas.TaskOut:
+def is_overdue(task: Task, now: datetime) -> bool:
+    """BR-R22: active, has a due date, and the due date has passed. Done and archived never are."""
+    return task.status == "active" and task.due_at is not None and task.due_at < now
+
+
+def to_task_out(task: Task, stats: TaskStats, now: datetime | None = None) -> schemas.TaskOut:
     return schemas.TaskOut(
         id=task.id,
         area_id=task.area_id,
@@ -70,6 +75,11 @@ def to_task_out(task: Task, stats: TaskStats) -> schemas.TaskOut:
         frequency=task.frequency,
         status=task.status,
         relevance=task.relevance,
+        is_milestone=task.is_milestone,
+        visibility=task.visibility,
+        due_at=task.due_at,
+        target_days=task.target_days,
+        overdue=is_overdue(task, now or datetime.now(UTC)),
         created_at=task.created_at,
         completion_count=stats.completion_count,
         current_streak=stats.current_streak,
@@ -146,6 +156,12 @@ async def reward_progress_map(
     progress = {}
     for reward in rewards:
         task_stats_list = [stats[t.id] for t in matched[reward.id]]
+        if reward.rule_type == "milestone":
+            milestones = [stats[t.id] for t in matched[reward.id] if t.is_milestone]
+            progress[reward.id] = milestone_progress(
+                sum(1 for m in milestones if m.completion_count > 0), len(milestones), reward.status
+            )
+            continue
         progress[reward.id] = reward_progress(
             reward.rule_type,
             reward.threshold,

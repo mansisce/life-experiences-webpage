@@ -188,7 +188,7 @@ def test_migration_infers_scope_and_keeps_data(tmp_path):
             """
         )
 
-    assert migrate(url) == "0003_reward_scope"
+    assert migrate(url) >= "0003_reward_scope"  # later migrations may run too
 
     with sqlite3.connect(db) as conn:
         rows = conn.execute("SELECT id, category_id, area_id, match_mode, status FROM rewards ORDER BY id").fetchall()
@@ -200,6 +200,6 @@ def test_migration_infers_scope_and_keeps_data(tmp_path):
         ]
         assert conn.execute("SELECT count(*) FROM reward_tasks").fetchone()[0] == 6
         assert conn.execute("SELECT count(*) FROM activities").fetchone()[0] == 1
-    assert list((tmp_path / "backups").glob("before-scope-*-pre-0003_reward_scope.db"))
+    assert list((tmp_path / "backups").glob("before-scope-*-pre-*.db"))
 
 

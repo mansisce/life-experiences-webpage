@@ -76,7 +76,7 @@ export default function LinkScreen({ query = "" }) {
       const n = linksOf(t.id).length;
       return {
         id: t.id,
-        title: t.title,
+        title: `${t.isMilestone ? "🏁 " : ""}${t.title}`,
         sub: `done ${t.completionCount}×${t.status !== "active" ? ` · ${t.status}` : ""}`,
         badge: n ? `🎁 ${n}` : null,
       };

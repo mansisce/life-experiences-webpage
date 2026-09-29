@@ -1,7 +1,7 @@
 """Tasks, completions (activity log) and streaks."""
 
-from datetime import timedelta
-from typing import Annotated
+from datetime import UTC, datetime, timedelta
+from typing import Annotated, Literal
 
 from fastapi import APIRouter, HTTPException, Query, status
 from sqlalchemy import case, select
@@ -21,7 +21,15 @@ from ..services import (
 
 router = APIRouter(tags=["tasks"])
 
+CLEARABLE = {"due_at", "target_days"}  # optional planning fields can be removed again
 PRIORITY_ORDER = case({"high": 0, "medium": 1, "low": 2}, value=Task.priority, else_=3)
+
+
+def local_to_utc(value: datetime | None, tz) -> datetime | None:
+    """A naive date-time from a form is in the user's timezone; store everything as aware UTC."""
+    if value is None:
+        return None
+    return (value if value.tzinfo else value.replace(tzinfo=tz)).astimezone(UTC)
 
 
 @router.get("/areas/{area_id}/tasks", response_model=list[schemas.TaskOut])
@@ -34,8 +42,12 @@ async def list_tasks(
     # Named `status_` so it doesn't shadow fastapi's `status` module; clients still send ?status=
     status_: Annotated[schemas.TaskStatus | None, Query(alias="status")] = None,
     relevance: schemas.Relevance | None = None,
+    milestone: bool | None = None,
+    due: Literal["overdue", "today", "week"] | None = None,
+    sort: Literal["priority", "due"] = "priority",
 ):
-    """Filter with ?priority=high&status=active&relevance=relevant. Sorted high -> low priority."""
+    """Filter with ?priority=high&status=active&relevance=relevant&milestone=true&due=overdue|today|week.
+    Sorted high -> low priority, or ?sort=due for soonest due first (no due date last)."""
     await get_or_404(session, Area, area_id)
     query = select(Task).where(Task.area_id == area_id)
     if priority:
@@ -44,9 +56,20 @@ async def list_tasks(
         query = query.where(Task.status == status_)
     if relevance:
         query = query.where(Task.relevance == relevance)
-    tasks = (await session.scalars(query.order_by(PRIORITY_ORDER, Task.created_at))).all()
+    if milestone is not None:
+        query = query.where(Task.is_milestone == milestone)
+    if due:
+        # Day boundaries are the user's local days (LLR-11.8); "overdue" follows BR-R22.
+        local_midnight = now.astimezone(settings.tz).replace(hour=0, minute=0, second=0, microsecond=0)
+        if due == "overdue":
+            query = query.where(Task.status == "active", Task.due_at < now)
+        else:
+            end = local_midnight + timedelta(days=1 if due == "today" else 7)
+            query = query.where(Task.due_at >= local_midnight, Task.due_at < end)
+    order = (Task.due_at.is_(None), Task.due_at, PRIORITY_ORDER) if sort == "due" else (PRIORITY_ORDER,)
+    tasks = (await session.scalars(query.order_by(*order, Task.created_at))).all()
     stats = await task_stats(session, tasks, settings.tz, now.astimezone(settings.tz).date())
-    return [to_task_out(t, stats[t.id]) for t in tasks]
+    return [to_task_out(t, stats[t.id], now) for t in tasks]
 
 
 @router.get("/tasks", response_model=list[schemas.TaskWithArea])
@@ -64,7 +87,7 @@ async def list_all_tasks(
     stats = await task_stats(session, [task for task, _ in rows], settings.tz, now.astimezone(settings.tz).date())
     return [
         schemas.TaskWithArea(
-            **to_task_out(task, stats[task.id]).model_dump(), area_name=area.name, category_id=area.category_id
+            **to_task_out(task, stats[task.id], now).model_dump(), area_name=area.name, category_id=area.category_id
         )
         for task, area in rows
     ]
@@ -75,10 +98,11 @@ async def create_task(area_id: int, body: schemas.TaskCreate, session: SessionDe
     await get_or_404(session, Area, area_id)
     task = Task(area_id=area_id, source="manual", **body.model_dump())
     task.title = task.title.strip()
+    task.due_at = local_to_utc(body.due_at, settings.tz)
     session.add(task)
     await session.commit()
     stats = await task_stats(session, [task], settings.tz, now.astimezone(settings.tz).date())
-    return to_task_out(task, stats[task.id])
+    return to_task_out(task, stats[task.id], now)
 
 
 @router.get("/tasks/{task_id}", response_model=schemas.TaskDetail)
@@ -90,7 +114,7 @@ async def get_task(task_id: int, session: SessionDep, settings: SettingsDep, now
     matches = await rewards_for_task(session, task, area)
     progress = (await reward_progress_map(session, [r for r, _ in matches], settings.tz, today)).progress
     return schemas.TaskDetail(
-        **to_task_out(task, stats[task.id]).model_dump(),
+        **to_task_out(task, stats[task.id], now).model_dump(),
         area=schemas.AreaRef(id=area.id, name=area.name, category_id=area.category_id),
         rewards=[
             schemas.RewardRef(
@@ -112,12 +136,14 @@ async def update_task(
 ):
     task = await get_or_404(session, Task, task_id)
     for field, value in body.model_dump(exclude_unset=True).items():
-        if value is None:
+        if value is None and field not in CLEARABLE:
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"{field} cannot be null")
+        if field == "due_at":
+            value = local_to_utc(value, settings.tz)
         setattr(task, field, value.strip() if field == "title" else value)
     await session.commit()
     stats = await task_stats(session, [task], settings.tz, now.astimezone(settings.tz).date())
-    return to_task_out(task, stats[task.id])
+    return to_task_out(task, stats[task.id], now)
 
 
 @router.delete("/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -160,7 +186,7 @@ async def complete_task(
     stats = await task_stats(session, [task], settings.tz, today)
     return schemas.CompleteResponse(
         activity=schemas.ActivityOut.model_validate(activity),
-        task=to_task_out(task, stats[task.id]),
+        task=to_task_out(task, stats[task.id], now),
         unlocked_rewards=await rewards_out(session, unlocked, settings.tz, today),
     )
 

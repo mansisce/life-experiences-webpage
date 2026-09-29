@@ -12,9 +12,19 @@ export const STATUS_FILTERS = [
 ];
 const ACTIVE = new Set(["locked", "unlocked"]);
 
+/** How a reward can unlock. Task count needs N; Milestone completed needs every linked milestone done (BR-R25). */
+export const RULES = [
+  ["completions", "Task count"],
+  ["milestone", "🏁 Milestone completed"],
+];
+
 /** "Unlocks after 5 completions of 2 linked tasks", or a nudge to link some. */
 export function ruleText(reward) {
   const n = reward.threshold;
+  if (reward.ruleType === "milestone") {
+    const m = reward.progress.target;
+    return m ? `Unlocks when all ${m} linked milestone${m === 1 ? " is" : "s are"} done` : "Unlocks when its linked milestones are done · no milestones linked yet";
+  }
   if (reward.matchMode === "all") return `Unlocks after ${n} completions of any task in ${reward.areaName ?? "its area"}`;
   if (!reward.connected) return `Unlocks after ${n} completion${n === 1 ? "" : "s"} · no tasks linked yet`;
   const linked = `${reward.tasks.length} linked task${reward.tasks.length === 1 ? "" : "s"}`;
@@ -50,6 +60,7 @@ export function areaOptions(tiles) {
 export function NewRewardForm({ areaId = null, areas = null, onCreated, onCancel }) {
   const { api, toast } = useRewards();
   const [title, setTitle] = useState("");
+  const [ruleType, setRuleType] = useState("completions");
   const [threshold, setThreshold] = useState(5);
   const [where, setWhere] = useState("");
   const [description, setDescription] = useState("");
@@ -63,7 +74,8 @@ export function NewRewardForm({ areaId = null, areas = null, onCreated, onCancel
       () =>
         api.createReward({
           title: title.trim(),
-          threshold: Number(threshold),
+          ruleType,
+          threshold: Number(threshold) || 1,
           areaId: areaId ?? (where ? Number(where) : null),
           description: description.trim(),
           imageUrl: imageUrl.trim() || null,
@@ -77,11 +89,16 @@ export function NewRewardForm({ areaId = null, areas = null, onCreated, onCancel
     <form className="rw-card rw-form" onSubmit={submit} aria-label="New reward">
       <h3>New reward</h3>
       <input aria-label="Reward" placeholder="e.g. Coffee at my favourite café" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} autoFocus required />
-      <label className="rw-number">
-        Unlocks after
-        <input type="number" aria-label="Completions needed" min={1} max={365} inputMode="numeric" value={threshold} onChange={(e) => setThreshold(e.target.value)} required />
-        completions of its linked tasks
-      </label>
+      <Chips label="How it unlocks" options={RULES} value={ruleType} onChange={setRuleType} />
+      {ruleType === "milestone" ? (
+        <small className="rw-muted">Unlocks when every milestone task you link to it has been done.</small>
+      ) : (
+        <label className="rw-number">
+          Unlocks after
+          <input type="number" aria-label="Completions needed" min={1} max={365} inputMode="numeric" value={threshold} onChange={(e) => setThreshold(e.target.value)} required />
+          completions of its linked tasks
+        </label>
+      )}
       {areas && (
         <select aria-label="Area (optional)" className="rw-select" value={where} onChange={(e) => setWhere(e.target.value)}>
           <option value="">No area</option>
@@ -103,7 +120,7 @@ export function NewRewardForm({ areaId = null, areas = null, onCreated, onCancel
         </button>
       )}
       <div className="rw-inline-form">
-        <button type="submit" className="rw-btn rw-btn--primary" disabled={busy || !title.trim() || !Number(threshold)}>
+        <button type="submit" className="rw-btn rw-btn--primary" disabled={busy || !title.trim() || (ruleType !== "milestone" && !Number(threshold))}>
           {busy ? "Adding…" : "Add reward"}
         </button>
         <button type="button" className="rw-btn" onClick={onCancel}>

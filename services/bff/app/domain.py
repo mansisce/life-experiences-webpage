@@ -56,11 +56,12 @@ class Progress:
 
     @property
     def met(self) -> bool:
-        return self.current >= self.target
+        # A target of 0 (a milestone reward with no milestone tasks yet) is never met.
+        return self.target > 0 and self.current >= self.target
 
     @property
     def percent(self) -> int:
-        return min(100, round(100 * self.current / self.target)) if self.target else 100
+        return min(100, round(100 * self.current / self.target)) if self.target else 0
 
 
 def reward_progress(
@@ -76,3 +77,12 @@ def reward_progress(
     if status != "locked":
         value = max(value, threshold)
     return Progress(current=min(value, threshold), target=threshold)
+
+
+def milestone_progress(milestones_done: int, milestones_total: int, status: str) -> Progress:
+    """BR-R25: a "milestone completed" reward needs every milestone task it counts to be done at
+    least once. Progress = milestones done / milestones linked. Unlocked or claimed stays complete."""
+    if status != "locked":
+        total = max(milestones_total, 1)
+        return Progress(current=total, target=total)
+    return Progress(current=milestones_done, target=milestones_total)

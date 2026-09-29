@@ -4,6 +4,7 @@ import { createApi } from "./api.js";
 import { RewardsContext } from "./context.js";
 import { makeLinks, useHashRoute } from "./lib/router.js";
 import { Toasts } from "./components/ui.jsx";
+import { MilestoneCelebration, streakText, whatsappShare } from "./components/celebrate.jsx";
 import TilesScreen from "./screens/TilesScreen.jsx";
 import CategoryScreen from "./screens/CategoryScreen.jsx";
 import AreaScreen from "./screens/AreaScreen.jsx";
@@ -84,10 +85,10 @@ export default function RewardsApp({ apiBaseUrl = DEFAULT_BFF_URL, token = DEFAU
   const nextId = useRef(0);
   const dismiss = useCallback((id) => setToasts((ts) => ts.filter((t) => t.id !== id)), []);
   const toast = useCallback(
-    (message, kind = "info") => {
+    (message, kind = "info", action = null) => {
       const id = ++nextId.current;
-      setToasts((ts) => [...ts.slice(-2), { id, message, kind }]);
-      setTimeout(() => dismiss(id), kind === "celebrate" ? 6000 : 3500);
+      setToasts((ts) => [...ts.slice(-2), { id, message, kind, action }]);
+      setTimeout(() => dismiss(id), kind === "celebrate" ? 8000 : 3500);
     },
     [dismiss]
   );
@@ -96,7 +97,28 @@ export default function RewardsApp({ apiBaseUrl = DEFAULT_BFF_URL, token = DEFAU
     [toast]
   );
 
-  const context = useMemo(() => ({ api, links, toast, celebrate }), [api, links, toast, celebrate]);
+  // What happens after "✓ Done" (BR-R24): announced tasks are celebrated with a share prompt,
+  // announced milestones get the bigger celebration, silent tasks are only "Logged".
+  const [milestone, setMilestone] = useState(null);
+  const completed = useCallback(
+    (result) => {
+      const { task, unlockedRewards = [] } = result;
+      if (task.visibility === "silent") {
+        toast("Logged");
+        unlockedRewards.forEach((r) => toast(`Reward unlocked: ${r.title}`));
+        return;
+      }
+      if (task.isMilestone) {
+        setMilestone({ task, rewards: unlockedRewards });
+        return;
+      }
+      toast(`✓ Done: ${task.title}${streakText(task)}`, "celebrate", { label: "Share on WhatsApp", href: whatsappShare(task) });
+      celebrate(unlockedRewards);
+    },
+    [toast, celebrate]
+  );
+
+  const context = useMemo(() => ({ api, links, toast, celebrate, completed }), [api, links, toast, celebrate, completed]);
 
   return (
     <RewardsContext.Provider value={context}>
@@ -117,6 +139,7 @@ export default function RewardsApp({ apiBaseUrl = DEFAULT_BFF_URL, token = DEFAU
           <Screen route={route} />
         </ScreenBoundary>
         <Toasts items={toasts} onDismiss={dismiss} />
+        {milestone && <MilestoneCelebration {...milestone} onClose={() => setMilestone(null)} />}
       </div>
     </RewardsContext.Provider>
   );

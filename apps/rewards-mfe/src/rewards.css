@@ -307,3 +307,23 @@
 .rw-app .rw-area-group { margin-top: 18px; }
 .rw-app .rw-area-group .rw-group-title a { color: inherit; text-decoration: none; }
 .rw-app .rw-area-group .rw-group-title small { color: var(--rw-muted); font-weight: 600; }
+
+/* Task planning (HLR-11): chips, planning fields, toasts with a link, milestone celebration */
+.rw-app .rw-plan { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.rw-app .rw-chip { font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--rw-band); color: var(--rw-muted); white-space: nowrap; }
+.rw-app .rw-chip--milestone { background: #efe7fb; color: #5b3aa0; }
+.rw-app .rw-chip--overdue { background: #fbe4e1; color: var(--rw-danger, #b3261e); }
+.rw-app .rw-chip--soon { background: #f8efd9; color: #8a6414; }
+.rw-app .rw-plan-fields { display: grid; gap: 8px; padding: 10px 12px; border: 1px dashed var(--rw-line); border-radius: 12px; }
+.rw-app .rw-plan-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; }
+.rw-app .rw-plan-row label { display: grid; gap: 4px; }
+.rw-app .rw-toast { display: flex; align-items: center; gap: 8px; }
+.rw-app .rw-toast-text { flex: 1; text-align: left; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; padding: 0; }
+.rw-app .rw-toast-action { flex-shrink: 0; font-weight: 800; color: inherit; text-decoration: underline; white-space: nowrap; }
+.rw-app .rw-milestone { text-align: center; }
+.rw-app .rw-milestone h3 { font-size: 1.4rem; margin: 4px 0; }
+.rw-app .rw-milestone-task { font-size: 1.1rem; font-weight: 700; }
+.rw-app .rw-milestone .rw-inline-form { justify-content: center; }
+.rw-app .rw-milestone-burst { font-size: 2.6rem; animation: rw-pop 700ms cubic-bezier(.2, 1.4, .4, 1) both; }
+@keyframes rw-pop { from { transform: scale(0.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .rw-app .rw-milestone-burst { animation: none; } }

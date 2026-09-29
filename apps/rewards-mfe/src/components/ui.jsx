@@ -160,17 +160,79 @@ export function useAction(toast) {
   return [pending, run];
 }
 
+/** Toasts dismiss on tap; one can carry a link, e.g. "Share on WhatsApp". */
 export function Toasts({ items, onDismiss }) {
   return (
     <div className="rw-toasts" aria-live="polite">
       {items.map((t) => (
-        <button key={t.id} type="button" className={`rw-toast rw-toast--${t.kind}`} onClick={() => onDismiss(t.id)}>
-          {t.message}
-        </button>
+        <div key={t.id} className={`rw-toast rw-toast--${t.kind}`}>
+          <button type="button" className="rw-toast-text" onClick={() => onDismiss(t.id)}>
+            {t.message}
+          </button>
+          {t.action && (
+            <a className="rw-toast-action" href={t.action.href} target="_blank" rel="noreferrer" onClick={() => onDismiss(t.id)}>
+              {t.action.label}
+            </a>
+          )}
+        </div>
       ))}
     </div>
   );
 }
+
+// ── Task planning (HLR-11) ──────────────────────────────────────────────────────
+
+const DAY_MS = 86_400_000;
+const startOfLocalDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+
+/** Due chip text and tone: "Overdue", "Due today", "Due in 3 days" (within a week) or "Due 31 Oct". */
+export function dueInfo(task, now = new Date()) {
+  if (!task.dueAt) return null;
+  const due = new Date(task.dueAt);
+  if (task.overdue) return { text: "Overdue", tone: "overdue" };
+  if (task.status !== "active") return { text: `Due ${due.toLocaleDateString(undefined, { day: "numeric", month: "short" })}`, tone: "plain" };
+  const days = Math.round((startOfLocalDay(due) - startOfLocalDay(now)) / DAY_MS);
+  if (days <= 0) return { text: `Due today, ${due.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })}`, tone: "soon" };
+  if (days < 7) return { text: `Due in ${days} day${days === 1 ? "" : "s"}`, tone: "soon" };
+  return { text: `Due ${due.toLocaleDateString(undefined, { day: "numeric", month: "short" })}`, tone: "plain" };
+}
+
+/** "Day 4 of 30", counted from the day the task was created (LLR-11.9). */
+export function planDay(task, now = new Date()) {
+  if (!task.targetDays) return null;
+  const day = Math.floor((startOfLocalDay(now) - startOfLocalDay(new Date(task.createdAt))) / DAY_MS) + 1;
+  return `Day ${Math.max(1, day)} of ${task.targetDays}`;
+}
+
+/** 🏁 milestone, 🔕 silent, due chip and planned days, for task rows and task detail. */
+export function PlanBadges({ task, detail = false }) {
+  const due = dueInfo(task);
+  const planned = task.targetDays && `Planned: ${task.targetDays} days${detail ? ` · ${planDay(task)}` : ""}`;
+  if (!task.isMilestone && task.visibility !== "silent" && !due && !planned) return null;
+  return (
+    <span className="rw-plan">
+      {task.isMilestone && <span className="rw-chip rw-chip--milestone">🏁 Milestone</span>}
+      {task.visibility === "silent" && (
+        <span className="rw-chip" title="Silent: completed quietly, not celebrated">
+          🔕 Silent
+        </span>
+      )}
+      {due && <span className={`rw-chip rw-chip--${due.tone}`}>{due.text}</span>}
+      {planned && <span className="rw-chip">{planned}</span>}
+    </span>
+  );
+}
+
+/** "2026-10-31T18:00" for <input type="datetime-local"> from an ISO string (local time). */
+export function toLocalInput(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const pad = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** A datetime-local value is the browser's local time; send it as an ISO instant. */
+export const fromLocalInput = (value) => (value ? new Date(value).toISOString() : null);
 
 export function formatWhen(iso) {
   return new Date(iso).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });

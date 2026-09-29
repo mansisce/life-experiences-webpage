@@ -28,6 +28,8 @@ BFF_URL = os.environ.get("BFF_URL", "http://127.0.0.1:8000")
 client = BffClient(BFF_URL, os.environ.get("BFF_TOKEN", "demo-token"))
 
 CACHE_TTL_SECONDS = 30
+# Due dates arrive in UTC; show them in the same timezone as the BFF (Asia/Kolkata by default).
+TIMEZONE = os.environ.get("BFF_TIMEZONE", "Asia/Kolkata")
 WINDOWS = {"Last 7 days": 7, "Last 30 days": 30, "Last 90 days": 90, "All time": None}
 
 # Reference data-viz palette (validated): slot 1 for single-series bars, slots 1-3 for the
@@ -94,13 +96,14 @@ st.caption(f"{st.session_state.window} · fetched from the BFF at {summary['_fet
 
 totals = summary["totals"]
 suggestions = summary["suggestions"]
-kpis = st.columns(5)
+kpis = st.columns(6)
 kpis[0].metric("Completions", totals["completions"])
 kpis[1].metric("Active tasks", totals["active_tasks"])
-kpis[2].metric("Active streaks", totals["active_streaks"])
-kpis[3].metric("Unlocked", totals["rewards_unlocked"] + totals["rewards_claimed"], help="Unlocked or already claimed")
+kpis[2].metric("Overdue", totals["overdue_tasks"], help="Active tasks whose due date has passed")
+kpis[3].metric("Active streaks", totals["active_streaks"])
+kpis[4].metric("Unlocked", totals["rewards_unlocked"] + totals["rewards_claimed"], help="Unlocked or already claimed")
 rate = suggestions["acceptance_rate"]
-kpis[4].metric("AI accepted", f"{rate:.0%}" if rate is not None else "—", help="Relevant ÷ decided AI suggestions")
+kpis[5].metric("AI accepted", f"{rate:.0%}" if rate is not None else "—", help="Relevant ÷ decided AI suggestions")
 
 
 def bar_chart(df: pd.DataFrame, label_col: str, label_title: str) -> alt.Chart:
@@ -227,6 +230,31 @@ with right:
                     load_summary.clear()
                     st.toast(f"Claimed {reward.title}", icon="🎁")
                     st.rerun()
+
+
+# ── Milestones (HLR-11) ───────────────────────────────────────────────────────
+st.subheader("Milestones")
+milestones = pd.DataFrame(summary["milestones"])
+if category_id and not milestones.empty:
+    milestones = milestones[milestones["category_name"] == st.session_state.category]
+if milestones.empty:
+    st.info("No milestones yet. Tick “Milestone” under More options when adding a task.")
+else:
+    milestones["task_title"] = milestones.apply(lambda m: f"🔕 {m.task_title}" if m.silent else m.task_title, axis=1)
+    milestones["state"] = milestones["state"].map({"done": "✅ Done", "overdue": "⚠️ Overdue", "upcoming": "Upcoming"})
+    milestones["due_at"] = pd.to_datetime(milestones["due_at"], utc=True).dt.tz_convert(TIMEZONE).dt.tz_localize(None)
+    st.dataframe(
+        milestones[["task_title", "category_name", "area_name", "due_at", "state"]],
+        hide_index=True,
+        width="stretch",
+        column_config={
+            "task_title": "Milestone",
+            "category_name": "Tile",
+            "area_name": "Area",
+            "due_at": st.column_config.DatetimeColumn("Due", format="D MMM YYYY, h:mm a"),
+            "state": "State",
+        },
+    )
 
 
 # ── AI suggestion acceptance ──────────────────────────────────────────────────
