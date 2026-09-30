@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocalStorage } from "../hooks/useLocalStorage";
 import { API_BASE, apiCall } from "../utils/weekendPicksApi";
+import { SCHOOL_DATA } from "./ChildCompass";
 
 // ─── Weekend Picks — Recommendation Engine ─────────────────────────────────────
 
