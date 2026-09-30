@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 
 // ─── Child Compass data ────────────────────────────────────────────────────────
 
-const SCHOOL_DATA = {
+export const SCHOOL_DATA = {
   montessori: {
     name: "Montessori",
     subtitle: "Anweshana Montessori, Bangalore",
