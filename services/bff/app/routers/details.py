@@ -22,7 +22,7 @@ from sqlalchemy import func, or_, select
 from .. import schemas
 from ..config import Settings
 from ..deps import SessionDep, SettingsDep
-from ..models import Area, Attachment, Category, Contact, Note
+from ..models import Area, Attachment, Category, Contact, Note, Reward
 from ..services import get_or_404
 
 router = APIRouter(tags=["notes, contacts & files"])
@@ -514,7 +514,7 @@ async def search(
     q: Annotated[str, Query(min_length=2, max_length=100)],
     limit: Annotated[int, Query(ge=1, le=100)] = 30,
 ):
-    """Search notes, contacts and files everywhere, including phone numbers by digits (LLR-10.9)."""
+    """Search notes, contacts, files, rewards and ideas, including phone numbers by digits (LLR-10.9, 12.8)."""
     term = f"%{q.strip().lower()}%"
     query_digits = digits(q)
     categories = {c.id: c for c in (await session.scalars(select(Category))).all()}
@@ -548,4 +548,11 @@ async def search(
         kind, owner_id, path = owner_bits(f)
         hits.append(schemas.SearchHit(kind="file", id=f.id, title=f.title, snippet=f.original_name, topic=f.topic,
                                       owner_type=kind, owner_id=owner_id, path=path))
+    # Rewards and ideas (LLR-12.8): by title, note, for whom and where seen.
+    reward_match = like(Reward.title, Reward.description, Reward.for_whom, Reward.where_seen)
+    for r in (await session.scalars(select(Reward).where(reward_match).limit(limit))).all():
+        label = "💡 Idea" if r.status in {"idea", "closed"} else "🎁 Reward"
+        detail = " · ".join(filter(None, [r.where_seen and f"seen at {r.where_seen}", snippet(r.description, q, 80)]))
+        hits.append(schemas.SearchHit(kind="reward", id=r.id, title=r.title, snippet=detail, topic=None,
+                                      owner_type=None, owner_id=None, path=f"{label} · for {r.for_whom}"))
     return hits[:limit]

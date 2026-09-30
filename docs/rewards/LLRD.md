@@ -282,7 +282,7 @@ Conventions: **LLR** = detailed functional requirement · **BR-R** = business ru
 | LLR-8.9 | Schema changes are applied by versioned migrations on startup, never by dropping and recreating tables; a backup of the database file is written before each upgrade (Q14) | ✅ |
 | LLR-8.10 | Tile endpoints: `POST /categories`, `PATCH /categories/{id}` (name, icon), `DELETE /categories/{id}`, `PUT /categories/order` and `PUT /categories/{id}/areas/order`, `POST /categories/starter` (LLR-1.8, returns what was added) | ✅ |
 | LLR-8.12 | Task create/update accept `isMilestone`, `visibility` (`announced` \| `silent`), `dueAt` (ISO date-time, optional) and `targetDays` (optional); `GET /areas/{id}/tasks` adds filters `milestone=true` and `due=overdue\|today\|week` and `sort=due`. Responses served without the passcode omit silent tasks entirely (BR-R23) | ✅ (hiding silent tasks from visitors comes with the passcode) |
-| LLR-8.13 | Rewards accept `status: "idea"` on create (rule, threshold and tile then optional), `forWhom`, `visibility`, `link`, `seenAt` (where seen) and a cover image; `POST /rewards/{id}/activate` (rule, threshold, tile, tasks) turns an idea into a locked reward; `POST /rewards/{id}/close` with `outcome` (`bought` \| `dropped`); `GET /rewards` filters `status=idea\|closed` and `forWhom=` | ⏳ next |
+| LLR-8.13 | `POST /rewards` accepts `status: "idea"`, `forWhom`, `visibility`, `link` and `whereSeen`; `POST /rewards/{id}/activate` (`ruleType`, `threshold`), `/close` (`outcome`: `bought` \| `dropped`) and `/reopen`; `PUT` / `DELETE /rewards/{id}/cover` (multipart photo; served by a signed link like files); `GET /rewards` filters `status=idea\|closed` and `forWhom=`; `GET /rewards-people` lists everyone for suggestions; ideas can't be linked or claimed (409) | ✅ |
 | LLR-8.11 | Details endpoints for both owners (`/categories/{id}` and `/areas/{id}`): `…/details` (grouped by topic), `…/notes`, `…/contacts`, `…/files` (multipart upload); `PATCH`/`DELETE` on `/notes/{id}`, `/contacts/{id}`, `/files/{id}`; `GET /files/{id}/download`; `GET /search?q=` | ✅ |
 
 ### LLR-10 Notes, contacts and files (HLR-10) ✅
@@ -361,28 +361,28 @@ Four new, optional task attributes (Q19 to Q22). They sit under **More options**
 - *Given* a task due yesterday that's still active *then* it shows *Overdue*; when it's completed or archived the chip disappears.
 - *Given* a task with due date 10 Oct and days to complete 30 *when* the due date is moved to 20 Oct *then* days to complete stays 30.
 
-### LLR-12 Reward ideas and wishlist (HLR-12) ⏳ next
+### LLR-12 Reward ideas and wishlist (HLR-12) ✅
 
 A reward can start life as an **idea**: something you might get later, captured before any rule or task exists (Q23).
 
 | ID | Requirement | Status |
 |---|---|---|
-| LLR-12.1 | **Quick capture**: a "+ Idea" button on the Rewards tab and on every tile and area screen opens a short form: title (required, 1–200), then optional **for whom**, notes (≤ 2000), link (URL), cover photo (camera or gallery, via the file rules of LLR-10.7), where seen (e.g. "City library") and tile/area. Saving needs only the title | ⏳ next |
-| LLR-12.2 | **For whom** on every reward and idea: free text (1–40) with suggestions from earlier entries; default "Me" (Q25) | ⏳ next |
-| LLR-12.3 | Ideas have status **Idea**: no rule, no progress and no tasks, and they never unlock or appear in progress counts (BR-R27) | ⏳ next |
-| LLR-12.4 | The Rewards tab has an **Ideas** filter (and *Closed* for bought or dropped ideas), and can be filtered by **for whom**, e.g. "Shiragi's ideas and rewards". Tile and area screens list their ideas under "Rewards you can earn here" in a separate *Ideas* group | ⏳ next |
-| LLR-12.5 | **Turn into a reward**: from an idea, add a rule (N completions, streak of N or milestone completed), a threshold, a tile (and optional area) and tasks. It becomes a normal *locked* reward, keeping its title, photo, link, notes and for whom; the unlock check runs straight away (BR-R28) | ⏳ next |
-| LLR-12.6 | **Close an idea** as *Bought* (got it without a rule) or *Dropped* (no longer wanted). Closed ideas leave the Ideas list, stay under *Closed* with the date and outcome, and can be reopened (BR-R29) | ⏳ next |
-| LLR-12.7 | Ideas are **Silent** by default (hidden from the read-only view) and can be switched to *Announced*; ordinary rewards default to *Announced*. Visibility follows the silent rules of BR-R23 (Q24) | ⏳ next |
-| LLR-12.8 | Ideas are included in search (LLR-10.9) by title, notes, for whom and where seen | ⏳ next |
-| LLR-12.9 | **Existing rewards are migrated without data loss**: for whom = "Me", visibility = announced; their status, rule, tasks and progress are unchanged | ⏳ next |
+| LLR-12.1 | **Quick capture**: "💡 + Idea" on the Rewards screen and on every area's Rewards tab opens a short form: title (required), **for whom** (default Me) and a one-tap **cover photo** (camera or gallery; JPG, PNG, WebP or HEIC up to 10 MB); *More* adds where seen, link, note and (on the Rewards screen) an optional area. Saving needs only the title | ✅ |
+| LLR-12.2 | **For whom** on every reward and idea: free text (1–40) with suggestions from earlier entries; default "Me" (Q25) | ✅ |
+| LLR-12.3 | Ideas have status **Idea**: no rule, no progress and no tasks, and they never unlock or appear in progress counts (BR-R27) | ✅ |
+| LLR-12.4 | The Rewards screen filters by status (**💡 Ideas**, Locked, Unlocked, Claimed, **Closed**) and by **for whom** (e.g. *Shiragi*), plus search; closed ideas are hidden unless *Closed* is chosen. An area's Rewards tab lists its ideas with its rewards. Ideas are never offered on the Link screen | ✅ |
+| LLR-12.5 | **Turn into reward**: on an idea, pick how it unlocks (task count with N, or milestone completed). It becomes a normal *locked* reward with the same id, keeping title, photo, link, note, where seen, area and for whom; tasks are then linked on the Link screen (BR-R28) | ✅ |
+| LLR-12.6 | **Close an idea** as *Bought* (got it without a rule) or *Dropped* (no longer wanted). Closed ideas leave the Ideas list, stay under *Closed* with the date and outcome, and can be reopened (BR-R29) | ✅ |
+| LLR-12.7 | Ideas are **Silent** by default (hidden from the read-only view) and can be switched to *Announced*; ordinary rewards default to *Announced*. Visibility follows the silent rules of BR-R23 (Q24) | 🟡 private by default with a 🔕 marker; hiding from visitors comes with the owner passcode (hosting) |
+| LLR-12.8 | Ideas are included in search (LLR-10.9) by title, notes, for whom and where seen | ✅ |
+| LLR-12.9 | **Existing rewards are migrated without data loss**: for whom = "Me", visibility = announced; their status, rule, tasks and progress are unchanged | ✅ |
 
 **Business rules: ideas**
 
 | ID | Rule |
 |---|---|
 | BR-R27 | An *Idea* has no rule and no progress. It can't unlock or be claimed, and it isn't counted in reward totals or progress on the dashboard (the dashboard shows an *Ideas* count per person) |
-| BR-R28 | Turning an idea into a reward requires a rule, a threshold (except *milestone completed*) and a tile (LLR-4.9); the idea's id is kept, so links and photos stay attached |
+| BR-R28 | Turning an idea into a reward requires a rule and a threshold (except *milestone completed*); a tile isn't required since rewards stand alone. The idea's id is kept, so links and photos stay attached |
 | BR-R29 | Closing is only for ideas; a reward that already has a rule is claimed, not closed. Reopening a closed idea returns it to *Idea* |
 | BR-R30 | *For whom* is a label: it groups and filters rewards, but never changes who can see or edit them (visibility rules decide that) |
 
@@ -462,7 +462,7 @@ Touch and accessibility: controls ≥ 44 px high (chips ≥ 36 px), inputs 16 px
 | LLR-1.1 (superseded) | — | replaced by `test_starter_set_contents` and the LLR-1.7 tests |
 | LLR-1.3–1.5 | `POST/PATCH/DELETE /areas` | `test_area_add_rename_delete` |
 | LLR-1.7–1.13; BR-R17–R19; LLR-8.10 | `/categories*` | `test_fresh_database_has_no_tiles`, `test_starter_set_is_idempotent`, `test_starter_set_fills_in_missing_areas_only`, `test_tile_crud_and_unique_names`, `test_new_tile_ids_stay_unique`, `test_reorder_tiles_and_areas`, `test_delete_tile_needs_typed_name_snapshots_and_cascades`, `test_restart_never_reseeds`, `test_upgrade_keeps_existing_tiles` |
-| LLR-12.1–12.9; BR-R27–R30; LLR-8.13 | `/rewards*` | ⏳ planned: `test_idea_needs_only_title`, `test_idea_never_unlocks_or_counts`, `test_activate_idea_keeps_details_and_evaluates`, `test_close_and_reopen_idea`, `test_ideas_silent_by_default`, `test_filter_by_for_whom`, `test_migration_defaults_existing_rewards` |
+| LLR-12.1–12.9; BR-R27–R30; LLR-8.13 | `/rewards*` | `test_idea_needs_only_title`, `test_ideas_silent_by_default`, `test_idea_never_unlocks_or_counts`, `test_activate_idea_keeps_details_and_evaluates`, `test_close_and_reopen_idea`, `test_filter_by_for_whom`, `test_cover_photo_signed_link_and_cleanup`, `test_ideas_in_search`, `test_migration_defaults_existing_rewards` |
 | LLR-11.1–11.13; BR-R22–R26; LLR-8.12 | tasks, rewards, `/dashboard/summary` | `test_task_planning_fields_round_trip`, `test_overdue_rules`, `test_due_filters_milestones_and_sort`, `test_milestone_reward_needs_all_milestones`, `test_dashboard_overdue_and_milestones`, `test_migration_defaults_existing_tasks`; quiet completion and celebrations verified in the browser; ⏳ `test_silent_tasks_invisible_without_passcode` comes with the passcode |
 | LLR-10.1–10.12; BR-R20–R21; LLR-8.11 | details, files, `/search` | `test_details_grouped_by_topic_with_last_executive`, `test_tile_level_details_for_home_wide_services`, `test_contact_validation`, `test_edit_and_delete_items`, `test_file_upload_rules_and_signed_download`, `test_search_matches_names_topics_and_phone_digits`, `test_deleting_owner_removes_details_and_files`, `test_export_import_includes_details`; read-only view test comes with the passcode work |
 | LLR-2.1, 2.3–2.5, 2.8, 2.9 | `POST /areas/{id}/tasks`, `GET /areas/{id}/tasks`, `PATCH /tasks/{id}`, `GET /tasks` | `test_create_filter_and_reprioritise_tasks` |

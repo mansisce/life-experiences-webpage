@@ -1,5 +1,8 @@
 """Database-backed helpers shared by routers: loading stats, evaluating rewards, building responses."""
 
+import hashlib
+import hmac
+import time
 from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -156,6 +159,9 @@ async def reward_progress_map(
     progress = {}
     for reward in rewards:
         task_stats_list = [stats[t.id] for t in matched[reward.id]]
+        if reward.status in NO_PROGRESS:  # ideas have no rule yet (BR-R27)
+            progress[reward.id] = Progress(current=0, target=0)
+            continue
         if reward.rule_type == "milestone":
             milestones = [stats[t.id] for t in matched[reward.id] if t.is_milestone]
             progress[reward.id] = milestone_progress(
@@ -209,8 +215,26 @@ async def rewards_for_task(session: AsyncSession, task: Task, area: Area) -> lis
     return result
 
 
+NO_PROGRESS = {"idea", "closed"}
+COVER_LINK_SECONDS = 3600
+
+
+def cover_signature(settings, reward_id: int, expires: int) -> str:
+    # Same key as file downloads, different message, so a file link can't open a cover or vice versa.
+    from .routers.details import signing_key  # local import: the routers import this module
+
+    return hmac.new(signing_key(settings), f"cover:{reward_id}:{expires}".encode(), hashlib.sha256).hexdigest()[:32]
+
+
+def cover_url(reward: Reward, settings) -> str | None:
+    if settings is None or not reward.cover_stored_name:
+        return None
+    expires = int(time.time()) + COVER_LINK_SECONDS
+    return f"/rewards/{reward.id}/cover?expires={expires}&sig={cover_signature(settings, reward.id, expires)}"
+
+
 async def rewards_out(
-    session: AsyncSession, rewards: Sequence[Reward], tz: ZoneInfo, today: date
+    session: AsyncSession, rewards: Sequence[Reward], tz: ZoneInfo, today: date, settings=None
 ) -> list[schemas.RewardOut]:
     tasks = await reward_progress_map(session, rewards, tz, today)
     categories = {
@@ -238,6 +262,13 @@ async def rewards_out(
                 category_icon=category.icon if category else None,
                 area_id=r.area_id,
                 area_name=area_names.get(r.area_id),
+                for_whom=r.for_whom,
+                visibility=r.visibility,
+                link=r.link,
+                where_seen=r.where_seen,
+                closed_outcome=r.closed_outcome,
+                closed_at=r.closed_at,
+                cover_url=cover_url(r, settings),
                 match_mode=r.match_mode,
                 connected=(r.match_mode == "all" and r.category_id is not None) or bool(tasks.tagged.get(r.id)),
                 progress=schemas.ProgressOut(current=progress.current, target=progress.target, percent=progress.percent),

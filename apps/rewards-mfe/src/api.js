@@ -84,6 +84,16 @@ export function createApi({ baseUrl, token }) {
 
     rewards: (filters = {}) => request("GET", `/rewards${query(filters)}`),
     reward: (id) => request("GET", `/rewards/${id}`),
+    rewardPeople: () => request("GET", "/rewards-people"),
+    activateIdea: (id, rule) => request("POST", `/rewards/${id}/activate`, rule),
+    closeIdea: (id, outcome) => request("POST", `/rewards/${id}/close`, { outcome }),
+    reopenIdea: (id) => request("POST", `/rewards/${id}/reopen`),
+    setCover: (id, file) => {
+      const form = new FormData();
+      form.append("file", file);
+      return request("PUT", `/rewards/${id}/cover`, form);
+    },
+    removeCover: (id) => request("DELETE", `/rewards/${id}/cover`),
     linkTask: (rewardId, taskId) => request("POST", `/rewards/${rewardId}/tasks/${taskId}`),
     unlinkTask: (rewardId, taskId) => request("DELETE", `/rewards/${rewardId}/tasks/${taskId}`),
     deleteReward: (id) => request("DELETE", `/rewards/${id}`),

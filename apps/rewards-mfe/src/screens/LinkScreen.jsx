@@ -82,7 +82,8 @@ export default function LinkScreen({ query = "" }) {
       };
     }
   );
-  const rewardRows = grouped(rewards.data, (r) => ({
+  // Ideas have no rule yet, so they can't be linked until they're turned into rewards (BR-R27).
+  const rewardRows = grouped(rewards.data.filter((r) => r.status !== "idea" && r.status !== "closed"), (r) => ({
     id: r.id,
     title: r.title,
     sub: [`needs ${r.threshold}`, r.status !== "locked" && r.status].filter(Boolean).join(" · "),

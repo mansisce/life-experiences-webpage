@@ -420,7 +420,7 @@ export default function DetailsPanel({ ownerType, ownerId }) {
 
 // ── Search (tiles screen) ─────────────────────────────────────────────────────
 
-const KIND_ICON = { contact: "📞", note: "📝", file: "📄" };
+const KIND_ICON = { contact: "📞", note: "📝", file: "📄", reward: "" }; // reward hits carry 💡 or 🎁 in their path
 
 export function DetailsSearch() {
   const { api, links } = useRewards();
@@ -451,7 +451,7 @@ export function DetailsSearch() {
         <ul className="rw-list" aria-label="Search results">
           {state.hits.map((h) => (
             <li key={`${h.kind}${h.id}`} className="rw-row">
-              <a className="rw-row-main" href={links.details(h.ownerType, h.ownerId)}>
+              <a className="rw-row-main" href={h.kind === "reward" ? links.reward(h.id) : links.details(h.ownerType, h.ownerId)}>
                 <strong>
                   {KIND_ICON[h.kind]} {h.title}
                 </strong>

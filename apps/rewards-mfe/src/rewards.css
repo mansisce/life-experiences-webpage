@@ -327,3 +327,14 @@
 .rw-app .rw-milestone-burst { font-size: 2.6rem; animation: rw-pop 700ms cubic-bezier(.2, 1.4, .4, 1) both; }
 @keyframes rw-pop { from { transform: scale(0.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .rw-app .rw-milestone-burst { animation: none; } }
+
+/* Reward ideas (HLR-12) */
+.rw-app .rw-idea { border-style: dashed; border-color: #d9c6f5; }
+.rw-app .rw-idea--closed { opacity: 0.75; }
+.rw-app .rw-status--idea { background: #efe7fb; color: #5b3aa0; }
+.rw-app .rw-status--closed { background: var(--rw-band); color: var(--rw-muted); }
+.rw-app .rw-person { display: grid; gap: 4px; }
+.rw-app .rw-photo-pick { display: inline-flex; cursor: pointer; }
+.rw-app .rw-photo-pick .rw-btn { display: inline-flex; align-items: center; }
+.rw-app .rw-activate { border-top: 1px solid var(--rw-line); padding-top: 10px; }
+.rw-app .rw-reward-head .rw-plan { margin-top: 0; align-items: center; }

@@ -55,6 +55,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.include_router(router, dependencies=protected)
     # File downloads check a signed link or the header themselves (<img>/<a> can't send headers).
     app.include_router(details.download_router)
+    app.include_router(rewards.cover_router)
 
     return app
 

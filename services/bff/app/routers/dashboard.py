@@ -83,7 +83,10 @@ async def dashboard_summary(
         key=lambda row: (row.due_at is None, row.due_at or now),
     )
 
-    rewards = (await session.scalars(select(Reward).order_by(Reward.created_at))).all()
+    everything = (await session.scalars(select(Reward).order_by(Reward.created_at))).all()
+    # Ideas have no rule: counted per person, never as rewards (BR-R27).
+    rewards = [r for r in everything if r.status not in {"idea", "closed"}]
+    ideas = Counter(r.for_whom for r in everything if r.status == "idea")
     progress = (await reward_progress_map(session, rewards, tz, today)).progress
 
     decisions = dict(
@@ -101,6 +104,7 @@ async def dashboard_summary(
             active_streaks=len(streaks),
             rewards_unlocked=sum(1 for r in rewards if r.status == "unlocked"),
             rewards_claimed=sum(1 for r in rewards if r.status == "claimed"),
+            ideas=sum(ideas.values()),
         ),
         completions_by_category=[
             schemas.CategoryCompletions(category_id=c.id, category_name=c.name, completions=per_category[c.id])
@@ -131,6 +135,7 @@ async def dashboard_summary(
             )
             for r in rewards
         ],
+        ideas_by_person=[schemas.IdeasPerPerson(for_whom=p, ideas=n) for p, n in sorted(ideas.items())],
         suggestions=schemas.SuggestionStats(
             relevant=decisions.get("relevant", 0),
             not_relevant=decisions.get("not_relevant", 0),

@@ -43,6 +43,25 @@
       "runtimeExecutable": "uv",
       "runtimeArgs": ["run", "--directory", "apps/rewards-dashboard", "streamlit", "run", "app.py", "--server.port", "8501", "--server.headless", "true"],
       "port": 8501
+    },
+    {
+      "name": "Rewards BFF (throwaway test)",
+      "runtimeExecutable": "uv",
+      "runtimeArgs": ["run", "--directory", "services/bff", "uvicorn", "app.main:app", "--port", "8010"],
+      "port": 8010,
+      "env": {
+        "BFF_DATABASE_URL": "sqlite+aiosqlite:///data-test/test.db",
+        "BFF_PHOTO_DIR": "data-test/photos",
+        "BFF_FILES_DIR": "data-test/files",
+        "BFF_CORS_ORIGINS": "[\"http://localhost:5181\"]"
+      }
+    },
+    {
+      "name": "Rewards MFE (standalone test)",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["apps/rewards-mfe/node_modules/vite/bin/vite.js", "apps/rewards-mfe", "--port", "5181", "--strictPort"],
+      "port": 5181,
+      "env": { "VITE_BFF_URL": "http://localhost:8010" }
     }
   ]
 }

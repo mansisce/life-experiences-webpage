@@ -12,6 +12,7 @@ dist/
 __pycache__/
 .pytest_cache/
 services/bff/data/
+services/bff/data-test/
 
 # Office lock files (e.g. an open workbook)
 ~$*

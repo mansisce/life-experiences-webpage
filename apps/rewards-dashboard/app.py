@@ -219,6 +219,10 @@ with right:
                 "percent": st.column_config.ProgressColumn("Done", min_value=0, max_value=100, format="%d%%"),
             },
         )
+    # Ideas have no rule, so they're counted per person instead of as rewards (BR-R27).
+    if summary["ideas_by_person"]:
+        st.caption("💡 Open ideas: " + ", ".join(f"{p['for_whom']} {p['ideas']}" for p in summary["ideas_by_person"]))
+    if not rewards.empty:
         # A write action through the BFF, followed by cache invalidation so the next rerun is fresh.
         for reward in rewards[rewards["status"] == "unlocked"].itertuples():
             if st.button(f"Claim “{reward.title}” 🎁", key=f"claim-{reward.reward_id}"):

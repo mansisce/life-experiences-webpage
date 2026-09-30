@@ -22,7 +22,7 @@ Source = Literal["ai", "manual"]
 RuleType = Literal["completions", "streak", "milestone"]
 Visibility = Literal["announced", "silent"]
 TargetDays = Field(default=None, ge=1, le=3650)
-RewardStatus = Literal["locked", "unlocked", "claimed"]
+RewardStatus = Literal["idea", "locked", "unlocked", "claimed", "closed"]
 # selected: only tagged tasks count; all: every non-archived task in the reward's scope counts (HLR-9)
 MatchMode = Literal["selected", "all"]
 
@@ -217,6 +217,12 @@ class RewardCreate(ApiModel):
     description: str = Field(default="", max_length=2000)
     image_url: str | None = Field(default=None, max_length=500)
     area_id: int | None = None  # optional home area; its tile comes from the area
+    # "idea" = wishlist: no rule yet, never unlocks (HLR-12). Otherwise a normal locked reward.
+    status: Literal["idea", "locked"] = "locked"
+    for_whom: str = Field(default="Me", min_length=1, max_length=40)
+    visibility: Visibility | None = None  # default: silent for ideas, announced for rewards (Q24)
+    link: str | None = Field(default=None, max_length=500)
+    where_seen: str | None = Field(default=None, max_length=120)
     rule_type: RuleType = "completions"  # task count: linked tasks done N times in total
     threshold: int = Field(default=5, ge=1, le=365)
     task_ids: list[int] = []
@@ -229,8 +235,23 @@ class RewardUpdate(ApiModel):
     rule_type: RuleType | None = None
     threshold: int | None = Field(default=None, ge=1, le=365)
     area_id: int | None = None  # move to another area, or null for no area; links are unaffected
+    for_whom: str | None = Field(default=None, min_length=1, max_length=40)
+    visibility: Visibility | None = None
+    link: str | None = Field(default=None, max_length=500)  # null clears it
+    where_seen: str | None = Field(default=None, max_length=120)  # null clears it
     # Only "claimed" can be set by a client; locked -> unlocked happens on task completion.
     status: Literal["claimed"] | None = None
+
+
+class RewardActivate(ApiModel):
+    """Turn an idea into a reward: pick how it unlocks; tasks are linked on the Link screen."""
+
+    rule_type: RuleType = "completions"
+    threshold: int = Field(default=5, ge=1, le=365)
+
+
+class RewardClose(ApiModel):
+    outcome: Literal["bought", "dropped"]
 
 
 class RewardTasksUpdate(ApiModel):
@@ -263,6 +284,13 @@ class RewardOut(ApiModel):
     category_icon: str | None
     area_id: int | None
     area_name: str | None
+    for_whom: str
+    visibility: Visibility
+    link: str | None
+    where_seen: str | None
+    closed_outcome: Literal["bought", "dropped"] | None
+    closed_at: datetime | None
+    cover_url: str | None  # short-lived signed link, relative to the API base URL
     match_mode: MatchMode  # "all" only on older rewards that counted every task of an area
     connected: bool  # has linked tasks (or, for older rewards, "all tasks in the area")
     progress: ProgressOut
@@ -340,6 +368,11 @@ class MilestoneRow(FlatModel):
     silent: bool
 
 
+class IdeasPerPerson(FlatModel):
+    for_whom: str
+    ideas: int
+
+
 class Totals(FlatModel):
     completions: int
     active_tasks: int
@@ -347,6 +380,7 @@ class Totals(FlatModel):
     active_streaks: int
     rewards_unlocked: int
     rewards_claimed: int
+    ideas: int  # open ideas; never counted as rewards (BR-R27)
 
 
 class DashboardSummary(FlatModel):
@@ -359,6 +393,7 @@ class DashboardSummary(FlatModel):
     streaks: list[StreakRow]
     milestones: list[MilestoneRow]
     rewards: list[RewardProgressRow]
+    ideas_by_person: list["IdeasPerPerson"]
     suggestions: SuggestionStats
 
 
@@ -488,11 +523,11 @@ class DetailsOut(ApiModel):
 
 
 class SearchHit(ApiModel):
-    kind: Literal["note", "contact", "file"]
+    kind: Literal["note", "contact", "file", "reward"]
     id: int
     title: str
     snippet: str
     topic: str | None
-    owner_type: OwnerType
-    owner_id: str
+    owner_type: OwnerType | None  # None for rewards and ideas (they open their own screen)
+    owner_id: str | None
     path: str

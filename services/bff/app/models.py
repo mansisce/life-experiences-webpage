@@ -86,7 +86,16 @@ class Reward(Base):
     image_url: Mapped[str | None] = mapped_column(String(500), default=None)
     rule_type: Mapped[str] = mapped_column(String(15))  # completions | streak | milestone
     threshold: Mapped[int]
-    status: Mapped[str] = mapped_column(String(10), default="locked")  # locked | unlocked | claimed
+    status: Mapped[str] = mapped_column(String(10), default="locked")  # idea | locked | unlocked | claimed | closed
+    # Wishlist (HLR-12): who it's for (a label), visibility, and idea details. Ideas have no rule yet.
+    for_whom: Mapped[str] = mapped_column(String(40), default="Me", server_default="Me")
+    visibility: Mapped[str] = mapped_column(String(10), default="announced", server_default="announced")  # announced | silent
+    link: Mapped[str | None] = mapped_column(String(500), default=None)
+    where_seen: Mapped[str | None] = mapped_column(String(120), default=None)
+    closed_outcome: Mapped[str | None] = mapped_column(String(10), default=None)  # bought | dropped
+    closed_at: Mapped[datetime | None] = mapped_column(UTCDateTime, default=None)
+    cover_stored_name: Mapped[str | None] = mapped_column(String(100), default=None)  # private file in files_dir
+    cover_content_type: Mapped[str | None] = mapped_column(String(50), default=None)
     # Scope (HLR-9): a tile, optionally narrowed to one of its areas. category_id is NULL only for
     # rewards migrated from before scopes whose tags didn't point at one tile ("Needs a tile").
     # Deleting the tile deletes its rewards; deleting the area widens the reward to the tile.
