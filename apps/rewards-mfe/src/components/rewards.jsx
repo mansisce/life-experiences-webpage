@@ -40,7 +40,8 @@ export function ruleText(reward) {
 /** "🏠 Household › Kitchen", or "" for a reward not kept in an area. */
 export function whereText(reward) {
   if (!reward.areaId) return "";
-  return `${reward.categoryIcon ?? ""} ${reward.categoryName ?? ""} › ${reward.areaName}`.trim();
+  const tile = `${reward.categoryIcon ?? ""} ${reward.categoryName ?? ""}`.trim();
+  return reward.areaHidden ? tile : `${tile} › ${reward.areaName}`;
 }
 
 /** "2 rewards · 🎁 1 to claim · 1 claimed · 💡 3 ideas", or "" when there are none. Ideas never count as rewards. */
@@ -62,7 +63,8 @@ export function rewardCounts(rewards) {
 
 /** Tiles -> [{id, label}] for an area picker, e.g. "🏠 Household › Kitchen". */
 export function areaOptions(tiles) {
-  return tiles.flatMap((t) => t.areas.map((a) => ({ id: a.id, label: `${t.icon} ${t.name} › ${a.name}` })));
+  // A tile without areas is one option, "💼 Office" (its hidden area, HLR-13).
+  return tiles.flatMap((t) => t.areas.map((a) => ({ id: a.id, label: a.hidden ? `${t.icon} ${t.name}` : `${t.icon} ${t.name} › ${a.name}` })));
 }
 
 /** Everyone rewards are for, for suggestions and the filter ("Me" first). */
@@ -449,7 +451,7 @@ export function AreaRewardsPanel({ area, openForm = false }) {
             rewards={list}
             onChanged={rewards.refresh}
             showWhere={false}
-            emptyTitle={`No rewards or ideas kept in ${area.name} yet`}
+            emptyTitle={`No rewards or ideas kept in ${area.hidden ? area.category.name : area.name} yet`}
             emptyText="Add an idea or a reward here, then link rewards to any tasks on the Link screen."
           />
         </>

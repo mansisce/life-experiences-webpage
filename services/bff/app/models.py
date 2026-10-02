@@ -26,7 +26,11 @@ class Category(Base):
 
 
 class Area(Base):
-    """A sub-tile inside a category, e.g. Household -> Kitchen. User-editable."""
+    """A sub-tile inside a category, e.g. Household -> Kitchen. User-editable.
+
+    A tile without areas (e.g. Office) keeps exactly one hidden area that holds its tasks, rewards and
+    notes, so everything else keeps working per area; the app shows the tile in its place (HLR-13).
+    """
 
     __tablename__ = "areas"
 
@@ -34,6 +38,7 @@ class Area(Base):
     category_id: Mapped[str] = mapped_column(ForeignKey("categories.id"), index=True)
     name: Mapped[str] = mapped_column(String(80))
     sort_order: Mapped[int] = mapped_column(default=0)
+    hidden: Mapped[bool] = mapped_column(default=False, server_default=false())
     created_at: Mapped[datetime] = mapped_column(UTCDateTime, default=utcnow)
 
 

@@ -233,6 +233,11 @@ def cover_url(reward: Reward, settings) -> str | None:
     return f"/rewards/{reward.id}/cover?expires={expires}&sig={cover_signature(settings, reward.id, expires)}"
 
 
+def area_label(area: Area, tile_name: str) -> str:
+    """An area's name on screen: the hidden area of a tile without areas shows as the tile (HLR-13)."""
+    return tile_name if area.hidden else area.name
+
+
 async def rewards_out(
     session: AsyncSession, rewards: Sequence[Reward], tz: ZoneInfo, today: date, settings=None
 ) -> list[schemas.RewardOut]:
@@ -241,9 +246,7 @@ async def rewards_out(
         c.id: c
         for c in await session.scalars(select(Category).where(Category.id.in_({r.category_id for r in rewards})))
     }
-    area_names = dict(
-        (await session.execute(select(Area.id, Area.name).where(Area.id.in_({r.area_id for r in rewards})))).all()
-    )
+    areas = {a.id: a for a in await session.scalars(select(Area).where(Area.id.in_({r.area_id for r in rewards})))}
     out = []
     for r in rewards:
         progress = tasks.progress[r.id]
@@ -261,7 +264,8 @@ async def rewards_out(
                 category_name=category.name if category else None,
                 category_icon=category.icon if category else None,
                 area_id=r.area_id,
-                area_name=area_names.get(r.area_id),
+                area_name=area_label(areas[r.area_id], category.name if category else "") if r.area_id in areas else None,
+                area_hidden=r.area_id in areas and areas[r.area_id].hidden,
                 for_whom=r.for_whom,
                 visibility=r.visibility,
                 link=r.link,

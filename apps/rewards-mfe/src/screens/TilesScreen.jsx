@@ -65,7 +65,8 @@ export default function TilesScreen() {
                   </span>
                   <strong>{c.name}</strong>
                   <small>
-                    {c.areas.length} area{c.areas.length === 1 ? "" : "s"} · {active} active task{active === 1 ? "" : "s"}
+                    {c.useAreas && `${c.areas.length} area${c.areas.length === 1 ? "" : "s"} · `}
+                    {active} active task{active === 1 ? "" : "s"}
                     {tileRewards && <span className="rw-tile-rewards">{tileRewards}</span>}
                   </small>
                 </a>

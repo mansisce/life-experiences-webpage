@@ -47,23 +47,29 @@ class AreaOut(ApiModel):
     category_id: str
     name: str
     active_task_count: int = 0
+    # The hidden area of a tile without areas: it holds the tile's own tasks (HLR-13).
+    hidden: bool = False
 
 
 class CategoryOut(ApiModel):
     id: str
     name: str
     icon: str
+    # False: the tile has no areas and opens straight to its tasks (its one area is hidden).
+    use_areas: bool = True
     areas: list[AreaOut]
 
 
 class CategoryCreate(ApiModel):
     name: str = Field(min_length=1, max_length=40)
     icon: str = Field(default="📁", min_length=1, max_length=16)
+    use_areas: bool = True  # False: tasks go straight on the tile (HLR-13)
 
 
 class CategoryUpdate(ApiModel):
     name: str | None = Field(default=None, min_length=1, max_length=40)
     icon: str | None = Field(default=None, min_length=1, max_length=16)
+    use_areas: bool | None = None  # off only when the tile has no areas (BR-R31)
 
 
 class OrderUpdate(ApiModel):
@@ -111,6 +117,7 @@ class AreaDetail(ApiModel):
     name: str
     category: CategoryRef
     active_task_count: int
+    hidden: bool = False  # true: show the tile instead of the area
 
 
 # ── Tasks & activity ────────────────────────────────────────────────────────────
@@ -130,6 +137,7 @@ class TaskCreate(ApiModel):
 
 class TaskUpdate(ApiModel):
     title: str | None = Field(default=None, min_length=1, max_length=200)
+    area_id: int | None = None  # move the task to another area or tile; history and links move with it
     notes: str | None = Field(default=None, max_length=2000)
     is_milestone: bool | None = None
     visibility: Visibility | None = None
@@ -190,6 +198,7 @@ class AreaRef(ApiModel):
     id: int
     name: str
     category_id: str
+    hidden: bool = False
 
 
 class TaskWithArea(TaskOut):
@@ -284,6 +293,7 @@ class RewardOut(ApiModel):
     category_icon: str | None
     area_id: int | None
     area_name: str | None
+    area_hidden: bool = False  # kept on a tile without areas: show just the tile (HLR-13)
     for_whom: str
     visibility: Visibility
     link: str | None

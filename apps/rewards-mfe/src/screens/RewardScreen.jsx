@@ -129,7 +129,7 @@ function RewardView({ reward, tiles, onChanged }) {
   return (
     <section>
       <ScreenHeader
-        crumbs={[["All rewards", links.rewardsList()], ...(reward.areaId ? [[reward.areaName, links.areaRewards(reward.areaId)]] : [])]}
+        crumbs={[["All rewards", links.rewardsList()], ...(reward.areaId ? [[reward.areaName, links.place({ id: reward.areaId, categoryId: reward.categoryId, hidden: reward.areaHidden }, "rewards")]] : [])]}
         title={`${idea ? "💡 " : ""}${reward.title}`}
         subtitle={[reward.forWhom !== "Me" && `For ${reward.forWhom}`, where || "Not kept in an area", reward.visibility === "silent" && "🔕 Private"].filter(Boolean).join(" · ")}
         actions={

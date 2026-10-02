@@ -11,6 +11,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from .models import Area, Category
 
+# Name of a tile's hidden area (HLR-13); it shows under this name if areas are switched back on.
+GENERAL_AREA = "General"
+
 STARTER_SET = [
     ("career", "Career / Office / Work", "💼", ["Learning", "Projects"]),
     (
@@ -71,6 +74,8 @@ async def add_starter_set(session: AsyncSession) -> tuple[int, int]:
             await session.flush()  # the tile must exist before its areas reference it
             tiles_added += 1
 
+        if await session.scalar(select(Area.id).where(Area.category_id == tile.id, Area.hidden)):
+            continue  # the tile was switched to "no areas" (HLR-13)
         have = {
             a.lower()
             for a in (await session.scalars(select(Area.name).where(Area.category_id == tile.id))).all()

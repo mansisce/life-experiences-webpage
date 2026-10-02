@@ -14,10 +14,16 @@ export function moveItem(list, index, delta) {
   return next;
 }
 
-/** Create or edit a tile: name plus an emoji icon (quick picks, or type any emoji). */
+/**
+ * Create or edit a tile: name, an emoji icon (quick picks, or type any emoji) and whether it uses areas.
+ * A tile without areas holds its tasks directly (HLR-13); it can only switch areas off while it has none.
+ */
 export function TileForm({ initial, submitLabel, busy, onSubmit, onCancel }) {
   const [name, setName] = useState(initial?.name ?? "");
   const [icon, setIcon] = useState(initial?.icon ?? "📁");
+  const [useAreas, setUseAreas] = useState(initial?.useAreas ?? true);
+  const visibleAreas = initial?.areas.filter((a) => !a.hidden).length ?? 0;
+  const lockedOn = initial?.useAreas && visibleAreas > 0;
 
   return (
     <form
@@ -25,7 +31,8 @@ export function TileForm({ initial, submitLabel, busy, onSubmit, onCancel }) {
       aria-label={initial ? `Edit ${initial.name}` : "New tile"}
       onSubmit={(e) => {
         e.preventDefault();
-        onSubmit({ name: name.trim(), icon: icon.trim() || "📁" });
+        const changes = { name: name.trim(), icon: icon.trim() || "📁" };
+        onSubmit(useAreas === (initial?.useAreas ?? true) ? changes : { ...changes, useAreas });
       }}
     >
       <div className="rw-inline-form">
@@ -39,6 +46,19 @@ export function TileForm({ initial, submitLabel, busy, onSubmit, onCancel }) {
           </button>
         ))}
       </div>
+      <label className="rw-check">
+        <input type="checkbox" checked={useAreas} disabled={lockedOn} onChange={(e) => setUseAreas(e.target.checked)} />
+        Use areas (e.g. Household › Kitchen)
+      </label>
+      <small className="rw-muted">
+        {lockedOn
+          ? `To switch areas off, move or delete its ${visibleAreas} area${visibleAreas === 1 ? "" : "s"} first.`
+          : useAreas
+            ? initial && !initial.useAreas
+              ? "Its tasks stay, in an area called General."
+              : "Tasks go inside areas of this tile."
+            : "No areas: tasks, rewards and notes go straight on the tile."}
+      </small>
       <div className="rw-inline-form">
         <button type="submit" className="rw-btn rw-btn--primary" disabled={busy || !name.trim()}>
           {submitLabel}

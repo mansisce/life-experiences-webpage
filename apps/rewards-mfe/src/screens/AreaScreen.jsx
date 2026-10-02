@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useRewards } from "../context.js";
+import { navigate, redirect } from "../lib/router.js";
 import { useResource } from "../lib/useResource.js";
+import { useTileEditing } from "../components/manage.jsx";
 import DetailsPanel from "../components/details.jsx";
 import { AreaRewardsPanel } from "../components/rewards.jsx";
 import { PlanFields } from "../components/plan.jsx";
@@ -164,9 +166,14 @@ function TaskList({ areaId, filters, reloadKey, onCompleted }) {
   );
 }
 
-export default function AreaScreen({ areaId, tab = "main", query = "" }) {
+/**
+ * An area's Tasks | Rewards | Notes & contacts. With `tile`, it's the hidden area of a tile without
+ * areas (HLR-13) and the screen is the tile's own: tile title, tile links and tile edit/delete.
+ */
+export default function AreaScreen({ areaId, tab = "main", query = "", tile = null, onTileChanged }) {
   const { api, links } = useRewards();
   const area = useResource(() => api.area(areaId), [api, areaId]);
+  const tileEditing = useTileEditing(tile ?? { name: "" }, { onSaved: () => onTileChanged?.(), onDeleted: () => navigate(links.tiles()) });
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [reloadKey, setReloadKey] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
@@ -174,22 +181,29 @@ export default function AreaScreen({ areaId, tab = "main", query = "" }) {
 
   return (
     <Resource resource={area} loadingLabel="Loading area…">
-      {(a) => (
+      {(a) => {
+        const place = { id: a.id, categoryId: a.category.id, hidden: a.hidden };
+        const tabLink = (t) => links.place(place, t === "main" ? "" : t);
+        // Old links to the hidden area (e.g. from search) open the tile instead.
+        if (a.hidden && !tile) {
+          redirect(tabLink(tab));
+          return <Loading label="Opening tile…" />;
+        }
+        return (
         <section>
           <ScreenHeader
-            crumbs={[
-              ["All tiles", links.tiles()],
-              [a.category.name, links.category(a.category.id)],
-            ]}
-            title={a.name}
+            crumbs={a.hidden ? [["All tiles", links.tiles()]] : [["All tiles", links.tiles()], [a.category.name, links.category(a.category.id)]]}
+            title={a.hidden ? `${a.category.icon} ${a.category.name}` : a.name}
             subtitle={`${a.activeTaskCount} active task${a.activeTaskCount === 1 ? "" : "s"}`}
+            actions={tile && tileEditing.actions}
           />
+          {tile && tileEditing.panel}
           <SubTabs
-            label={`${a.name} sections`}
+            label={`${a.hidden ? a.category.name : a.name} sections`}
             tabs={[
-              ["Tasks", links.area(areaId), tab === "main"],
-              ["Rewards", links.areaRewards(areaId), tab === "rewards"],
-              ["Notes & contacts", links.areaDetails(areaId), tab === "details"],
+              ["Tasks", tabLink("main"), tab === "main"],
+              ["Rewards", tabLink("rewards"), tab === "rewards"],
+              ["Notes & contacts", tabLink("details"), tab === "details"],
             ]}
           />
           {tab === "details" ? (
@@ -221,7 +235,8 @@ export default function AreaScreen({ areaId, tab = "main", query = "" }) {
           </>
           )}
         </section>
-      )}
+        );
+      }}
     </Resource>
   );
 }

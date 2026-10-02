@@ -45,7 +45,8 @@ def test_starter_set_contents(client):
     assert len(names["household"]) == 13
     assert "Kitchen Utility Area" in names["household"] and "Kitchen Utility" not in names["household"]
     # camelCase for the React client
-    assert set(categories[0]["areas"][0]) == {"id", "categoryId", "name", "activeTaskCount"}
+    assert set(categories[0]["areas"][0]) == {"id", "categoryId", "name", "activeTaskCount", "hidden"}
+    assert categories[0]["useAreas"] is True
 
 
 # ── Areas ───────────────────────────────────────────────────────────────────────

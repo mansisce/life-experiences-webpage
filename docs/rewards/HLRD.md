@@ -52,6 +52,7 @@ This capstone replaces it with a **Rewards microfrontend**:
 | D12 | PO review (2026-09-29) | When an appliance breaks, the useful information is scattered: customer-care numbers, the last executive who visited, bills, notes (e.g. Bosch dishwasher, Kent water purifier, IFB washing machine, LG fridge, pigeon net, pest control) | Tiles and areas hold **notes, contacts and files**, grouped by topic (HLR-10) |
 | D13 | PO review (2026-09-29) | Some tasks are big checkpoints (milestones), some have a deadline or a planned length in days, and some are private: they shouldn't be shown or celebrated publicly | Tasks gain milestone, announce/silent, due date/time and days-to-complete; milestones can unlock rewards (HLR-11) |
 | D14 | PO review (2026-09-29) | Reward ideas come up at random moments (e.g. spotting "101 Hilarious Jokes" for Shiragi while browsing the library), before any rule or task exists; some rewards are for someone else (Shiragi), not for the user | Rewards get an **Idea** stage (capture now, add a rule later, or mark bought/dropped) and a **For whom** label (HLR-12) |
+| D15 | PO review (2026-10-02) | Some parts of life have no natural sub-areas: in Career / Office / Work, things like "Connect with Amex Project - BA" are tasks, not places, so an extra area level only adds taps | A tile can switch **areas off** and hold its tasks, rewards and notes directly (HLR-13) |
 | D10 | PO review of MVP (2026-09-28) | Rewards float free of the tile/area structure: a reward can be tagged to any task anywhere, so it isn't clear which part of life a reward belongs to | Rewards use the **same tiles and areas** as tasks, and are matched to tasks inside that scope (HLR-9) |
 
 ### 2.4 Assumptions
@@ -183,6 +184,7 @@ flowchart LR
 | T3d | Notes, contacts and files on tiles and areas (HLR-10) | ✅ (branch) |
 | T3e | Task planning and visibility: milestones, due date/time, days to complete, announce/silent (HLR-11) | ✅ (branch; hiding silent tasks from visitors comes with hosting) |
 | T3f | Reward ideas and wishlist, "For whom" on rewards (HLR-12) | ✅ (branch; hiding private ideas from visitors comes with hosting) |
+| T3g | Tiles without areas (HLR-13), shipped as a data-preserving migration (`0006_tile_without_areas`) | ✅ (branch) |
 | T4 | Deploy the MFE + BFF; set the host's remote URL; merge to `main` | ⏳ |
 | T5 | Integration services: vision → events/outbox → reminders | ⏳ |
 | T6 | Mobile BFF surface; Android client | ⏳ future |
@@ -226,6 +228,7 @@ No data migration from Neo4j is planned. The old feature held no production data
 | HLR-10 | Notes, contacts and files | Every tile and area holds notes, contacts (customer care, service executives, vendors) and files (bills, warranty cards), grouped by topic such as "Bosch Dishwasher", with tap-to-call and search | LLR-10.x | ✅ |
 | HLR-11 | Task planning and visibility | Tasks can be milestones (badge, filter, "milestone completed" reward rule, bigger celebration), have a due date and time and a days-to-complete target, and be announced or silent (silent = hidden from the public view and completed without celebration) | LLR-11.x | ✅ |
 | HLR-12 | Reward ideas and wishlist | Capture a reward idea in seconds (e.g. a book for Shiragi spotted at the library) without a rule; turn it into a real reward later, or mark it bought or dropped; every reward says who it's for | LLR-12.x | ✅ |
+| HLR-13 | Tiles without areas | A tile can switch areas off (e.g. Career / Office / Work): it then opens straight to Tasks, Rewards and Notes & contacts, and tasks can be moved between tiles and areas | LLR-13.x | ✅ |
 | HLR-5 | Insights dashboard | Aggregates, filters, cached reads, claim from dashboard | LLR-5.x | ✅ |
 | HLR-6 | AI task suggestions | Photos → suggestions → decisions → tasks; non-blocking | LLR-6.x | ⏳ |
 | HLR-7 | Module composition | Independently delivered MFE with host fallback | LLR-7.x | ✅ |
@@ -283,3 +286,4 @@ The MVP is accepted when the demo runs without manual workarounds:
 9. (HLR-10) Kitchen › Notes & contacts shows a "Bosch Dishwasher" topic with its customer-care number, past executives with visit dates, bills and notes; tapping a number starts a call on the phone. Household (tile level) holds "Pest Control" with its last executive.
 10. (HLR-11) A milestone task "Finish React course" (due 31 Oct 2026, 18:00; 30 days to complete) shows its 🏁 badge and due chip; a reward with the rule "milestone completed" unlocks when it's done, with the milestone celebration. A silent task doesn't appear in the read-only view and completes without a toast.
 11. (HLR-12) At the library, capture the idea "101 Hilarious Jokes" for Shiragi with a cover photo in two taps; later turn it into a reward that unlocks when Shiragi's "Read 20 minutes" task reaches a 7-day streak. The idea stays hidden from the read-only view until then.
+12. (HLR-13) Career / Office / Work has areas switched off: opening it shows its tasks straight away ("Connect with Amex Project - BA", "Learning", …), and a new task is added right there with no area to pick.

@@ -237,3 +237,13 @@ export const fromLocalInput = (value) => (value ? new Date(value).toISOString() 
 export function formatWhen(iso) {
   return new Date(iso).toLocaleString(undefined, { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 }
+
+/** A groupByArea heading: "🏠 Household › Kitchen", or just "💼 Office" for a tile without areas. */
+export function GroupTitle({ group }) {
+  if (group.area.hidden) return group.tileLabel;
+  return (
+    <>
+      <small>{group.tileLabel} ›</small> {group.area.name}
+    </>
+  );
+}

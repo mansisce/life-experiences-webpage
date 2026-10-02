@@ -4,6 +4,7 @@ import { navigate } from "../lib/router.js";
 import { useResource } from "../lib/useResource.js";
 import { CompletionCalendar, dayKey, startOfDay } from "../components/calendar.jsx";
 import { PlanFields } from "../components/plan.jsx";
+import { areaOptions } from "../components/rewards.jsx";
 import {
   fromLocalInput,
   PlanBadges,
@@ -141,18 +142,32 @@ function PlanningCard({ task, onSaved }) {
 /** Edit a task's title and notes. */
 function EditTaskForm({ task, onSaved, onCancel }) {
   const { api, toast } = useRewards();
+  const tiles = useResource(() => api.categories(), [api]);
   const [title, setTitle] = useState(task.title);
   const [notes, setNotes] = useState(task.notes);
+  const [areaId, setAreaId] = useState(task.area.id);
   const [busy, run] = useAction(toast);
   const submit = async (e) => {
     e.preventDefault();
-    if (await run(() => api.updateTask(task.id, { title: title.trim(), notes: notes.trim() }), "Saved")) onSaved();
+    const changes = { title: title.trim(), notes: notes.trim(), ...(areaId !== task.area.id && { areaId }) };
+    if (await run(() => api.updateTask(task.id, changes), "Saved")) onSaved();
   };
   return (
     <form className="rw-card rw-form" onSubmit={submit} aria-label="Edit task">
       <h3>Edit task</h3>
       <input aria-label="Task title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} autoFocus required />
       <textarea aria-label="Notes" placeholder="Notes (optional)" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={2000} />
+      {/* Moving keeps its completions, streak and reward links. */}
+      <label className="rw-field-label" htmlFor="rw-task-area">
+        Tile or area
+      </label>
+      <select id="rw-task-area" className="rw-select" value={areaId} onChange={(e) => setAreaId(Number(e.target.value))}>
+        {(tiles.data ? areaOptions(tiles.data) : [{ id: task.area.id, label: task.area.name }]).map((a) => (
+          <option key={a.id} value={a.id}>
+            {a.label}
+          </option>
+        ))}
+      </select>
       <div className="rw-inline-form">
         <button type="submit" className="rw-btn rw-btn--primary" disabled={busy || !title.trim()}>
           {busy ? "Saving…" : "Save"}
@@ -206,7 +221,7 @@ export default function TaskScreen({ taskId }) {
   const remove = async (t) => {
     const history = t.completionCount ? ` and its ${t.completionCount} completion${t.completionCount === 1 ? "" : "s"}` : "";
     if (!window.confirm(`Delete “${t.title}”${history}? Rewards it counted towards stay.`)) return;
-    if (await run(async () => (await api.deleteTask(t.id), true), `Deleted ${t.title}`)) navigate(links.area(t.area.id));
+    if (await run(async () => (await api.deleteTask(t.id), true), `Deleted ${t.title}`)) navigate(links.place(t.area));
   };
 
   const update = async (changes) => {
@@ -220,7 +235,7 @@ export default function TaskScreen({ taskId }) {
           <ScreenHeader
             crumbs={[
               ["All tiles", links.tiles()],
-              [t.area.name, links.area(t.area.id)],
+              [t.area.name, links.place(t.area)],
             ]}
             title={t.title}
             subtitle={t.source === "ai" ? "Suggested by AI" : "Added manually"}

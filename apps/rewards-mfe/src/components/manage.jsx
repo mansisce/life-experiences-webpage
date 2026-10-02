@@ -45,7 +45,7 @@ function EditableTileRow({ tile, index, count, busy, onMove, onSave, onDelete })
         <strong>
           {tile.icon} {tile.name}
         </strong>
-        <small>{tile.areas.length} areas</small>
+        <small>{tile.useAreas ? `${tile.areas.length} area${tile.areas.length === 1 ? "" : "s"}` : "No areas"}</small>
       </span>
       <div className="rw-row-actions">
         <button type="button" className="rw-icon-btn" aria-label={`Move ${tile.name} up`} disabled={busy || index === 0} onClick={() => onMove(index, -1)}>

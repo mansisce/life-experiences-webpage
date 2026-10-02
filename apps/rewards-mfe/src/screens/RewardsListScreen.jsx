@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useRewards } from "../context.js";
 import { groupByArea } from "../lib/groupByArea.js";
 import { useResource } from "../lib/useResource.js";
-import { Chips, Empty, Resource, ScreenHeader } from "../components/ui.jsx";
+import { Chips, Empty, GroupTitle, Resource, ScreenHeader } from "../components/ui.jsx";
 import { AddRewardOrIdea, areaOptions, RewardList, STATUS_FILTERS, usePeople } from "../components/rewards.jsx";
 
 /**
@@ -51,8 +51,8 @@ export default function RewardsListScreen() {
                   <div key={g.key} className="rw-area-group">
                     <h3 className="rw-group-title">
                       {g.area.id ? (
-                        <a href={links.areaRewards(g.area.id)}>
-                          <small>{g.tileLabel} ›</small> {g.area.name}
+                        <a href={links.place(g.area, "rewards")}>
+                          <GroupTitle group={g} />
                         </a>
                       ) : (
                         g.area.name

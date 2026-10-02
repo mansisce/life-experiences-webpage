@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useRewards } from "../context.js";
 import { groupByArea } from "../lib/groupByArea.js";
 import { useResource } from "../lib/useResource.js";
-import { Chips, Empty, ErrorState, FREQUENCIES, labelOf, Loading, PlanBadges, PriorityBadge, ScreenHeader, STATUSES, useAction } from "../components/ui.jsx";
+import { Chips, Empty, ErrorState, FREQUENCIES, GroupTitle, labelOf, Loading, PlanBadges, PriorityBadge, ScreenHeader, STATUSES, useAction } from "../components/ui.jsx";
 
 function TaskRow({ task, rewardCount, onChanged }) {
   const { api, links, toast, completed } = useRewards();
@@ -80,8 +80,8 @@ export default function TasksListScreen() {
         groups.map((g) => (
           <div key={g.key} className="rw-area-group">
             <h3 className="rw-group-title">
-              <a href={links.area(g.area.id)}>
-                <small>{g.tileLabel} ›</small> {g.area.name}
+              <a href={links.place(g.area)}>
+                <GroupTitle group={g} />
               </a>
             </h3>
             <ul className="rw-list" aria-busy={tasks.loading}>

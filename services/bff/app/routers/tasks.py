@@ -8,12 +8,13 @@ from sqlalchemy import case, select
 
 from .. import schemas
 from ..deps import NowDep, SessionDep, SettingsDep
-from ..models import Activity, Area, Task
+from ..models import Activity, Area, Category, Task
 from ..services import (
     evaluate_unlocks,
     get_or_404,
     reward_progress_map,
     rewards_for_task,
+    area_label,
     rewards_out,
     task_stats,
     to_task_out,
@@ -80,16 +81,18 @@ async def list_all_tasks(
     status_: Annotated[schemas.TaskStatus | None, Query(alias="status")] = None,
 ):
     """All tasks across areas, grouped by area — used by the reward task picker."""
-    query = select(Task, Area).join(Area, Area.id == Task.area_id)
+    query = select(Task, Area, Category.name).join(Area, Area.id == Task.area_id).join(Category)
     if status_:
         query = query.where(Task.status == status_)
     rows = (await session.execute(query.order_by(Area.category_id, Area.sort_order, PRIORITY_ORDER, Task.id))).all()
-    stats = await task_stats(session, [task for task, _ in rows], settings.tz, now.astimezone(settings.tz).date())
+    stats = await task_stats(session, [task for task, *_ in rows], settings.tz, now.astimezone(settings.tz).date())
     return [
         schemas.TaskWithArea(
-            **to_task_out(task, stats[task.id], now).model_dump(), area_name=area.name, category_id=area.category_id
+            **to_task_out(task, stats[task.id], now).model_dump(),
+            area_name=area_label(area, tile_name),
+            category_id=area.category_id,
         )
-        for task, area in rows
+        for task, area, tile_name in rows
     ]
 
 
@@ -115,7 +118,12 @@ async def get_task(task_id: int, session: SessionDep, settings: SettingsDep, now
     progress = (await reward_progress_map(session, [r for r, _ in matches], settings.tz, today)).progress
     return schemas.TaskDetail(
         **to_task_out(task, stats[task.id], now).model_dump(),
-        area=schemas.AreaRef(id=area.id, name=area.name, category_id=area.category_id),
+        area=schemas.AreaRef(
+            id=area.id,
+            name=area_label(area, (await get_or_404(session, Category, area.category_id)).name),
+            category_id=area.category_id,
+            hidden=area.hidden,
+        ),
         rewards=[
             schemas.RewardRef(
                 id=r.id,
@@ -140,6 +148,8 @@ async def update_task(
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"{field} cannot be null")
         if field == "due_at":
             value = local_to_utc(value, settings.tz)
+        if field == "area_id":
+            await get_or_404(session, Area, value)  # moving keeps its completions and reward links
         setattr(task, field, value.strip() if field == "title" else value)
     await session.commit()
     stats = await task_stats(session, [task], settings.tz, now.astimezone(settings.tz).date())

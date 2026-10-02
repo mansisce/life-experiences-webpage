@@ -14,7 +14,7 @@ from sqlalchemy import func, select
 from .. import schemas
 from ..deps import NowDep, SessionDep, SettingsDep
 from ..models import Activity, Area, Category, Reward, Suggestion, Task
-from ..services import is_overdue, reward_progress_map, task_stats
+from ..services import area_label, is_overdue, reward_progress_map, task_stats
 
 router = APIRouter(tags=["dashboard"])
 
@@ -36,6 +36,10 @@ async def dashboard_summary(
     category_by_id = {c.id: c for c in categories}
     task_by_id = {t.id: t for t in tasks}
 
+    def area_name(area_id: int) -> str:
+        area = area_by_id[area_id]
+        return area_label(area, category_by_id[area.category_id].name)
+
     activity_query = select(Activity.task_id, Activity.completed_at)
     if days:
         activity_query = activity_query.where(Activity.completed_at >= now - timedelta(days=days))
@@ -52,7 +56,7 @@ async def dashboard_summary(
             schemas.StreakRow(
                 task_id=t.id,
                 task_title=t.title,
-                area_name=area_by_id[t.area_id].name,
+                area_name=area_name(t.area_id),
                 category_id=area_by_id[t.area_id].category_id,
                 frequency=t.frequency,
                 current_streak=stats[t.id].current_streak,
@@ -72,7 +76,7 @@ async def dashboard_summary(
                 task_id=t.id,
                 task_title=t.title,
                 category_name=category_by_id[area_by_id[t.area_id].category_id].name,
-                area_name=area_by_id[t.area_id].name,
+                area_name=area_name(t.area_id),
                 due_at=t.due_at,
                 state="done" if stats[t.id].completion_count else "overdue" if is_overdue(t, now) else "upcoming",
                 silent=t.visibility == "silent",
@@ -113,7 +117,7 @@ async def dashboard_summary(
         completions_by_area=[
             schemas.AreaCompletions(
                 area_id=a.id,
-                area_name=a.name,
+                area_name=area_name(a.id),
                 category_id=a.category_id,
                 category_name=category_by_id[a.category_id].name,
                 completions=per_area[a.id],

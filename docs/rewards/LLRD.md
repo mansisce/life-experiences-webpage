@@ -393,6 +393,33 @@ A reward can start life as an **idea**: something you might get later, captured 
 - *Given* the user simply buys the book *when* they close the idea as *Bought* *then* it moves to *Closed* with today's date.
 - *Given* the Rewards tab filtered to "Shiragi" *then* only her ideas and rewards are shown.
 
+### LLR-13 Tiles without areas (HLR-13) ✅
+
+Some tiles have no natural sub-areas (D15). Such a tile holds its tasks, rewards and notes directly. Internally it keeps exactly one **hidden area**, so tasks, completions, rewards and notes work unchanged; every screen shows the tile in its place.
+
+| ID | Requirement | Status |
+|---|---|---|
+| LLR-13.1 | The tile form (new tile and ✎ edit) has a **Use areas** switch, on by default. `POST /categories` and `PATCH /categories/{id}` accept `useAreas`; every tile in `GET /categories` returns `useAreas`, and each area returns `hidden` | ✅ |
+| LLR-13.2 | Switching areas **off** is only possible while the tile has no areas; otherwise the switch is disabled with "move or delete its N areas first" and the API answers 409 (BR-R31) | ✅ |
+| LLR-13.3 | A tile without areas opens straight to **Tasks \| Rewards \| Notes & contacts** at `#/rewards/c/{tile}` (`/rewards`, `/details`), with the tile's name, icon and its ✎ / 🗑 buttons. Old links to its hidden area open the tile instead | ✅ |
+| LLR-13.4 | Tiles screen shows "N active tasks" without an area count; the Tasks, Rewards and Link screens, area pickers, search results and the dashboard show such tasks and rewards under the tile name alone (e.g. "💼 Career / Office / Work", never "› General") | ✅ |
+| LLR-13.5 | No areas can be added to, and the hidden area can't be renamed or deleted on, a tile without areas (409); the starter set never adds areas to it | ✅ |
+| LLR-13.6 | Switching areas back **on**: if the tile holds anything, its hidden area becomes a normal area called **General** with everything in it; if it's empty, it simply goes | ✅ |
+| LLR-13.7 | **Move a task**: the task's edit form has a *Tile or area* picker (`PATCH /tasks/{id}` with `areaId`). Completions, streaks and reward links move with it | ✅ |
+| LLR-13.8 | Existing data is kept: migration `0006_tile_without_areas` adds `areas.hidden` (false for every existing area), with a backup first | ✅ |
+
+**Business rules: tiles without areas**
+
+| ID | Rule |
+|---|---|
+| BR-R31 | A tile either uses areas or holds everything itself, never both. Areas can only be switched off on a tile with no areas, so nothing is hidden or lost by the switch |
+
+**AC-13 (your example)**
+- *Given* Career / Office / Work with areas switched off *when* the user opens it *then* the task list and an *Add a task* form are shown straight away, with no area step.
+- *Given* the Tasks screen *then* those tasks are grouped under "💼 Career / Office / Work", not under an area.
+- *Given* the Fun tile with 2 areas *when* the user edits it *then* *Use areas* can't be switched off and says to move or delete its 2 areas first.
+- *Given* the task "Micro-frontend Rewards Deployment" with 1 completion and a linked reward *when* it's moved to another tile *then* its completion and reward link stay.
+
 ---
 
 ## 4. Screen requirements (MFE)
@@ -462,6 +489,7 @@ Touch and accessibility: controls ≥ 44 px high (chips ≥ 36 px), inputs 16 px
 | LLR-1.1 (superseded) | — | replaced by `test_starter_set_contents` and the LLR-1.7 tests |
 | LLR-1.3–1.5 | `POST/PATCH/DELETE /areas` | `test_area_add_rename_delete` |
 | LLR-1.7–1.13; BR-R17–R19; LLR-8.10 | `/categories*` | `test_fresh_database_has_no_tiles`, `test_starter_set_is_idempotent`, `test_starter_set_fills_in_missing_areas_only`, `test_tile_crud_and_unique_names`, `test_new_tile_ids_stay_unique`, `test_reorder_tiles_and_areas`, `test_delete_tile_needs_typed_name_snapshots_and_cascades`, `test_restart_never_reseeds`, `test_upgrade_keeps_existing_tiles` |
+| LLR-13.1–13.8; BR-R31 | `/categories*`, `/areas*`, `PATCH /tasks/{id}` | `test_switch_off_areas_gives_the_tile_one_hidden_area`, `test_a_new_tile_can_start_without_areas`, `test_cannot_switch_off_while_the_tile_has_areas`, `test_tasks_on_a_tile_without_areas_show_the_tile_name`, `test_switching_areas_back_on`, `test_starter_set_leaves_a_tile_without_areas_alone`, `test_move_a_task_keeps_completions_and_reward_links`; tile screen, redirects and the switch verified in the browser |
 | LLR-12.1–12.9; BR-R27–R30; LLR-8.13 | `/rewards*` | `test_idea_needs_only_title`, `test_ideas_silent_by_default`, `test_idea_never_unlocks_or_counts`, `test_activate_idea_keeps_details_and_evaluates`, `test_close_and_reopen_idea`, `test_filter_by_for_whom`, `test_cover_photo_signed_link_and_cleanup`, `test_ideas_in_search`, `test_migration_defaults_existing_rewards` |
 | LLR-11.1–11.13; BR-R22–R26; LLR-8.12 | tasks, rewards, `/dashboard/summary` | `test_task_planning_fields_round_trip`, `test_overdue_rules`, `test_due_filters_milestones_and_sort`, `test_milestone_reward_needs_all_milestones`, `test_dashboard_overdue_and_milestones`, `test_migration_defaults_existing_tasks`; quiet completion and celebrations verified in the browser; ⏳ `test_silent_tasks_invisible_without_passcode` comes with the passcode |
 | LLR-10.1–10.12; BR-R20–R21; LLR-8.11 | details, files, `/search` | `test_details_grouped_by_topic_with_last_executive`, `test_tile_level_details_for_home_wide_services`, `test_contact_validation`, `test_edit_and_delete_items`, `test_file_upload_rules_and_signed_download`, `test_search_matches_names_topics_and_phone_digits`, `test_deleting_owner_removes_details_and_files`, `test_export_import_includes_details`; read-only view test comes with the passcode work |

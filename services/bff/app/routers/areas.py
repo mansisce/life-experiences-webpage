@@ -33,8 +33,19 @@ async def _ensure_unique_name(session, category_id: str, name: str, exclude_id: 
 
 def area_out(area: Area, counts: dict[int, int]) -> schemas.AreaOut:
     return schemas.AreaOut(
-        id=area.id, category_id=area.category_id, name=area.name, active_task_count=counts.get(area.id, 0)
+        id=area.id,
+        category_id=area.category_id,
+        name=area.name,
+        active_task_count=counts.get(area.id, 0),
+        hidden=area.hidden,
     )
+
+
+def _not_hidden(area: Area) -> None:
+    if area.hidden:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "This holds the tile's own tasks. Switch on areas for the tile to change it."
+        )
 
 
 @router.get("/areas/{area_id}", response_model=schemas.AreaDetail)
@@ -47,12 +58,15 @@ async def get_area(area_id: int, session: SessionDep):
         name=area.name,
         category=schemas.CategoryRef.model_validate(category),
         active_task_count=counts.get(area.id, 0),
+        hidden=area.hidden,
     )
 
 
 @router.post("/areas", response_model=schemas.AreaOut, status_code=status.HTTP_201_CREATED)
 async def create_area(body: schemas.AreaCreate, session: SessionDep):
-    await get_or_404(session, Category, body.category_id)
+    category = await get_or_404(session, Category, body.category_id)
+    if await session.scalar(select(Area.id).where(Area.category_id == category.id, Area.hidden)):
+        raise HTTPException(status.HTTP_409_CONFLICT, f"{category.name} doesn't use areas. Switch them on first.")
     name = body.name.strip()
     await _ensure_unique_name(session, body.category_id, name)
     next_order = await session.scalar(
@@ -67,6 +81,7 @@ async def create_area(body: schemas.AreaCreate, session: SessionDep):
 @router.patch("/areas/{area_id}", response_model=schemas.AreaOut)
 async def rename_area(area_id: int, body: schemas.AreaUpdate, session: SessionDep):
     area = await get_or_404(session, Area, area_id)
+    _not_hidden(area)
     name = body.name.strip()
     await _ensure_unique_name(session, area.category_id, name, exclude_id=area.id)
     area.name = name
@@ -79,6 +94,7 @@ async def delete_area(area_id: int, session: SessionDep, settings: SettingsDep):
     """Deletes the area and (via ON DELETE CASCADE) its tasks, activity, notes, contacts and files.
     Rewards scoped to the area widen to its tile (ON DELETE SET NULL, LLR-4.17)."""
     area = await get_or_404(session, Area, area_id)
+    _not_hidden(area)
     stored = await stored_names_under(session, area_ids=[area.id])
     await session.delete(area)
     await session.commit()

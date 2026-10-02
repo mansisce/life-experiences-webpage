@@ -10,7 +10,7 @@ from .. import schemas
 from ..deps import SessionDep, SettingsDep
 from ..migrate import backup_sqlite, sqlite_file
 from ..models import Activity, Area, Attachment, Category, Contact, Note, Reward, Task, reward_tasks
-from ..seed import add_starter_set, next_tile_order, slugify, unique_tile_id
+from ..seed import GENERAL_AREA, add_starter_set, next_tile_order, slugify, unique_tile_id
 from ..services import get_or_404
 from .areas import active_counts, area_out
 from .details import remove_stored_files, stored_names_under
@@ -36,8 +36,41 @@ def _check_complete_order(requested: list, current: list) -> None:
 
 def _category_out(category: Category, areas: list[Area], counts: dict[int, int]) -> schemas.CategoryOut:
     return schemas.CategoryOut(
-        id=category.id, name=category.name, icon=category.icon, areas=[area_out(a, counts) for a in areas]
+        id=category.id,
+        name=category.name,
+        icon=category.icon,
+        use_areas=not any(a.hidden for a in areas),
+        areas=[area_out(a, counts) for a in areas],
     )
+
+
+async def _holds_anything(session, area: Area) -> bool:
+    return any(
+        [
+            await session.scalar(select(func.count()).where(model.area_id == area.id))
+            for model in (Task, Reward, Note, Contact, Attachment)
+        ]
+    )
+
+
+async def _set_use_areas(session, category: Category, use_areas: bool) -> None:
+    """Off: the tile keeps one hidden area for its own tasks (only allowed with no areas, BR-R31).
+    On again: that hidden area becomes a normal area called "General", or goes if it's empty."""
+    areas = list(await session.scalars(select(Area).where(Area.category_id == category.id)))
+    hidden = next((a for a in areas if a.hidden), None)
+    if not use_areas:
+        if hidden is None and areas:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                f"{category.name} has {len(areas)} area{'s' if len(areas) > 1 else ''}. Move or delete them first.",
+            )
+        if hidden is None:
+            session.add(Area(category_id=category.id, name=GENERAL_AREA, hidden=True))
+    elif hidden is not None:
+        if await _holds_anything(session, hidden):
+            hidden.hidden = False
+        else:
+            await session.delete(hidden)
 
 
 @router.get("/categories", response_model=list[schemas.CategoryOut])
@@ -59,8 +92,13 @@ async def create_category(body: schemas.CategoryCreate, session: SessionDep):
         sort_order=await next_tile_order(session),
     )
     session.add(category)
+    areas = []
+    if not body.use_areas:
+        await session.flush()  # the tile must exist before its hidden area references it
+        areas = [Area(category_id=category.id, name=GENERAL_AREA, hidden=True)]
+        session.add_all(areas)
     await session.commit()
-    return _category_out(category, [], {})
+    return _category_out(category, areas, {})
 
 
 @router.post("/categories/starter", response_model=schemas.StarterResult)
@@ -89,6 +127,8 @@ async def update_category(category_id: str, body: schemas.CategoryUpdate, sessio
         category.name = name  # the id (used in links) never changes
     if body.icon is not None:
         category.icon = body.icon.strip()
+    if body.use_areas is not None:
+        await _set_use_areas(session, category, body.use_areas)
     await session.commit()
     areas = (
         await session.scalars(select(Area).where(Area.category_id == category.id).order_by(Area.sort_order, Area.id))
@@ -113,7 +153,7 @@ async def _delete_preview(session, category: Category) -> schemas.DeletePreview:
     task_ids = select(Task.id).where(Task.area_id.in_(area_ids))
     return schemas.DeletePreview(
         name=category.name,
-        areas=await session.scalar(select(func.count()).where(Area.category_id == category.id)),
+        areas=await session.scalar(select(func.count()).where(Area.category_id == category.id, ~Area.hidden)),
         tasks=await session.scalar(select(func.count()).where(Task.area_id.in_(area_ids))),
         completions=await session.scalar(select(func.count()).where(Activity.task_id.in_(task_ids))),
         rewards=await session.scalar(select(func.count()).where(Reward.category_id == category.id)),

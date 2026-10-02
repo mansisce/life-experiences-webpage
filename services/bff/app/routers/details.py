@@ -523,7 +523,8 @@ async def search(
     def owner_bits(item) -> tuple[str, str, str]:
         if item.area_id is not None:
             area = areas[item.area_id]
-            return "area", str(area.id), f"{categories[area.category_id].name} › {area.name}"
+            tile = categories[area.category_id].name
+            return "area", str(area.id), tile if area.hidden else f"{tile} › {area.name}"
         return "category", item.category_id, categories[item.category_id].name
 
     def like(*columns):

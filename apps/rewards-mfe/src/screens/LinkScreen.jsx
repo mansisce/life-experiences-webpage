@@ -67,7 +67,7 @@ export default function LinkScreen({ query = "" }) {
   // Both lists grouped by tile › area, in the same order as the Tasks and Rewards screens.
   const grouped = (items, toRow) =>
     groupByArea(items, tiles.data ?? [], (x) => x.areaId).flatMap((g) =>
-      g.items.map((x) => ({ ...toRow(x), group: g.area.id ? `${g.tileLabel} › ${g.area.name}` : g.area.name }))
+      g.items.map((x) => ({ ...toRow(x), group: g.title }))
     );
   const linksOf = (id) => rewards.data.filter((r) => r.tasks.some((t) => t.id === id));
   const taskRows = grouped(

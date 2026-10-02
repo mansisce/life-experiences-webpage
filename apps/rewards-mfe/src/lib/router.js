@@ -53,8 +53,10 @@ export function makeLinks(basePath) {
   const area = (id, tab = "") => `#${basePath}/a/${id}${tab && `/${tab}`}`;
   return {
     tiles: () => `#${basePath}`,
-    category: (id) => tile(id),
+    category: (id, tab = "") => tile(id, tab),
     area: (id) => area(id),
+    // An area's screen, or its tile's when it's the hidden area of a tile without areas (HLR-13).
+    place: (a, tab = "") => (a.hidden ? tile(a.categoryId, tab) : area(a.id, tab)),
     areaRewards: (id) => area(id, "rewards"),
     areaDetails: (id) => area(id, "details"),
     // Older tile-level notes and contacts open the tile, which no longer has its own tabs.
@@ -78,4 +80,9 @@ export function makeLinks(basePath) {
 
 export function navigate(href) {
   window.location.hash = href.replace(/^#/, "");
+}
+
+/** Like navigate, but replaces the current history entry, so Back doesn't bounce off a redirect. */
+export function redirect(href) {
+  window.location.replace(href);
 }

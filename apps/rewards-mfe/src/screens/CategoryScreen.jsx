@@ -4,6 +4,7 @@ import { useResource } from "../lib/useResource.js";
 import { Empty, Resource, ScreenHeader } from "../components/ui.jsx";
 import { AreaManager, useTileEditing } from "../components/manage.jsx";
 import { rewardCounts } from "../components/rewards.jsx";
+import AreaScreen from "./AreaScreen.jsx";
 
 /** A tile is just its areas; tasks, rewards and notes & contacts live inside each area. */
 function CategoryView({ category, onChanged }) {
@@ -26,11 +27,12 @@ function CategoryView({ category, onChanged }) {
       />
       {tileEditing.panel}
       <AreaManager tile={category} href={(a) => links.area(a.id)} subtitle={areaSubtitle} onChanged={onChanged} />
+      <p className="rw-muted">Don't need areas here? Edit the tile (✎) and switch off “Use areas” once it has none.</p>
     </section>
   );
 }
 
-export default function CategoryScreen({ categoryId }) {
+export default function CategoryScreen({ categoryId, tab = "main", query = "" }) {
   const { api } = useRewards();
   const categories = useResource(() => api.categories(), [api]);
 
@@ -39,6 +41,9 @@ export default function CategoryScreen({ categoryId }) {
       {(data) => {
         const category = data.find((c) => c.id === categoryId);
         if (!category) return <Empty title="Tile not found">It may have been removed. Go back to all tiles.</Empty>;
+        // A tile without areas opens straight to its tasks, rewards and notes (HLR-13).
+        const hidden = category.areas.find((a) => a.hidden);
+        if (hidden) return <AreaScreen key={hidden.id} areaId={hidden.id} tab={tab} query={query} tile={category} onTileChanged={categories.refresh} />;
         return <CategoryView category={category} onChanged={categories.refresh} />;
       }}
     </Resource>

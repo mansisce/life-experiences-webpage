@@ -244,7 +244,9 @@ def parent_epic(req_id: str) -> str:
             return "HLR-1"
         if n <= 21:
             return "HLR-10"
-        return "HLR-11" if n <= 26 else "HLR-12"
+        if n <= 26:
+            return "HLR-11"
+        return "HLR-12" if n <= 30 else "HLR-13"
     if req_id.startswith(("NFR-D", "HNFR")):
         return "Cross-cutting"
     return ""
