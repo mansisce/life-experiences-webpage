@@ -50,7 +50,10 @@ class Task(Base):
     title: Mapped[str] = mapped_column(String(200))
     notes: Mapped[str] = mapped_column(Text, default="")
     source: Mapped[str] = mapped_column(String(10), default="manual")  # ai | manual
+    # Legacy: kept for history and export, no longer shown or used for ordering (D16).
     priority: Mapped[str] = mapped_column(String(10), default="medium")  # high | medium | low
+    # The user's own order within the area: 0 = most important (BR-R32).
+    sort_order: Mapped[int] = mapped_column(default=0, server_default="0")
     frequency: Mapped[str] = mapped_column(String(10), default="weekly")  # daily | weekly | one_off
     status: Mapped[str] = mapped_column(String(10), default="active")  # active | done | archived
     relevance: Mapped[str] = mapped_column(String(15), default="relevant")  # relevant | not_relevant | ignore

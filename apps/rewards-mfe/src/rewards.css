@@ -130,6 +130,13 @@
 .rw-app .rw-row-actions { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
 .rw-app .rw-task--done .rw-row-main strong,
 .rw-app .rw-task--archived .rw-row-main strong { text-decoration: line-through; color: var(--rw-muted); }
+/* Drag to reorder (D16): the handle takes touch so the page doesn't scroll while dragging. */
+.rw-app .rw-drag {
+  flex-shrink: 0; width: 32px; min-height: var(--rw-tap); margin-left: -8px; padding: 0; border: 0; background: none;
+  color: var(--rw-muted); font-size: 1.2rem; cursor: grab; touch-action: none; border-radius: 8px;
+}
+.rw-app .rw-drag:focus-visible { outline: 2px solid var(--rw-accent); }
+.rw-app .rw-task.is-dragging { position: relative; z-index: 2; box-shadow: 0 8px 24px rgb(0 0 0 / 0.15); cursor: grabbing; }
 
 /* ── Cards & forms ───────────────────────────────────────── */
 .rw-app .rw-card { background: var(--rw-card); border: 1px solid var(--rw-line); border-radius: var(--rw-radius); padding: 16px; margin-bottom: 12px; }
@@ -144,7 +151,6 @@
 }
 .rw-app textarea { resize: vertical; }
 .rw-app .rw-row-actions .rw-select { width: auto; min-height: 36px; padding: 4px 8px; font-size: 14px; }
-.rw-app .rw-select--high { border-color: var(--rw-danger); }
 .rw-app .rw-number { display: flex; align-items: center; gap: 8px; font-weight: 700; }
 .rw-app .rw-number input { width: 96px; }
 
@@ -170,7 +176,6 @@
 
 /* ── Badges, stats, progress ─────────────────────────────── */
 .rw-app .rw-badge { font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--rw-band); }
-.rw-app .rw-badge--high { background: #f6e0da; color: var(--rw-danger); }
 .rw-app .rw-streak { font-size: 0.9rem; font-weight: 700; white-space: nowrap; }
 .rw-app .rw-streak small { font-weight: 400; color: var(--rw-muted); }
 

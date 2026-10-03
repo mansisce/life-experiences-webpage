@@ -4,7 +4,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, HTTPException, Query, status
-from sqlalchemy import case, select
+from sqlalchemy import func, select
 
 from .. import schemas
 from ..deps import NowDep, SessionDep, SettingsDep
@@ -23,7 +23,11 @@ from ..services import (
 router = APIRouter(tags=["tasks"])
 
 CLEARABLE = {"due_at", "target_days"}  # optional planning fields can be removed again
-PRIORITY_ORDER = case({"high": 0, "medium": 1, "low": 2}, value=Task.priority, else_=3)
+
+
+async def _last_position(session, area_id: int) -> int:
+    """New and moved tasks go to the bottom of the area's order (LLR-2.1, LLR-2.13)."""
+    return await session.scalar(select(func.coalesce(func.max(Task.sort_order), -1) + 1).where(Task.area_id == area_id))
 
 
 def local_to_utc(value: datetime | None, tz) -> datetime | None:
@@ -39,20 +43,17 @@ async def list_tasks(
     session: SessionDep,
     settings: SettingsDep,
     now: NowDep,
-    priority: schemas.Priority | None = None,
     # Named `status_` so it doesn't shadow fastapi's `status` module; clients still send ?status=
     status_: Annotated[schemas.TaskStatus | None, Query(alias="status")] = None,
     relevance: schemas.Relevance | None = None,
     milestone: bool | None = None,
     due: Literal["overdue", "today", "week"] | None = None,
-    sort: Literal["priority", "due"] = "priority",
+    sort: Literal["order", "due"] = "order",
 ):
-    """Filter with ?priority=high&status=active&relevance=relevant&milestone=true&due=overdue|today|week.
-    Sorted high -> low priority, or ?sort=due for soonest due first (no due date last)."""
+    """Filter with ?status=active&relevance=relevant&milestone=true&due=overdue|today|week.
+    In the user's order (BR-R32), or ?sort=due for soonest due first (no due date last)."""
     await get_or_404(session, Area, area_id)
     query = select(Task).where(Task.area_id == area_id)
-    if priority:
-        query = query.where(Task.priority == priority)
     if status_:
         query = query.where(Task.status == status_)
     if relevance:
@@ -67,8 +68,8 @@ async def list_tasks(
         else:
             end = local_midnight + timedelta(days=1 if due == "today" else 7)
             query = query.where(Task.due_at >= local_midnight, Task.due_at < end)
-    order = (Task.due_at.is_(None), Task.due_at, PRIORITY_ORDER) if sort == "due" else (PRIORITY_ORDER,)
-    tasks = (await session.scalars(query.order_by(*order, Task.created_at))).all()
+    order = (Task.due_at.is_(None), Task.due_at, Task.sort_order) if sort == "due" else (Task.sort_order,)
+    tasks = (await session.scalars(query.order_by(*order, Task.id))).all()
     stats = await task_stats(session, tasks, settings.tz, now.astimezone(settings.tz).date())
     return [to_task_out(t, stats[t.id], now) for t in tasks]
 
@@ -84,7 +85,7 @@ async def list_all_tasks(
     query = select(Task, Area, Category.name).join(Area, Area.id == Task.area_id).join(Category)
     if status_:
         query = query.where(Task.status == status_)
-    rows = (await session.execute(query.order_by(Area.category_id, Area.sort_order, PRIORITY_ORDER, Task.id))).all()
+    rows = (await session.execute(query.order_by(Area.category_id, Area.sort_order, Task.sort_order, Task.id))).all()
     stats = await task_stats(session, [task for task, *_ in rows], settings.tz, now.astimezone(settings.tz).date())
     return [
         schemas.TaskWithArea(
@@ -96,10 +97,33 @@ async def list_all_tasks(
     ]
 
 
+@router.put("/areas/{area_id}/tasks/order", response_model=list[schemas.TaskOut])
+async def reorder_tasks(
+    area_id: int, body: schemas.OrderUpdate, session: SessionDep, settings: SettingsDep, now: NowDep
+):
+    """Drag to reorder (LLR-2.5): `ids` lists every active task of the area once, most important first.
+    Done and archived tasks keep their places in between (LLR-2.13). Returns the active tasks in order."""
+    await get_or_404(session, Area, area_id)
+    tasks = (await session.scalars(select(Task).where(Task.area_id == area_id).order_by(Task.sort_order, Task.id))).all()
+    active = {t.id: t for t in tasks if t.status == "active"}
+    if len(body.ids) != len(set(body.ids)) or {str(i) for i in body.ids} != {str(i) for i in active}:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_CONTENT, "ids must list every active task of the area exactly once"
+        )
+    reordered = iter(active[int(i)] for i in body.ids)
+    # Active tasks take the active slots in the new order; the others stay where they are.
+    for position, task in enumerate(next(reordered) if t.status == "active" else t for t in tasks):
+        task.sort_order = position
+    await session.commit()
+    ordered = sorted(active.values(), key=lambda t: t.sort_order)
+    stats = await task_stats(session, ordered, settings.tz, now.astimezone(settings.tz).date())
+    return [to_task_out(t, stats[t.id], now) for t in ordered]
+
+
 @router.post("/areas/{area_id}/tasks", response_model=schemas.TaskOut, status_code=status.HTTP_201_CREATED)
 async def create_task(area_id: int, body: schemas.TaskCreate, session: SessionDep, settings: SettingsDep, now: NowDep):
     await get_or_404(session, Area, area_id)
-    task = Task(area_id=area_id, source="manual", **body.model_dump())
+    task = Task(area_id=area_id, source="manual", sort_order=await _last_position(session, area_id), **body.model_dump())
     task.title = task.title.strip()
     task.due_at = local_to_utc(body.due_at, settings.tz)
     session.add(task)
@@ -148,8 +172,9 @@ async def update_task(
             raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, f"{field} cannot be null")
         if field == "due_at":
             value = local_to_utc(value, settings.tz)
-        if field == "area_id":
+        if field == "area_id" and value != task.area_id:
             await get_or_404(session, Area, value)  # moving keeps its completions and reward links
+            task.sort_order = await _last_position(session, value)
         setattr(task, field, value.strip() if field == "title" else value)
     await session.commit()
     stats = await task_stats(session, [task], settings.tz, now.astimezone(settings.tz).date())

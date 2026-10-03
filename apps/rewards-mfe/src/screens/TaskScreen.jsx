@@ -15,7 +15,6 @@ import {
   formatWhen,
   FREQUENCIES,
   Loading,
-  PRIORITIES,
   ProgressBar,
   RELEVANCE,
   Resource,
@@ -283,8 +282,6 @@ export default function TaskScreen({ taskId }) {
 
           <div className="rw-card rw-form" aria-busy={busy}>
             <h3>Settings</h3>
-            <span className="rw-field-label">Priority</span>
-            <Chips label="Priority" options={PRIORITIES} value={t.priority} onChange={(priority) => update({ priority })} />
             <span className="rw-field-label">Frequency</span>
             <Chips label="Frequency" options={FREQUENCIES} value={t.frequency} onChange={(frequency) => update({ frequency })} />
             <span className="rw-field-label">Status</span>

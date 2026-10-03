@@ -234,6 +234,8 @@ def parent_epic(req_id: str) -> str:
         return f"HLR-{major}"
     if m := re.match(r"^BR-R(\d+)$", req_id):
         n = int(m[1])
+        if n == 32:
+            return "HLR-2"
         if n <= 6:
             return "HLR-3"
         if n <= 11:

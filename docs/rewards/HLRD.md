@@ -53,6 +53,7 @@ This capstone replaces it with a **Rewards microfrontend**:
 | D13 | PO review (2026-09-29) | Some tasks are big checkpoints (milestones), some have a deadline or a planned length in days, and some are private: they shouldn't be shown or celebrated publicly | Tasks gain milestone, announce/silent, due date/time and days-to-complete; milestones can unlock rewards (HLR-11) |
 | D14 | PO review (2026-09-29) | Reward ideas come up at random moments (e.g. spotting "101 Hilarious Jokes" for Shiragi while browsing the library), before any rule or task exists; some rewards are for someone else (Shiragi), not for the user | Rewards get an **Idea** stage (capture now, add a rule later, or mark bought/dropped) and a **For whom** label (HLR-12) |
 | D15 | PO review (2026-10-02) | Some parts of life have no natural sub-areas: in Career / Office / Work, things like "Connect with Amex Project - BA" are tasks, not places, so an extra area level only adds taps | A tile can switch **areas off** and hold its tasks, rewards and notes directly (HLR-13) |
+| D16 | PO review (2026-10-03) | Three priority levels are too coarse: within "High" there is still a most and a least important task, and choosing a level for every task is friction | Tasks are **dragged into order**: top = most important, bottom = least. The order replaces High/Med/Low; new tasks start at the bottom (HLR-2) |
 | D10 | PO review of MVP (2026-09-28) | Rewards float free of the tile/area structure: a reward can be tagged to any task anywhere, so it isn't clear which part of life a reward belongs to | Rewards use the **same tiles and areas** as tasks, and are matched to tasks inside that scope (HLR-9) |
 
 ### 2.4 Assumptions
@@ -160,7 +161,7 @@ flowchart LR
 | G3 | Streaks | Daily streak per goal | Per-task streak in days or weeks; current + best; backfill-safe | Replace |
 | G4 | Reward rules | Goal/milestone-bound | Tag to many tasks; *N completions* or *streak of N*; auto-unlock; claim | Replace |
 | G4b | Reward taxonomy | 6 goal categories, separate from anything else | Rewards share the task taxonomy: a tile (required) and optionally one area; tasks and rewards are matched within that scope | New |
-| G5 | Prioritisation | None | High/Med/Low; filter by priority, status, relevance | New |
+| G5 | Prioritisation | None | Drag tasks into your own order (top = most important); filter by status, relevance, milestone, due | New |
 | G6 | AI assistance | None | Photo → suggested tasks with human approval | New (post-MVP) |
 | G7 | Insights | 3 summary cards | Dashboard: by tile/area/day, streaks, reward progress, AI acceptance | New |
 | G8 | Delivery | Bundled into host | Independently built and deployed MFE; host fallback | Re-architect |
@@ -185,6 +186,7 @@ flowchart LR
 | T3e | Task planning and visibility: milestones, due date/time, days to complete, announce/silent (HLR-11) | ✅ (branch; hiding silent tasks from visitors comes with hosting) |
 | T3f | Reward ideas and wishlist, "For whom" on rewards (HLR-12) | ✅ (branch; hiding private ideas from visitors comes with hosting) |
 | T3g | Tiles without areas (HLR-13), shipped as a data-preserving migration (`0006_tile_without_areas`) | ✅ (branch) |
+| T3h | Drag tasks into order instead of High/Med/Low (HLR-2 revision, D16), with a data-preserving migration (`0007_task_order`) that keeps today's order | ✅ (branch) |
 | T4 | Deploy the MFE + BFF; set the host's remote URL; merge to `main` | ⏳ |
 | T5 | Integration services: vision → events/outbox → reminders | ⏳ |
 | T6 | Mobile BFF surface; Android client | ⏳ future |
@@ -221,7 +223,7 @@ No data migration from Neo4j is planned. The old feature held no production data
 | ID | Epic | Summary | Traces to (LLRD) | MVP |
 |---|---|---|---|---|
 | HLR-1 | Tiles & areas | User-managed tiles and areas (create, edit, reorder, delete); empty start with an optional starter set | LLR-1.x | ✅ |
-| HLR-2 | Task management | Create, prioritise, filter, change status/frequency/relevance | LLR-2.x | ✅ |
+| HLR-2 | Task management | Create, order by importance (drag; top = most important), filter, change status/frequency/relevance | LLR-2.x | ✅ |
 | HLR-3 | Completion & streaks | Log completions with note/backfill; activity log; current/best streak | LLR-3.x | ✅ |
 | HLR-4 | Rewards | Create, tag, progress, auto-unlock, claim | LLR-4.1–4.8 | ✅ |
 | HLR-9 | Reward scope and matching | Rewards live in the same tiles and areas as tasks; tasks are matched to rewards inside that scope (selected tasks, or all tasks in scope); existing rewards migrated without data loss | LLR-4.9–4.18 | ✅ |
@@ -287,3 +289,4 @@ The MVP is accepted when the demo runs without manual workarounds:
 10. (HLR-11) A milestone task "Finish React course" (due 31 Oct 2026, 18:00; 30 days to complete) shows its 🏁 badge and due chip; a reward with the rule "milestone completed" unlocks when it's done, with the milestone celebration. A silent task doesn't appear in the read-only view and completes without a toast.
 11. (HLR-12) At the library, capture the idea "101 Hilarious Jokes" for Shiragi with a cover photo in two taps; later turn it into a reward that unlocks when Shiragi's "Read 20 minutes" task reaches a 7-day streak. The idea stays hidden from the read-only view until then.
 12. (HLR-13) Career / Office / Work has areas switched off: opening it shows its tasks straight away ("Connect with Amex Project - BA", "Learning", …), and a new task is added right there with no area to pick.
+13. (HLR-2, D16) In Household › Kitchen, drag "Wipe the counters" from the bottom to the top: it stays first after a reload, on the phone too, and appears first under Kitchen on the Tasks screen. A newly added task appears at the bottom.

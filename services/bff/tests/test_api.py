@@ -73,17 +73,15 @@ def test_area_add_rename_delete(client):
 # ── Tasks ───────────────────────────────────────────────────────────────────────
 
 
-def test_create_filter_and_reprioritise_tasks(client):
+def test_create_filter_and_order_tasks(client):
     kitchen = area_id(client, "household", "Kitchen")
     low = make_task(client, kitchen, title="Descale kettle", priority="low", frequency="one_off")
     high = make_task(client, kitchen, title="Wipe counters", priority="high")
     assert low["source"] == "manual" and low["relevance"] == "relevant" and low["currentStreak"] == 0
 
+    # The user's order, not priority: new tasks go last (D16, BR-R32).
     titles = [t["title"] for t in client.get(f"/areas/{kitchen}/tasks").json()]
-    assert titles == ["Wipe counters", "Descale kettle"]  # high priority first
-
-    assert client.patch(f"/tasks/{low['id']}", json={"priority": "high"}).json()["priority"] == "high"
-    assert [t["id"] for t in client.get(f"/areas/{kitchen}/tasks?priority=low").json()] == []
+    assert titles == ["Descale kettle", "Wipe counters"]
 
     client.patch(f"/tasks/{high['id']}", json={"status": "archived"})
     active = client.get(f"/areas/{kitchen}/tasks", params={"status": "active"}).json()

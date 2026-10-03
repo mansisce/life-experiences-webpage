@@ -121,22 +121,35 @@ Conventions: **LLR** = detailed functional requirement · **BR-R** = business ru
 
 | ID | Requirement | Status |
 |---|---|---|
-| LLR-2.1 | Create a task with title (1–200 characters, required), notes (≤ 2000), priority (high/medium/low, default medium) and frequency (daily/weekly/one_off, default weekly). Source = manual; status = active; relevance = relevant | ✅ |
-| LLR-2.2 | After creating a task, the form keeps the chosen priority and frequency for the next entry and clears the title and notes | 🟡 |
-| LLR-2.3 | An area's task list is sorted by priority (high → low), then by creation time | ✅ |
-| LLR-2.4 | Filter by priority, status and relevance, singly or combined. The default view is status = active | ✅ |
-| LLR-2.5 | Reprioritise from the list (inline select) or from task detail | ✅ |
+| LLR-2.1 | Create a task with title (1–200 characters, required), notes (≤ 2000) and frequency (daily/weekly/one_off, default weekly). Source = manual; status = active; relevance = relevant. **No priority is asked for**: a new task goes to the **bottom** of its area's list (D16, BR-R32) | ✅ |
+| LLR-2.2 | After creating a task, the form keeps the chosen frequency for the next entry and clears the title and notes | 🟡 |
+| LLR-2.3 | An area's (or a tile without areas') task list is in the **user's own order**: top = most important, bottom = least (BR-R32) | ✅ |
+| LLR-2.4 | Filter by status, relevance, milestone and due (overdue / today / this week), singly or combined. The default view is status = active. The priority filter is removed | ✅ |
+| LLR-2.5 | **Drag to reorder**: each task row has a ⠿ handle that works with mouse and touch (phone); the new order is saved at once (`PUT /areas/{id}/tasks/order`). Keyboard and screen-reader users get *Move up* / *Move down* on the handle (arrow keys). Replaces the inline High/Med/Low select | ✅ |
 | LLR-2.6 | Change frequency, status (active/done/archived) and relevance from task detail | ✅ |
 | LLR-2.7 | An empty list says "No tasks yet" with the default filter and "No tasks match these filters" otherwise | 🟡 |
 | LLR-2.8 | Null values in updates are rejected (422); unknown enum values are rejected (422) | ✅ |
 | LLR-2.9 | A cross-area list of active tasks, grouped by area, is available for the reward task picker | ✅ |
+| LLR-2.11 | Dragging is available only in the default view (active tasks, no filters, *My order*). With a filter or *Sort by due date* on, the list shows a note "Clear filters to reorder" and has no handles, so the saved order is never changed by accident | ✅ |
+| LLR-2.12 | The order is shared by every list of the area's tasks: the area tab, the **Tasks** screen (each area group in its own order, areas in tile › area order) and the **Link** screen's task picker | ✅ |
+| LLR-2.13 | A task **moved** to another tile or area (LLR-13.7) goes to the bottom there. A done or archived task keeps its place; if reactivated it reappears where it was | ✅ |
+| LLR-2.14 | **Existing data is kept**: migration adds `tasks.sort_order`, initialised per area from today's order (priority high → low, then creation time), with a backup first. The old priority value stays in the database and the JSON export but is no longer shown or used | ✅ |
 | LLR-2.10 | **Edit a task** from task detail (✎): title and notes. **Delete a task** (🗑) after a confirmation that names its completion count; its completions and reward tags go with it, the rewards themselves stay (`DELETE /tasks/{id}`) | ✅ |
 
-**AC-2.3**
-- *Given* a low-priority task created before a high-priority one *when* the list loads *then* the high one is first.
+**AC-2.3 / 2.5 (D16)**
+- *Given* tasks A, B, C in that order *when* the user drags C above A *then* the list shows C, A, B, and still does after a reload and on another device.
+- *Given* the same area *when* the user adds task D *then* D is last.
+- *Given* *Sort by due date* is on *then* there are no drag handles and the saved order is unchanged.
+- *Given* an existing area whose tasks were High, Low, Medium (created in that order) *when* the migration runs *then* the order is High, Medium, Low.
 
 **AC-2.4**
 - *Given* one task is archived *when* filtering status = active *then* only the other task shows.
+
+**Business rules: task order (D16)**
+
+| ID | Rule |
+|---|---|
+| BR-R32 | Each area (or tile without areas) has one task order, set only by the user: top = most important. Nothing reorders tasks automatically: not adding (goes last), completing, editing, filtering or sorting by due date. A reorder must list every active task of the area exactly once |
 
 ### LLR-3 Completion, activity log and streaks (HLR-3)
 
@@ -429,7 +442,7 @@ Some tiles have no natural sub-areas (D15). Such a tile holds its tasks, rewards
 | Tiles | Tiles: icon, name, area count, active task count; "Edit tiles" mode (↑ ↓ ✎ 🗑, "+ New tile", "Add suggested tiles"); search box (LLR-10.9) | loading, error+retry; empty: "Create your first tile" + "Add suggested tiles" | open tile; create, edit, reorder, delete tile (typed-name dialog) |
 | Tile (category) | Breadcrumb; areas with active count; tabs *Areas* / *Notes & contacts* | loading, error, empty ("No areas yet"), not found | add, rename (inline), reorder (↑ ↓), delete (confirm) area; edit or delete this tile; tile-level notes, contacts, files |
 | Notes & contacts (tab on tile and area) | Topic groups ("General" last); per topic: last executive, contacts (role, organisation, phones with Call / WhatsApp / Copy), files (thumbnail or PDF icon, date, amount), notes | loading, error, empty ("No notes or contacts yet"), read-only (no edit controls) | add note, contact, file; edit, delete, change topic |
-| Area | Breadcrumb; active count; add form (⏳ with **More options**: milestone, announce/silent, due date and time, days to complete); filters (collapsible; ⏳ milestones, overdue/due today/this week, sort by due); task rows (title, frequency, source, status, streak 🔥, priority select, ✓; ⏳ 🏁 milestone, due chip, 🔕 silent); ⏳ "Rewards you can earn here" (matching rewards with progress) | loading, error, "No tasks yet" / "No tasks match these filters"; ⏳ "No rewards for this area yet" + create link prefilled with this scope | add task, filter, reprioritise, quick complete, open task; ⏳ create reward for this area |
+| Area | Breadcrumb; active count; add form (⏳ with **More options**: milestone, announce/silent, due date and time, days to complete); filters (collapsible; ⏳ milestones, overdue/due today/this week, sort by due); task rows (⠿ drag handle; title, frequency, source, status, streak 🔥, ✓; ⏳ 🏁 milestone, due chip, 🔕 silent); ⏳ "Rewards you can earn here" (matching rewards with progress) | loading, error, "No tasks yet" / "No tasks match these filters"; ⏳ "No rewards for this area yet" + create link prefilled with this scope | add task, filter, drag to reorder, quick complete, open task; ⏳ create reward for this area |
 | Task | Breadcrumb; stats (current, best, completions); log completion (when + note); matching rewards (tagged, or ⏳ "Counts automatically") + tag select limited to in-scope rewards; settings chips; activity log | loading, error, "No completions yet", inactive-task notice | complete, tag reward, change settings |
 | Rewards | Status filter (⏳ plus *Ideas* and *Closed*); ⏳ for-whom filter; ⏳ "+ Idea" quick capture; ⏳ idea cards (photo, title, for whom, where seen, *Turn into reward*, *Bought*, *Dropped*); ⏳ tile and area filters; create form (⏳ tile → area → match mode, then task picker limited to scope, grouped by area); cards: image, title, ⏳ scope breadcrumb + match mode, status, rule, progress, tags | loading, error, empty per filter; ⏳ *Needs a tile* badge | create, claim, edit tasks, ⏳ change scope (locked only) |
 
@@ -493,7 +506,8 @@ Touch and accessibility: controls ≥ 44 px high (chips ≥ 36 px), inputs 16 px
 | LLR-12.1–12.9; BR-R27–R30; LLR-8.13 | `/rewards*` | `test_idea_needs_only_title`, `test_ideas_silent_by_default`, `test_idea_never_unlocks_or_counts`, `test_activate_idea_keeps_details_and_evaluates`, `test_close_and_reopen_idea`, `test_filter_by_for_whom`, `test_cover_photo_signed_link_and_cleanup`, `test_ideas_in_search`, `test_migration_defaults_existing_rewards` |
 | LLR-11.1–11.13; BR-R22–R26; LLR-8.12 | tasks, rewards, `/dashboard/summary` | `test_task_planning_fields_round_trip`, `test_overdue_rules`, `test_due_filters_milestones_and_sort`, `test_milestone_reward_needs_all_milestones`, `test_dashboard_overdue_and_milestones`, `test_migration_defaults_existing_tasks`; quiet completion and celebrations verified in the browser; ⏳ `test_silent_tasks_invisible_without_passcode` comes with the passcode |
 | LLR-10.1–10.12; BR-R20–R21; LLR-8.11 | details, files, `/search` | `test_details_grouped_by_topic_with_last_executive`, `test_tile_level_details_for_home_wide_services`, `test_contact_validation`, `test_edit_and_delete_items`, `test_file_upload_rules_and_signed_download`, `test_search_matches_names_topics_and_phone_digits`, `test_deleting_owner_removes_details_and_files`, `test_export_import_includes_details`; read-only view test comes with the passcode work |
-| LLR-2.1, 2.3–2.5, 2.8, 2.9 | `POST /areas/{id}/tasks`, `GET /areas/{id}/tasks`, `PATCH /tasks/{id}`, `GET /tasks` | `test_create_filter_and_reprioritise_tasks` |
+| LLR-2.1, 2.3–2.5, 2.8, 2.9 | `POST /areas/{id}/tasks`, `GET /areas/{id}/tasks`, `PATCH /tasks/{id}`, `GET /tasks` | `test_create_filter_and_order_tasks` |
+| LLR-2.11–2.14; BR-R32 | `PUT /areas/{id}/tasks/order`, `GET /areas/{id}/tasks`, `GET /tasks` | `test_new_task_goes_last`, `test_reorder_needs_every_active_task_once`, `test_done_tasks_keep_their_place`, `test_completing_editing_and_due_sort_never_reorder`, `test_order_shared_by_area_and_tasks_lists`, `test_moved_task_goes_last`, `test_migration_keeps_priority_order`; mouse drag, keyboard reorder and the due-date view verified in the browser |
 | LLR-2.10 | `PATCH /tasks/{id}`, `DELETE /tasks/{id}` | `test_edit_and_delete_task` |
 | LLR-3.1, 3.6, 3.7; BR-R2–R4 | `POST /tasks/{id}/complete`, `GET /tasks/{id}/activity`, `GET /tasks/{id}` | `test_completions_build_streak_and_activity_log`, `test_daily_streak`, `test_weekly_streak` |
 | LLR-3.3–3.5; BR-R4, R5 | `POST /tasks/{id}/complete` | `test_completion_rules`, `test_one_off_streak_is_done_or_not` |

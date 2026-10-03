@@ -1,10 +1,5 @@
 import { useState } from "react";
 
-export const PRIORITIES = [
-  ["high", "High"],
-  ["medium", "Med"],
-  ["low", "Low"],
-];
 export const FREQUENCIES = [
   ["daily", "Daily"],
   ["weekly", "Weekly"],
@@ -59,10 +54,6 @@ export function Resource({ resource, loadingLabel, children }) {
   if (resource.loading && resource.data === undefined) return <Loading label={loadingLabel} />;
   if (resource.error && resource.data === undefined) return <ErrorState error={resource.error} onRetry={resource.reload} />;
   return children(resource.data);
-}
-
-export function PriorityBadge({ priority }) {
-  return <span className={`rw-badge rw-badge--${priority}`}>{labelOf(PRIORITIES, priority)}</span>;
 }
 
 export function StreakBadge({ current, best }) {

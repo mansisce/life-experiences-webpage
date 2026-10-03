@@ -74,6 +74,8 @@ export function createApi({ baseUrl, token }) {
     deleteArea: (id) => request("DELETE", `/areas/${id}`),
 
     areaTasks: (areaId, filters = {}) => request("GET", `/areas/${areaId}/tasks${query(filters)}`),
+    // Every active task of the area, most important first (D16).
+    reorderTasks: (areaId, ids) => request("PUT", `/areas/${areaId}/tasks/order`, { ids }),
     allTasks: (filters = {}) => request("GET", `/tasks${query(filters)}`),
     createTask: (areaId, task) => request("POST", `/areas/${areaId}/tasks`, task),
     task: (id) => request("GET", `/tasks/${id}`),

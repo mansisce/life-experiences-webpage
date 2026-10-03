@@ -1,4 +1,7 @@
 import { useState } from "react";
+import { closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { useRewards } from "../context.js";
 import { navigate, redirect } from "../lib/router.js";
 import { useResource } from "../lib/useResource.js";
@@ -15,8 +18,6 @@ import {
   FREQUENCIES,
   labelOf,
   Loading,
-  PRIORITIES,
-  PriorityBadge,
   RELEVANCE,
   Resource,
   ScreenHeader,
@@ -26,9 +27,9 @@ import {
   useAction,
 } from "../components/ui.jsx";
 
-const EMPTY_TASK = { title: "", notes: "", priority: "medium", frequency: "weekly", isMilestone: false, visibility: "announced", dueAt: "", targetDays: "" };
+const EMPTY_TASK = { title: "", notes: "", frequency: "weekly", isMilestone: false, visibility: "announced", dueAt: "", targetDays: "" };
 // Default view shows active tasks; that alone doesn't count as "filtered" for the empty state.
-const DEFAULT_FILTERS = { priority: "", status: "active", relevance: "", milestone: "", due: "", sort: "priority" };
+const DEFAULT_FILTERS = { status: "active", relevance: "", milestone: "", due: "", sort: "order" };
 const MILESTONE_FILTER = [["true", "🏁 Milestones only"]];
 const DUE_FILTERS = [
   ["overdue", "Overdue"],
@@ -36,7 +37,7 @@ const DUE_FILTERS = [
   ["week", "Due this week"],
 ];
 const SORTS = [
-  ["priority", "By priority"],
+  ["order", "My order"],
   ["due", "By due date"],
 ];
 
@@ -58,7 +59,7 @@ function AddTaskForm({ areaId, onCreated }) {
     };
     const created = await run(() => api.createTask(areaId, body), "Task added");
     if (created) {
-      setTask((t) => ({ ...EMPTY_TASK, priority: t.priority, frequency: t.frequency, visibility: t.visibility }));
+      setTask((t) => ({ ...EMPTY_TASK, frequency: t.frequency, visibility: t.visibility }));
       setShowNotes(false);
       onCreated(created);
     }
@@ -75,8 +76,6 @@ function AddTaskForm({ areaId, onCreated }) {
           + Add notes
         </button>
       )}
-      <span className="rw-field-label">Priority</span>
-      <Chips label="Priority" options={PRIORITIES} value={task.priority} onChange={set("priority")} />
       <span className="rw-field-label">How often</span>
       <Chips label="Frequency" options={FREQUENCIES} value={task.frequency} onChange={set("frequency")} />
       {showMore ? (
@@ -93,7 +92,9 @@ function AddTaskForm({ areaId, onCreated }) {
   );
 }
 
-function TaskRow({ task, onChanged }) {
+/** One task. With `sortable`, a ⠿ handle drags it (mouse, touch, or keyboard: Space, arrows, Space). */
+function TaskRow({ task, onChanged, sortable }) {
+  const drag = useSortable({ id: task.id, disabled: !sortable });
   const { api, links, toast, completed } = useRewards();
   const [busy, run] = useAction(toast);
 
@@ -104,12 +105,18 @@ function TaskRow({ task, onChanged }) {
       onChanged();
     }
   };
-  const reprioritise = async (priority) => {
-    if (await run(() => api.updateTask(task.id, { priority }))) onChanged();
-  };
 
   return (
-    <li className={`rw-row rw-task rw-task--${task.status}`}>
+    <li
+      ref={drag.setNodeRef}
+      style={{ transform: CSS.Transform.toString(drag.transform), transition: drag.transition }}
+      className={`rw-row rw-task rw-task--${task.status}${drag.isDragging ? " is-dragging" : ""}`}
+    >
+      {sortable && (
+        <button type="button" className="rw-drag" aria-label={`Reorder ${task.title}`} {...drag.attributes} {...drag.listeners}>
+          ⠿
+        </button>
+      )}
       <a className="rw-row-main" href={links.task(task.id)}>
         <strong>{task.title}</strong>
         <small>
@@ -123,16 +130,6 @@ function TaskRow({ task, onChanged }) {
       </a>
       <div className="rw-row-actions">
         <StreakBadge current={task.currentStreak} best={task.bestStreak} />
-        <label className="rw-sr-only" htmlFor={`prio-${task.id}`}>
-          Priority
-        </label>
-        <select id={`prio-${task.id}`} className={`rw-select rw-select--${task.priority}`} value={task.priority} disabled={busy} onChange={(e) => reprioritise(e.target.value)}>
-          {PRIORITIES.map(([v, text]) => (
-            <option key={v} value={v}>
-              {text}
-            </option>
-          ))}
-        </select>
         {task.status === "active" && (
           <button type="button" className="rw-btn rw-btn--done" disabled={busy} onClick={complete} aria-label={`Mark ${task.title} done`}>
             ✓
@@ -143,26 +140,53 @@ function TaskRow({ task, onChanged }) {
   );
 }
 
+const isDefaultView = (f) => Object.keys(DEFAULT_FILTERS).every((k) => f[k] === DEFAULT_FILTERS[k]);
+
+/** The area's tasks in the user's order: top = most important (D16). Drag only in the default view (LLR-2.11). */
 function TaskList({ areaId, filters, reloadKey, onCompleted }) {
-  const { api } = useRewards();
+  const { api, toast } = useRewards();
   const tasks = useResource(
     () => api.areaTasks(areaId, filters),
-    [api, areaId, filters.priority, filters.status, filters.relevance, filters.milestone, filters.due, filters.sort, reloadKey]
+    [api, areaId, filters.status, filters.relevance, filters.milestone, filters.due, filters.sort, reloadKey]
+  );
+  const [pendingIds, setPendingIds] = useState(null); // shown while a new order is being saved
+  const [, run] = useAction(toast);
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
   );
 
   if (tasks.loading && tasks.data === undefined) return <Loading label="Loading tasks…" />;
   if (tasks.error && tasks.data === undefined) return <ErrorState error={tasks.error} onRetry={tasks.reload} />;
-  const filtered =
-    filters.priority || filters.relevance || filters.milestone || filters.due || (filters.status && filters.status !== DEFAULT_FILTERS.status);
+  const sortable = isDefaultView(filters);
   if (tasks.data.length === 0) {
-    return filtered ? <Empty title="No tasks match these filters" /> : <Empty title="No tasks yet">Add one above to get started.</Empty>;
+    return sortable ? <Empty title="No tasks yet">Add one above to get started.</Empty> : <Empty title="No tasks match these filters" />;
   }
+  const byId = new Map(tasks.data.map((t) => [t.id, t]));
+  const shown = pendingIds ? pendingIds.map((id) => byId.get(id)).filter(Boolean) : tasks.data;
+
+  const onDragEnd = async ({ active, over }) => {
+    if (!over || active.id === over.id) return;
+    const ids = shown.map((t) => t.id);
+    const next = arrayMove(ids, ids.indexOf(active.id), ids.indexOf(over.id));
+    setPendingIds(next);
+    if (await run(() => api.reorderTasks(areaId, next))) await tasks.refresh();
+    setPendingIds(null);
+  };
+
   return (
-    <ul className="rw-list" aria-busy={tasks.loading}>
-      {tasks.data.map((t) => (
-        <TaskRow key={t.id} task={t} onChanged={() => (tasks.refresh(), onCompleted())} />
-      ))}
-    </ul>
+    <>
+      {!sortable && shown.length > 1 && <p className="rw-muted">Clear filters and sort to reorder by dragging.</p>}
+      <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+        <SortableContext items={shown.map((t) => t.id)} strategy={verticalListSortingStrategy}>
+          <ul className="rw-list" aria-busy={tasks.loading}>
+            {shown.map((t) => (
+              <TaskRow key={t.id} task={t} sortable={sortable && shown.length > 1} onChanged={() => (tasks.refresh(), onCompleted())} />
+            ))}
+          </ul>
+        </SortableContext>
+      </DndContext>
+    </>
   );
 }
 
@@ -223,7 +247,6 @@ export default function AreaScreen({ areaId, tab = "main", query = "", tile = nu
           </div>
           {showFilters && (
             <div className="rw-filters">
-              <Chips label="Filter by priority" options={PRIORITIES} value={filters.priority} onChange={setFilter("priority")} allowNone />
               <Chips label="Filter by status" options={STATUSES} value={filters.status} onChange={setFilter("status")} allowNone />
               <Chips label="Filter by relevance" options={RELEVANCE} value={filters.relevance} onChange={setFilter("relevance")} allowNone />
               <Chips label="Milestones" options={MILESTONE_FILTER} value={filters.milestone} onChange={setFilter("milestone")} allowNone />
