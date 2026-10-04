@@ -54,10 +54,11 @@ GitHub Actions (free for this repo) ─ tests on every PR; SSH deploy on merge t
 | Check | Result | What it means |
 |---|---|---|
 | Plan | `s-1vcpu-1gb`, region BLR1 | Matches D6 |
-| Memory | 961 MB total, about 540 MB available, **no swap** | Rewards needs about 250–350 MB, so it fits only with headroom. **Add a 2 GB swapfile first** (A10) |
+| Memory | 961 MB total, about 540 MB available; **2 GB swap added** ✅ | Rewards needs about 250–350 MB; with swap there's safe headroom for the BFF and the dashboard |
 | Disk | 24 GB, 20 GB free | Plenty for swap, code, data and backups |
 | Ports 80/443 | **nginx** | Use nginx and certbot, not Caddy |
 | Port 3000 | Container `beegle-beegle-1` (the separate Beegle app), published on `0.0.0.0`, so open to the internet | If nginx already proxies it (`grep -r 3000 /etc/nginx/`), change its compose port to `127.0.0.1:3000:3000` and recreate it. **`ufw` can't close it**, because Docker's published ports bypass ufw. Not a Rewards blocker |
+| Firewall | `ufw` **inactive** | Enable it, allowing SSH first (A10) |
 | Neo4j (7474/7687) | Not listening | The Weekend Picks Neo4j isn't running here, so the memory concern and the exposed-password risk don't apply on this droplet |
 
 If memory is still tight with swap, move only the dashboard to Streamlit Community Cloud (free, but it sleeps when idle).
@@ -197,7 +198,7 @@ Owner: **You** (accounts, secrets, decisions, the home machine), **Claude** (cod
 | A7 | `apps/rewards-mfe/vercel.json` (CORS, cache headers, rebuild filter) | P5 | Claude | ₹0 | — | ✅ |
 | A8 | GitHub Actions: `rewards-ci.yml` and `deploy-bff.yml` | P8 | Claude | ₹0 | A6 | ⏳ |
 | A9 | Create the DuckDNS names and point them at the droplet IP | P3 | You | ₹0 | D1 | ⏳ |
-| A10 | Droplet base setup (**2 GB swap first**, user, firewall, close port 3000 if nginx serves it); install uv and certbot | P3 | Both | ₹0 | A0 | ⏳ |
+| A10 | Droplet base setup (swap ✅; user; **enable ufw**; close port 3000 if nginx serves Beegle); install uv and certbot | P3 | Both | ₹0 | A0 | ⏳ |
 | A11 | Generate secrets (passcode hash, signing key, service token, basic-auth hash); write `/etc/rewards/*.env` | P4 | Both | ₹0 | A2, A10 | ⏳ |
 | A12 | Start the BFF; add the nginx site and certbot certificate; HTTPS works on the DuckDNS name; backup timers running | P4 | Both | ₹0 | A6, A9–A11 | ⏳ |
 | A13 | Home computer: SSH key, nightly rsync pull, **restore drill** | P4 | Both | ₹0 | A12 | ⏳ |
