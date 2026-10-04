@@ -187,7 +187,7 @@ flowchart LR
 | T3f | Reward ideas and wishlist, "For whom" on rewards (HLR-12) | ✅ (branch; hiding private ideas from visitors comes with hosting) |
 | T3g | Tiles without areas (HLR-13), shipped as a data-preserving migration (`0006_tile_without_areas`) | ✅ (branch) |
 | T3h | Drag tasks into order instead of High/Med/Low (HLR-2 revision, D16), with a data-preserving migration (`0007_task_order`) that keeps today's order | ✅ (branch) |
-| T4 | Deploy the MFE + BFF; set the host's remote URL; merge to `main` | ⏳ |
+| T4 | Deploy the MFE + BFF; set the host's remote URL; merge to `main` (plan and action items: [DEPLOY.md](DEPLOY.md)) | ⏳ |
 | T5 | Integration services: vision → events/outbox → reminders | ⏳ |
 | T6 | Mobile BFF surface; Android client | ⏳ future |
 

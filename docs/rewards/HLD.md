@@ -213,9 +213,11 @@ Core entities: **Category** (tile) 1‑N **Area** 1‑N **Task** 1‑N **Activit
 |---|---|---|
 | Host shell | `vite` on :5173 | Existing Vercel project; set `VITE_REWARDS_REMOTE_URL` |
 | Rewards MFE | `vite build && vite preview` on :5180 | Its own Vercel project (static); CORS on `/assets/*` |
-| BFF | `uvicorn` on :8000, SQLite file | Container on Render / Fly.io / Railway; Postgres; secrets in platform env |
+| BFF | `uvicorn` on :8000, SQLite file | DigitalOcean droplet behind Caddy, SQLite + Litestream to Spaces (LLRD Q13); Postgres later via JSON export/import |
 | Photo store | `services/bff/data/photos` (private) | Private object storage (S3 / R2) with short-lived signed URLs |
-| Dashboard | `streamlit run` on :8501 | Streamlit Community Cloud, or a container next to the BFF |
+| Dashboard | `streamlit run` on :8501 | Same droplet as the BFF, behind Caddy basic auth |
+
+Step-by-step plan and action items: [DEPLOY.md](DEPLOY.md).
 
 The host and remote deploy independently. The contract between them is the remote's name, the exposed module (`./RewardsApp`) and its props.
 
