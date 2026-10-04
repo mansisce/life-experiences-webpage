@@ -57,7 +57,7 @@ GitHub Actions (free for this repo) ─ tests on every PR; SSH deploy on merge t
 | Memory | 961 MB total, about 540 MB available, **no swap** | Rewards needs about 250–350 MB, so it fits only with headroom. **Add a 2 GB swapfile first** (A10) |
 | Disk | 24 GB, 20 GB free | Plenty for swap, code, data and backups |
 | Ports 80/443 | **nginx** | Use nginx and certbot, not Caddy |
-| Port 3000 | A Docker container, published on `0.0.0.0`, so open to the internet | Identify it (`docker ps`). If nginx already proxies it, rebind it to `127.0.0.1:3000` and keep 3000 closed in `ufw` |
+| Port 3000 | Container `beegle-beegle-1` (the separate Beegle app), published on `0.0.0.0`, so open to the internet | If nginx already proxies it (`grep -r 3000 /etc/nginx/`), change its compose port to `127.0.0.1:3000:3000` and recreate it. **`ufw` can't close it**, because Docker's published ports bypass ufw. Not a Rewards blocker |
 | Neo4j (7474/7687) | Not listening | The Weekend Picks Neo4j isn't running here, so the memory concern and the exposed-password risk don't apply on this droplet |
 
 If memory is still tight with swap, move only the dashboard to Streamlit Community Cloud (free, but it sleeps when idle).
@@ -98,7 +98,7 @@ Replaces `require_demo_token` (`services/bff/app/deps.py`) with two caller roles
 
 ### P3. Prepare the existing droplet and free hostnames (owner, with Claude guiding)
 
-1. **Health check (A0):** ✅ done; results in §1. Still to do: identify the container on port 3000 (`docker ps`), list the existing nginx sites (`ls /etc/nginx/sites-enabled`) so the new ones don't clash, and run `ufw status`.
+1. **Health check (A0):** ✅ done; results in §1. Port 3000 is the Beegle app. Still to do: check whether nginx proxies it, list the existing nginx sites (`ls /etc/nginx/sites-enabled`) so the new ones don't clash, and run `ufw status`.
 2. **DuckDNS:** sign in with GitHub or Google (no card), create the two names from D1, and point both at the droplet's public IP. The IP doesn't change, so no update client is needed.
 3. **Base setup**, if it isn't already done:
    - a non-root `rewards` user;
