@@ -164,7 +164,7 @@ flowchart LR
 | G5 | Prioritisation | None | Drag tasks into your own order (top = most important); filter by status, relevance, milestone, due | New |
 | G6 | AI assistance | None | Photo → suggested tasks with human approval | New (post-MVP) |
 | G7 | Insights | 3 summary cards | Dashboard: by tile/area/day, streaks, reward progress, AI acceptance | New |
-| G8 | Delivery | Bundled into host | Independently built and deployed MFE; host fallback | Re-architect |
+| G8 | Delivery | Bundled into host | Independently built MFE loaded at runtime, shipped in the host's Vercel deployment; host fallback | Re-architect |
 | G9 | Backend | Express + Neo4j shared with other features | Dedicated BFF, typed contracts, OpenAPI, relational store | Re-architect |
 | G10 | Clients | Web only | Web, analytics, Android-ready API | New |
 | G11 | Tile management | 6 fixed goal categories (plus custom ones) | Tiles fully user-managed (create, edit, reorder, delete); empty start with an optional starter set | Replace |

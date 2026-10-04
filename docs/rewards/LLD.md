@@ -344,7 +344,7 @@ class VisionAdapter(Protocol):
 
 | Variable | Tier | Default | Notes |
 |---|---|---|---|
-| `VITE_REWARDS_REMOTE_URL` | host (build) | `http://localhost:5180/assets/remoteEntry.js` | set per environment in Vercel |
+| `VITE_REWARDS_REMOTE_URL` | host (build) | dev: `http://localhost:5180/assets/remoteEntry.js`; build: `/rewards-mfe/assets/remoteEntry.js` (same deployment) | only set to point at a remote hosted elsewhere |
 | `VITE_BFF_URL` | MFE (build) | `http://localhost:8000` | |
 | `VITE_BFF_TOKEN` | MFE (build) | `demo-token` | demo only |
 | `BFF_DATABASE_URL` | BFF | `sqlite+aiosqlite:///services/bff/data/rewards.db` | |
