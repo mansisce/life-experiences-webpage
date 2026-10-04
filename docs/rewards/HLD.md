@@ -215,7 +215,7 @@ Core entities: **Category** (tile) 1‑N **Area** 1‑N **Task** 1‑N **Activit
 | Rewards MFE | `vite build && vite preview` on :5180 | Its own Vercel project (static): the standalone app at `/` plus `remoteEntry.js` for the host; CORS on `/assets/*` |
 | BFF | `uvicorn` on :8000, SQLite file | Existing DigitalOcean droplet behind its nginx on a free DuckDNS name; SQLite with hourly snapshots pulled nightly to a home machine (zero extra cost; LLRD Q13); Postgres later via JSON export/import |
 | Photo store | `services/bff/data/photos` (private) | Private object storage (S3 / R2) with short-lived signed URLs |
-| Dashboard | `streamlit run` on :8501 | Same droplet as the BFF, behind nginx basic auth |
+| Dashboard | `streamlit run` on :8501 | Same droplet as the BFF (open access, `noindex`) |
 
 Step-by-step plan and action items: [DEPLOY.md](DEPLOY.md).
 

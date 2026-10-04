@@ -4,7 +4,7 @@
 |---|---|
 | **Scope** | Take the Rewards MFE, BFF and Streamlit dashboard from local-only to production, then merge `feature/rewards-mfe-bff` to `main` |
 | **Budget** | **₹0 extra per month.** Reuses the DigitalOcean droplet you already pay for; everything else is on free tiers or your own machine |
-| **Version** | 0.4 (zero-cost; Rewards as its own app) · 2026-10-04 |
+| **Version** | 0.5 (zero-cost; own app; open access, no passcode) · 2026-10-04 |
 | **Related** | [HLRD.md](HLRD.md) T4 · [LLRD.md](LLRD.md) Q13, Q17, BR-R23 · [HLD.md](HLD.md) §8 |
 
 ---
@@ -22,7 +22,7 @@ Browser ──► Host shell (Vercel Hobby, existing)            https://mansill
 Existing DigitalOcean droplet (already paid for)
   nginx, already running (free HTTPS from Let's Encrypt via certbot)
     ├── <name>-api.duckdns.org  ──► uvicorn :8000 (Rewards BFF, 1 worker) ─► /var/lib/rewards/rewards.db (SQLite, WAL)
-    └── <name>-dash.duckdns.org ──► streamlit :8501 (basic auth in nginx)     /var/lib/rewards/{photos,files}
+    └── <name>-dash.duckdns.org ──► streamlit :8501 (open, noindex)           /var/lib/rewards/{photos,files}
   Hourly DB snapshot + nightly JSON export ─► /var/lib/rewards/backups (kept 14 days)
         ▲
         │ nightly pull over SSH (rsync)
@@ -36,11 +36,21 @@ GitHub Actions (free for this repo) ─ tests on every PR; SSH deploy on merge t
 | Hostnames | **DuckDNS** free subdomains pointing at the droplet IP | ₹0 | No domain to buy. certbot can get real HTTPS certificates for them. A domain can be added later by changing only env vars and CORS |
 | TLS / proxy | **The droplet's existing nginx**, with certbot | ₹0 | nginx already owns ports 80/443 (A0), so the Rewards sites are added as new nginx server blocks; certbot renews certificates automatically |
 | MFE host | Second Vercel Hobby project, from `apps/rewards-mfe` in this repo | ₹0 | Rewards is its own app, with a standalone URL, so it can grow into a product. The personal site still embeds it on `#/rewards`. It deploys independently of the host (G4) |
-| Dashboard | Same droplet, behind nginx basic auth | ₹0 | Holds an owner-level credential, so it stays on your own box |
+| Dashboard | Same droplet, open like the app | ₹0 | Consistent with open access; it reads through the BFF on localhost |
 | Off-site backup | **Your home computer pulls backups nightly** | ₹0 | Replaces paid DO Spaces. If the droplet dies, you lose at most a day. Optional upgrade: Litestream to the Backblaze B2 free tier (10 GB) for near-continuous backup |
 | Server backups | Our own snapshots, not DO's paid Backups add-on | ₹0 | DO Backups would add 20% to the droplet bill |
 | CI/CD | GitHub Actions | ₹0 | Free minutes cover this repo's tests |
-| Go-live bar | Owner passcode and a public read-only view | ₹0 | The MFE currently ships `demo-token` in its JS bundle, so anyone could edit |
+| Access | **Open: no passcode. Anyone with the link can view and edit everything** (PO decision, 2026-10-04) | ₹0 | Single user, links not shared. Accepted risk, see below. The owner passcode and read-only view (former P1) move to post-MVP, before Rewards is shared or sold |
+
+**Accepted risk: open access.** Rewards is protected only by not being shared.
+- **Anyone who finds a link** can view and change everything, including contacts, bills and silent tasks. That means the standalone URL, the API name, or `#/rewards` on the personal site.
+- **The token isn't a lock:** the bundled token is public in the JS.
+- **The safety net is restore, not prevention:** hourly snapshots plus the nightly home copy (P4).
+- **Free, invisible mitigations** that cost no login step:
+  - a random `BFF_DEMO_TOKEN` instead of `demo-token`;
+  - `noindex` on the standalone app and the API, so search engines skip them;
+  - an nginx request rate limit;
+  - non-obvious DuckDNS and Vercel names.
 
 **Product path (later, not blocking go-live):**
 - **Vercel Hobby is non-commercial.** If Rewards is ever sold, move the frontend to a host that allows commercial use. Cloudflare Pages and Netlify have free plans that do; the same static build runs on either, so only the URL and CORS change.
@@ -69,14 +79,16 @@ If memory is still tight with swap, move only the dashboard to Streamlit Communi
 |---|---|---|---|
 | D1 | DuckDNS names | e.g. `mansi-rewards-api` and `mansi-rewards-dash` (DuckDNS gives 5 free names per account) | P3 |
 | D2 | Name for the MFE's Vercel project | e.g. `mansilly-rewards`, which gives `mansilly-rewards.vercel.app` | P5 |
-| D3 | Contacts and bills in the public view (HLRD §9 risk, Q17)? | **Hide notes, contacts and files from visitors**; keep tiles, tasks and rewards public | P1 |
-| D4 | Public reads on at launch? | Yes, via `BFF_PUBLIC_READS=true`. It can be switched off without a deploy | P1 |
+| D3 | ~~Contacts and bills in the public view?~~ | Settled: open access, everything visible to anyone with the link (accepted risk) | — |
+| D4 | ~~Public reads on at launch?~~ | Settled: no read-only mode; everyone can edit | — |
 | D5 | Confirm no Neo4j data migration (HLRD §4.4) | Confirm: nothing to carry over | P7 |
 | D6 | ~~Keep the Weekend Picks stack on the same droplet?~~ | Settled by A0: Neo4j isn't running on the droplet. Only the port-3000 container shares it | — |
 
 ## 3. Phases
 
-### P1. Owner passcode and read-only view (build; blocks go-live)
+### P1. ~~Owner passcode and read-only view~~: deferred to post-MVP (PO decision, 2026-10-04)
+
+Not built for go-live. Kept here as the design to use before Rewards is shared or sold.
 
 Replaces `require_demo_token` (`services/bff/app/deps.py`) with two caller roles.
 
@@ -90,6 +102,8 @@ Replaces `require_demo_token` (`services/bff/app/deps.py`) with two caller roles
 - **Docs:** update LLRD 8.x, 10.11, 11.6 and 12.7 statuses.
 
 ### P2. Production hardening of the BFF (small, before first deploy)
+
+- Open-access mitigations: `X-Robots-Tag: noindex` from nginx on the API, `<meta name="robots" content="noindex">` in the standalone app, an nginx `limit_req` on the API, and a random `BFF_DEMO_TOKEN` / `VITE_BFF_TOKEN` pair (the same value on both sides).
 
 - Turn on `PRAGMA journal_mode=WAL` and `busy_timeout` in `app/db.py`. This gives safer snapshots while the BFF is serving, and the optional Litestream needs it.
 - Make data paths configurable through env: `BFF_DATABASE_URL`, `BFF_PHOTO_DIR` and `BFF_FILES_DIR` pointing at `/var/lib/rewards`. Check that the migration backup folder follows the database path.
@@ -142,7 +156,7 @@ Replaces `require_demo_token` (`services/bff/app/deps.py`) with two caller roles
 ### P6. Deploy the Streamlit dashboard
 
 1. Enable `rewards-dashboard.service` (`streamlit run app.py --server.address 127.0.0.1 --server.port 8501 --server.headless true`) with `BFF_URL=http://127.0.0.1:8000` and `BFF_TOKEN=<service token>`.
-2. nginx: `deploy/nginx/rewards-dash.conf` with `auth_basic` (password file from `htpasswd`, in the `apache2-utils` package) and `proxy_pass http://127.0.0.1:8501`. Streamlit needs WebSockets, so set `proxy_http_version 1.1` and the `Upgrade`/`Connection` headers. Then run `certbot --nginx -d <name>-dash.duckdns.org`.
+2. nginx: `deploy/nginx/rewards-dash.conf` with `X-Robots-Tag: noindex` and `proxy_pass http://127.0.0.1:8501`. Streamlit needs WebSockets, so set `proxy_http_version 1.1` and the `Upgrade`/`Connection` headers. Then run `certbot --nginx -d <name>-dash.duckdns.org`.
 3. Check memory with `free -m` after both services are up. If it's tight, use the D6 fallback: Streamlit Community Cloud (free, sleeps when idle). The BFF stays on the droplet.
 
 ### P7. Move local data to production
@@ -169,8 +183,8 @@ Do this after P4 and before announcing the link. Your laptop stops being the sou
 
 ### P9. Verify, go live, and know how to roll back
 
-- **Smoke test on production:** run HLRD §10 acceptance items 1–11 twice. As owner, all of them. As a visitor in a private window: no silent tasks or ideas, no details (D3), no edit controls, and 401 on direct write calls.
-- **Security pass:** no token in the MFE bundle (`grep` the built JS), `/docs` hidden, file links expire, and nginx sends HSTS on the Rewards sites.
+- **Smoke test on production:** run HLRD §10 acceptance items 1–11, both standalone and through `#/rewards` on the personal site.
+- **Security pass:** a random token (not `demo-token`), `noindex` present, `/docs` hidden, file links expire, the rate limit works, and nginx sends HSTS on the Rewards sites.
 - **Merge** `feature/rewards-mfe-bff` to `main` only after the remote and the BFF are live. This was the risk logged in HLRD §9.
 - **Rollback:**
 
@@ -189,29 +203,29 @@ Owner: **You** (accounts, secrets, decisions, the home machine), **Claude** (cod
 | # | Action | Phase | Owner | Cost | Depends on | Status |
 |---|---|---|---|---|---|---|
 | A0 | Droplet health check (memory, disk, ports, what's running); share the output | P3 | You | ₹0 | — | ✅ (port-3000 container and nginx site list still to check) |
-| A1 | Decide D1–D5 | P0 | You | ₹0 | A0 | ⏳ |
-| A2 | Owner passcode, `get_viewer`, `/auth/session`, rate limit, production config guard | P1 | Claude | ₹0 | D3, D4 | ⏳ |
-| A3 | Visitor filtering for silent items and details, plus privacy tests (NFR-D11) | P1 | Claude | ₹0 | A2 | ⏳ |
-| A4 | MFE Unlock/Lock, hide edit controls, remove the baked token; dashboard service token | P1 | Claude | ₹0 | A2 | ⏳ |
+| A1 | Decide D1, D2 and D5 | P0 | You | ₹0 | A0 | ⏳ |
+| A2 | ~~Owner passcode, `get_viewer`, `/auth/session`~~ | P1 | — | — | — | Deferred (open access) |
+| A3 | ~~Visitor filtering for silent items and details~~ | P1 | — | — | — | Deferred (open access) |
+| A4 | Open-access mitigations: `noindex`, random token pair, nginx rate limit | P2 | Claude | ₹0 | — | ⏳ |
 | A5 | WAL and busy timeout, configurable data paths, hide `/docs` in production | P2 | Claude | ₹0 | — | ⏳ |
 | A6 | `deploy/` folder: systemd units, nginx site configs, backup timers, `deploy.sh`, home pull script | P2 | Claude | ₹0 | A0, A5 | ⏳ |
 | A7 | `apps/rewards-mfe/vercel.json` (CORS, cache headers, rebuild filter) | P5 | Claude | ₹0 | — | ✅ |
 | A8 | GitHub Actions: `rewards-ci.yml` and `deploy-bff.yml` | P8 | Claude | ₹0 | A6 | ⏳ |
 | A9 | Create the DuckDNS names and point them at the droplet IP | P3 | You | ₹0 | D1 | ⏳ |
 | A10 | Droplet base setup (swap ✅; user; **enable ufw**; close port 3000 if nginx serves Beegle); install uv and certbot | P3 | Both | ₹0 | A0 | ⏳ |
-| A11 | Generate secrets (passcode hash, signing key, service token, basic-auth hash); write `/etc/rewards/*.env` | P4 | Both | ₹0 | A2, A10 | ⏳ |
+| A11 | Generate secrets (random token, signing key); write `/etc/rewards/*.env` | P4 | Both | ₹0 | A10 | ⏳ |
 | A12 | Start the BFF; add the nginx site and certbot certificate; HTTPS works on the DuckDNS name; backup timers running | P4 | Both | ₹0 | A6, A9–A11 | ⏳ |
 | A13 | Home computer: SSH key, nightly rsync pull, **restore drill** | P4 | Both | ₹0 | A12 | ⏳ |
 | A14 | UptimeRobot free check on `/health`; disk alert | P4 | You | ₹0 | A12 | ⏳ |
-| A15 | Create the second Vercel Hobby project (root directory `apps/rewards-mfe`); set `VITE_BFF_URL`; open its URL and check the standalone app | P5 | You | ₹0 | A4, A12 | ⏳ |
+| A15 | Create the second Vercel Hobby project (root directory `apps/rewards-mfe`); set `VITE_BFF_URL`; open its URL and check the standalone app | P5 | You | ₹0 | A12 | ⏳ |
 | A16 | Set `VITE_REWARDS_REMOTE_URL` on the host project and redeploy | P5 | You | ₹0 | A15 | ⏳ |
-| A17 | Start the dashboard behind basic auth (or the Community Cloud fallback) | P6 | Both | ₹0 | A12 | ⏳ |
+| A17 | Start the dashboard (open, like the app; or the Community Cloud fallback) | P6 | Both | ₹0 | A12 | ⏳ |
 | A18 | Export local data, copy photos and files, import on the droplet, verify | P7 | Both | ₹0 | A12, D5 | ⏳ |
 | A19 | Add GitHub secrets and the `production` environment; test one deploy and one forced rollback | P8 | Both | ₹0 | A8, A12 | ⏳ |
-| A20 | Production smoke test as owner and as visitor; security pass | P9 | Both | ₹0 | A16–A18 | ⏳ |
+| A20 | Production smoke test (standalone and embedded); security pass | P9 | Both | ₹0 | A16–A18 | ⏳ |
 | A21 | Merge `feature/rewards-mfe-bff` to `main`; mark T4 ✅ in the HLRD | P9 | You | ₹0 | A20 | ⏳ |
 
-**Critical path:** A0 → A1 → A2–A4 → A9–A12 → A15–A16 → A18 → A20 → A21. Claude's repo work (A2–A8) can run while you do A0 and A9–A10.
+**Critical path:** A0 → A1 → A4–A6 → A9–A12 → A15–A16 → A18 → A20 → A21. Claude's repo work (A4–A8) can run while you do A0 and A9–A10.
 
 **After go-live:** split the Rewards code into its own repo (not blocking deployment).
 

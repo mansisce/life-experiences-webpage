@@ -270,6 +270,7 @@ Vercel (host + MFE hosting); a Python host for the BFF (post-MVP deploy); the An
 | AI suggestions low quality | M | L | Human approval per suggestion; acceptance-rate metric in the dashboard |
 | Scope creep into other modules | M | M | Capstone limited to Rewards; roadmap items gated by priority |
 | Contacts and bills visible in the public read-only view (PO decision Q17): executives' personal numbers and your bills exposed once hosted | M | H | Acceptable locally; revisit before going public (option: hide details from visitors while keeping rewards public) |
+| **Open access at go-live** (PO decision, 2026-10-04): no passcode, so anyone with a link can view and edit everything | L (links not shared) | H | Accepted for single-user MVP. Hourly snapshots and a nightly off-site copy for restore; `noindex`, random token, rate limit. Owner passcode (former DEPLOY P1) is required before sharing or selling |
 | Silent tasks leaking through counts or reward lists in the public view | M | M | Silent tasks and their completions are removed from every response served without the passcode, including counts, dashboard aggregates and reward task lists (BR-R23); tested explicitly |
 | Deleting a tile removes everything under it | L | H | Typed-name confirmation listing what will go, plus an automatic database snapshot first (BR-R18) |
 | React version drift host ↔ remote | L | H | Shared singleton; pinned versions; smoke check |
