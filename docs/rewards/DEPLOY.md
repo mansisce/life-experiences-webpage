@@ -21,8 +21,8 @@ Browser ──► Host shell (Vercel Hobby, existing)            https://mansill
               ▼
 Existing DigitalOcean droplet (already paid for)
   nginx, already running (free HTTPS from Let's Encrypt via certbot)
-    ├── <name>-api.duckdns.org  ──► uvicorn :8000 (Rewards BFF, 1 worker) ─► /var/lib/rewards/rewards.db (SQLite, WAL)
-    └── <name>-dash.duckdns.org ──► streamlit :8501 (open, noindex)           /var/lib/rewards/{photos,files}
+    ├── rewards-api.64-227-167-131.nip.io  ──► uvicorn :8000 (Rewards BFF, 1 worker) ─► /var/lib/rewards/rewards.db (SQLite, WAL)
+    └── rewards-dash.64-227-167-131.nip.io ──► streamlit :8501 (open, noindex)           /var/lib/rewards/{photos,files}
   Hourly DB snapshot (kept 3 days) + nightly JSON export (kept 8 weeks) ─► /var/lib/rewards/backups
         ▲
         │ nightly pull over SSH (rsync)
@@ -33,7 +33,7 @@ GitHub Actions (free for this repo) ─ tests on every PR; SSH deploy on merge t
 | Decision | Choice | Cost | Why |
 |---|---|---|---|
 | BFF host | **Existing droplet**, SQLite | ₹0 extra | Already paid for, always on (your preference), matches LLRD Q13 |
-| Hostnames | **DuckDNS** free subdomains pointing at the droplet IP | ₹0 | No domain to buy. certbot can get real HTTPS certificates for them. A domain can be added later by changing only env vars and CORS |
+| Hostnames | **nip.io**, as Beegle already uses (`64-227-167-131.nip.io`) | ₹0 | No sign-up and no domain to buy: any `*.64-227-167-131.nip.io` name points at the droplet. certbot issues real HTTPS certificates for them. A domain can be added later by changing only env vars and CORS |
 | TLS / proxy | **The droplet's existing nginx**, with certbot | ₹0 | nginx already owns ports 80/443 (A0), so the Rewards sites are added as new nginx server blocks; certbot renews certificates automatically |
 | MFE host | Second Vercel Hobby project, from `apps/rewards-mfe` in this repo | ₹0 | Rewards is its own app, with a standalone URL, so it can grow into a product. The personal site still embeds it on `#/rewards`. It deploys independently of the host (G4) |
 | Dashboard | Same droplet, open like the app | ₹0 | Consistent with open access; it reads through the BFF on localhost |
@@ -50,7 +50,7 @@ GitHub Actions (free for this repo) ─ tests on every PR; SSH deploy on merge t
   - a random `BFF_DEMO_TOKEN` instead of `demo-token`;
   - `noindex` on the standalone app and the API, so search engines skip them;
   - an nginx request rate limit;
-  - non-obvious DuckDNS and Vercel names.
+  - a non-obvious Vercel name. The nip.io names contain the droplet IP, which is public anyway.
 
 **Product path (later, not blocking go-live):**
 - **Vercel Hobby is non-commercial.** If Rewards is ever sold, move the frontend to a host that allows commercial use. Cloudflare Pages and Netlify have free plans that do; the same static build runs on either, so only the URL and CORS change.
@@ -77,7 +77,7 @@ If memory is still tight with swap, move only the dashboard to Streamlit Communi
 
 | # | Decision | Recommendation | Blocks |
 |---|---|---|---|
-| D1 | DuckDNS names | e.g. `mansi-rewards-api` and `mansi-rewards-dash` (DuckDNS gives 5 free names per account) | P3 |
+| D1 | ~~DuckDNS names~~ | Settled: `rewards-api.64-227-167-131.nip.io` and `rewards-dash.64-227-167-131.nip.io` (nip.io, like Beegle) | — |
 | D2 | Name for the MFE's Vercel project | e.g. `mansilly-rewards`, which gives `mansilly-rewards.vercel.app` | P5 |
 | D3 | ~~Contacts and bills in the public view?~~ | Settled: open access, everything visible to anyone with the link (accepted risk) | — |
 | D4 | ~~Public reads on at launch?~~ | Settled: no read-only mode; everyone can edit | — |
@@ -114,7 +114,7 @@ Replaces `require_demo_token` (`services/bff/app/deps.py`) with two caller roles
 ### P3. Prepare the existing droplet and free hostnames (owner, with Claude guiding)
 
 1. **Health check (A0):** ✅ done; results in §1. Port 3000 is the Beegle app. Still to do: check whether nginx proxies it, list the existing nginx sites (`ls /etc/nginx/sites-enabled`) so the new ones don't clash, and run `ufw status`.
-2. **DuckDNS:** sign in with GitHub or Google (no card), create the two names from D1, and point both at the droplet's public IP. The IP doesn't change, so no update client is needed.
+2. **Hostnames:** nothing to do. nip.io resolves `rewards-api.64-227-167-131.nip.io` and `rewards-dash.64-227-167-131.nip.io` to the droplet automatically.
 3. **Base setup**, if it isn't already done:
    - a non-root `rewards` user;
    - `ufw` allowing 22, 80 and 443;
@@ -127,7 +127,7 @@ Replaces `require_demo_token` (`services/bff/app/deps.py`) with two caller roles
 
 1. Put `/etc/rewards/bff.env` (mode 600) on the droplet with the P1/P2 settings and `BFF_CORS_ORIGINS='["https://mansilly.vercel.app","https://<mfe-project>.vercel.app"]'`. Both origins call the BFF: embedded Rewards calls from the host page's origin, and the standalone app calls from its own.
 2. Run `uv sync --frozen` in `services/bff`, then enable `rewards-bff.service` (`uvicorn app.main:app --host 127.0.0.1 --port 8000 --proxy-headers`). Startup runs the Alembic migrations.
-3. nginx: add `/etc/nginx/sites-available/rewards-api` (from `deploy/nginx/rewards-api.conf`) with `server_name <name>-api.duckdns.org`, `proxy_pass http://127.0.0.1:8000`, the forwarded headers and `client_max_body_size`. Enable it, run `nginx -t && systemctl reload nginx`, then `certbot --nginx -d <name>-api.duckdns.org` for HTTPS. Check that `curl https://<name>-api.duckdns.org/health` returns `{"status":"ok"}`.
+3. nginx: add `/etc/nginx/sites-available/rewards-api` (from `deploy/nginx/rewards-api.conf`) with `server_name rewards-api.64-227-167-131.nip.io`, `proxy_pass http://127.0.0.1:8000`, the forwarded headers and `client_max_body_size`. Enable it, run `nginx -t && systemctl reload nginx`, then `certbot --nginx -d rewards-api.64-227-167-131.nip.io` for HTTPS. Check that `curl https://rewards-api.64-227-167-131.nip.io/health` returns `{"status":"ok"}`.
 4. **Backups on the droplet** (systemd timers):
    - hourly `python -m app.backup snapshot`, kept 3 days (`deploy/systemd/rewards-snapshot.*`);
    - nightly `python -m app.backup export`, kept 8 weeks (`deploy/systemd/rewards-export.*`).
@@ -148,14 +148,14 @@ Replaces `require_demo_token` (`services/bff/app/deps.py`) with two caller roles
    - an `ignoreCommand`, so the project only rebuilds when `apps/rewards-mfe/` changes.
    
    The standalone app is served at `/` and opens on `#/rewards`. Checked locally: the site's `#/rewards` loads the module from the separate deployment, and the standalone page works on its own.
-2. Create a second **Hobby (free)** Vercel project from this repo, named per D2, with root directory `apps/rewards-mfe`, framework Vite, and env `VITE_BFF_URL=https://<name>-api.duckdns.org`. The rebuild filter comes from `vercel.json`.
+2. Create a second **Hobby (free)** Vercel project from this repo, named per D2, with root directory `apps/rewards-mfe`, framework Vite, and env `VITE_BFF_URL=https://rewards-api.64-227-167-131.nip.io` and `VITE_BFF_TOKEN=<the same random value as BFF_DEMO_TOKEN on the droplet>`. The rebuild filter comes from `vercel.json`.
 3. In the host's Vercel project, set `VITE_REWARDS_REMOTE_URL=https://<mfe-project>.vercel.app/assets/remoteEntry.js` (Production and Preview). Redeploy, because the value is baked in at build time.
 4. **Known limitation:** Vercel preview URLs of the host aren't in the BFF's CORS list, so in previews Rewards shows its error states. If previews matter, add an `allow_origin_regex` for `https://*-<team>.vercel.app`.
 
 ### P6. Deploy the Streamlit dashboard
 
 1. Enable `rewards-dashboard.service` (`streamlit run app.py --server.address 127.0.0.1 --server.port 8501 --server.headless true`) with `BFF_URL=http://127.0.0.1:8000` and `BFF_TOKEN=<service token>`.
-2. nginx: `deploy/nginx/rewards-dash.conf` with `X-Robots-Tag: noindex` and `proxy_pass http://127.0.0.1:8501`. Streamlit needs WebSockets, so set `proxy_http_version 1.1` and the `Upgrade`/`Connection` headers. Then run `certbot --nginx -d <name>-dash.duckdns.org`.
+2. nginx: `deploy/nginx/rewards-dash.conf` with `X-Robots-Tag: noindex` and `proxy_pass http://127.0.0.1:8501`. Streamlit needs WebSockets, so set `proxy_http_version 1.1` and the `Upgrade`/`Connection` headers. Then run `certbot --nginx -d rewards-dash.64-227-167-131.nip.io`.
 3. Check memory with `free -m` after both services are up. If it's tight, use the D6 fallback: Streamlit Community Cloud (free, sleeps when idle). The BFF stays on the droplet.
 
 ### P7. Move local data to production
@@ -202,7 +202,7 @@ Owner: **You** (accounts, secrets, decisions, the home machine), **Claude** (cod
 | # | Action | Phase | Owner | Cost | Depends on | Status |
 |---|---|---|---|---|---|---|
 | A0 | Droplet health check (memory, disk, ports, what's running); share the output | P3 | You | ₹0 | — | ✅ (port-3000 container and nginx site list still to check) |
-| A1 | Decide D1, D2 and D5 | P0 | You | ₹0 | A0 | ⏳ |
+| A1 | Decide D2 and D5 | P0 | You | ₹0 | A0 | ⏳ |
 | A2 | ~~Owner passcode, `get_viewer`, `/auth/session`~~ | P1 | — | — | — | Deferred (open access) |
 | A3 | ~~Visitor filtering for silent items and details~~ | P1 | — | — | — | Deferred (open access) |
 | A4 | Open-access mitigations: `noindex`, random token pair, nginx rate limit | P2 | Claude | ₹0 | — | ✅ |
@@ -210,13 +210,13 @@ Owner: **You** (accounts, secrets, decisions, the home machine), **Claude** (cod
 | A6 | `deploy/` folder: systemd units, nginx site configs, backup timers, `deploy.sh`, home pull script, step-by-step runbook | P2 | Claude | ₹0 | A0, A5 | 🟡 files ✅, runbook next |
 | A7 | `apps/rewards-mfe/vercel.json` (CORS, cache headers, rebuild filter) | P5 | Claude | ₹0 | — | ✅ |
 | A8 | GitHub Actions: `rewards-ci.yml` and `deploy-bff.yml` | P8 | Claude | ₹0 | A6 | ⏳ |
-| A9 | Create the DuckDNS names and point them at the droplet IP | P3 | You | ₹0 | D1 | ⏳ |
+| A9 | ~~Create the DuckDNS names~~ (nip.io needs no setup) | P3 | — | ₹0 | — | ✅ |
 | A10 | Droplet base setup (swap ✅; user; **enable ufw**; close port 3000 if nginx serves Beegle); install uv and certbot | P3 | Both | ₹0 | A0 | ⏳ |
 | A11 | Generate secrets (random token, signing key); write `/etc/rewards/*.env` | P4 | Both | ₹0 | A10 | ⏳ |
-| A12 | Start the BFF; add the nginx site and certbot certificate; HTTPS works on the DuckDNS name; backup timers running | P4 | Both | ₹0 | A6, A9–A11 | ⏳ |
+| A12 | Start the BFF; add the nginx site and certbot certificate; HTTPS works on the nip.io name; backup timers running | P4 | Both | ₹0 | A6, A9–A11 | ⏳ |
 | A13 | Home computer: SSH key, nightly rsync pull, **restore drill** | P4 | Both | ₹0 | A12 | ⏳ |
 | A14 | UptimeRobot free check on `/health`; disk alert | P4 | You | ₹0 | A12 | ⏳ |
-| A15 | Create the second Vercel Hobby project (root directory `apps/rewards-mfe`); set `VITE_BFF_URL`; open its URL and check the standalone app | P5 | You | ₹0 | A12 | ⏳ |
+| A15 | Create the second Vercel Hobby project (root directory `apps/rewards-mfe`); set `VITE_BFF_URL` and `VITE_BFF_TOKEN`; open its URL and check the standalone app | P5 | You | ₹0 | A12 | ⏳ |
 | A16 | Set `VITE_REWARDS_REMOTE_URL` on the host project and redeploy | P5 | You | ₹0 | A15 | ⏳ |
 | A17 | Start the dashboard (open, like the app; or the Community Cloud fallback) | P6 | Both | ₹0 | A12 | ⏳ |
 | A18 | Export local data, copy photos and files, import on the droplet, verify | P7 | Both | ₹0 | A12, D5 | ⏳ |
