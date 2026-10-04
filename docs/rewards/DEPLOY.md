@@ -145,10 +145,9 @@ Replaces `require_demo_token` (`services/bff/app/deps.py`) with two caller roles
 1. ✅ `apps/rewards-mfe/vercel.json` is in the repo:
    - `Access-Control-Allow-Origin: *` on `/assets/*`. These are public static JS files; the BFF is what enforces CORS for data;
    - `Cache-Control: no-cache` on `remoteEntry.js`, because its name isn't hashed;
-   - an `ignoreCommand`, so the project only rebuilds when `apps/rewards-mfe/` changes.
    
    The standalone app is served at `/` and opens on `#/rewards`. Checked locally: the site's `#/rewards` loads the module from the separate deployment, and the standalone page works on its own.
-2. Create a second **Hobby (free)** Vercel project from this repo, named per D2, with root directory `apps/rewards-mfe`, framework Vite, and env `VITE_BFF_URL=https://rewards-api.64-227-167-131.nip.io` and `VITE_BFF_TOKEN=<the same random value as BFF_DEMO_TOKEN on the droplet>`. The rebuild filter comes from `vercel.json`.
+2. Create a second **Hobby (free)** Vercel project from this repo, named per D2, with root directory `apps/rewards-mfe`, framework Vite, and env `VITE_BFF_URL=https://rewards-api.64-227-167-131.nip.io` and `VITE_BFF_TOKEN=<the same random value as BFF_DEMO_TOKEN on the droplet>`.
 3. In the host's Vercel project, set `VITE_REWARDS_REMOTE_URL=https://<mfe-project>.vercel.app/assets/remoteEntry.js` (Production and Preview). Redeploy, because the value is baked in at build time.
 4. **Known limitation:** Vercel preview URLs of the host aren't in the BFF's CORS list, so in previews Rewards shows its error states. If previews matter, add an `allow_origin_regex` for `https://*-<team>.vercel.app`.
 
@@ -208,7 +207,7 @@ Owner: **You** (accounts, secrets, decisions, the home machine), **Claude** (cod
 | A4 | Open-access mitigations: `noindex`, random token pair, nginx rate limit | P2 | Claude | ₹0 | — | ✅ |
 | A5 | WAL and busy timeout, configurable data paths, hide `/docs` in production, production guard (`BFF_ENV`) | P2 | Claude | ₹0 | — | ✅ |
 | A6 | `deploy/` folder: systemd units, nginx site configs, backup timers, `deploy.sh`, home pull script, step-by-step runbook ([deploy/README.md](../../deploy/README.md)) | P2 | Claude | ₹0 | A0, A5 | ✅ |
-| A7 | `apps/rewards-mfe/vercel.json` (CORS, cache headers, rebuild filter) | P5 | Claude | ₹0 | — | ✅ |
+| A7 | `apps/rewards-mfe/vercel.json` (CORS, cache and noindex headers) | P5 | Claude | ₹0 | — | ✅ |
 | A8 | GitHub Actions: `rewards-ci.yml` and `deploy-bff.yml` | P8 | Claude | ₹0 | A6 | ⏳ |
 | A9 | ~~Create the DuckDNS names~~ (nip.io needs no setup) | P3 | — | ₹0 | — | ✅ |
 | A10 | Droplet base setup (swap ✅; user; **enable ufw**; close port 3000 if nginx serves Beegle); install uv and certbot | P3 | Both | ₹0 | A0 | ⏳ |
