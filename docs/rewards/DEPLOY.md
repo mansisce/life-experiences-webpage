@@ -20,9 +20,9 @@ Browser ──► Host shell (Vercel Hobby, existing)            https://mansill
               │ fetch() from either origin
               ▼
 Existing DigitalOcean droplet (already paid for)
-  Caddy (free HTTPS from Let's Encrypt)
+  nginx, already running (free HTTPS from Let's Encrypt via certbot)
     ├── <name>-api.duckdns.org  ──► uvicorn :8000 (Rewards BFF, 1 worker) ─► /var/lib/rewards/rewards.db (SQLite, WAL)
-    └── <name>-dash.duckdns.org ──► streamlit :8501 (basic auth in Caddy)     /var/lib/rewards/{photos,files}
+    └── <name>-dash.duckdns.org ──► streamlit :8501 (basic auth in nginx)     /var/lib/rewards/{photos,files}
   Hourly DB snapshot + nightly JSON export ─► /var/lib/rewards/backups (kept 14 days)
         ▲
         │ nightly pull over SSH (rsync)
@@ -33,10 +33,10 @@ GitHub Actions (free for this repo) ─ tests on every PR; SSH deploy on merge t
 | Decision | Choice | Cost | Why |
 |---|---|---|---|
 | BFF host | **Existing droplet**, SQLite | ₹0 extra | Already paid for, always on (your preference), matches LLRD Q13 |
-| Hostnames | **DuckDNS** free subdomains pointing at the droplet IP | ₹0 | No domain to buy. Caddy can get real HTTPS certificates for them. A domain can be added later by changing only env vars and CORS |
-| TLS / proxy | Caddy | ₹0 | Automatic HTTPS |
+| Hostnames | **DuckDNS** free subdomains pointing at the droplet IP | ₹0 | No domain to buy. certbot can get real HTTPS certificates for them. A domain can be added later by changing only env vars and CORS |
+| TLS / proxy | **The droplet's existing nginx**, with certbot | ₹0 | nginx already owns ports 80/443 (A0), so the Rewards sites are added as new nginx server blocks; certbot renews certificates automatically |
 | MFE host | Second Vercel Hobby project, from `apps/rewards-mfe` in this repo | ₹0 | Rewards is its own app, with a standalone URL, so it can grow into a product. The personal site still embeds it on `#/rewards`. It deploys independently of the host (G4) |
-| Dashboard | Same droplet, behind Caddy basic auth | ₹0 | Holds an owner-level credential, so it stays on your own box |
+| Dashboard | Same droplet, behind nginx basic auth | ₹0 | Holds an owner-level credential, so it stays on your own box |
 | Off-site backup | **Your home computer pulls backups nightly** | ₹0 | Replaces paid DO Spaces. If the droplet dies, you lose at most a day. Optional upgrade: Litestream to the Backblaze B2 free tier (10 GB) for near-continuous backup |
 | Server backups | Our own snapshots, not DO's paid Backups add-on | ₹0 | DO Backups would add 20% to the droplet bill |
 | CI/CD | GitHub Actions | ₹0 | Free minutes cover this repo's tests |
@@ -49,7 +49,18 @@ GitHub Actions (free for this repo) ─ tests on every PR; SSH deploy on merge t
 
 **Why the home computer isn't the main server:** you asked for always-on. A home server goes down with power cuts, sleep and ISP outages. As the backup target it only needs to be on at some point each day; missed nights catch up on the next run.
 
-**Memory watch:** the droplet has 1 GB RAM. If it also runs the Weekend Picks Neo4j + Express stack (`backend/docker-compose.yml`), Neo4j alone can use 500 MB or more. Check with `free -m` / `docker stats` first (A0). If memory is tight: add a 2 GB swapfile (free), cap the Neo4j heap, or move only the dashboard to Streamlit Community Cloud (free, but it sleeps when idle).
+**Droplet check (A0), done 2026-10-04:**
+
+| Check | Result | What it means |
+|---|---|---|
+| Plan | `s-1vcpu-1gb`, region BLR1 | Matches D6 |
+| Memory | 961 MB total, about 540 MB available, **no swap** | Rewards needs about 250–350 MB, so it fits only with headroom. **Add a 2 GB swapfile first** (A10) |
+| Disk | 24 GB, 20 GB free | Plenty for swap, code, data and backups |
+| Ports 80/443 | **nginx** | Use nginx and certbot, not Caddy |
+| Port 3000 | A Docker container, published on `0.0.0.0`, so open to the internet | Identify it (`docker ps`). If nginx already proxies it, rebind it to `127.0.0.1:3000` and keep 3000 closed in `ufw` |
+| Neo4j (7474/7687) | Not listening | The Weekend Picks Neo4j isn't running here, so the memory concern and the exposed-password risk don't apply on this droplet |
+
+If memory is still tight with swap, move only the dashboard to Streamlit Community Cloud (free, but it sleeps when idle).
 
 ## 2. Open decisions (needed before the phases they block)
 
@@ -60,7 +71,7 @@ GitHub Actions (free for this repo) ─ tests on every PR; SSH deploy on merge t
 | D3 | Contacts and bills in the public view (HLRD §9 risk, Q17)? | **Hide notes, contacts and files from visitors**; keep tiles, tasks and rewards public | P1 |
 | D4 | Public reads on at launch? | Yes, via `BFF_PUBLIC_READS=true`. It can be switched off without a deploy | P1 |
 | D5 | Confirm no Neo4j data migration (HLRD §4.4) | Confirm: nothing to carry over | P7 |
-| D6 | Keep the Weekend Picks stack on the same droplet? | Yes if A0 shows enough memory with swap. Otherwise cap the Neo4j heap | P3 |
+| D6 | ~~Keep the Weekend Picks stack on the same droplet?~~ | Settled by A0: Neo4j isn't running on the droplet. Only the port-3000 container shares it | — |
 
 ## 3. Phases
 
@@ -82,26 +93,26 @@ Replaces `require_demo_token` (`services/bff/app/deps.py`) with two caller roles
 - Turn on `PRAGMA journal_mode=WAL` and `busy_timeout` in `app/db.py`. This gives safer snapshots while the BFF is serving, and the optional Litestream needs it.
 - Make data paths configurable through env: `BFF_DATABASE_URL`, `BFF_PHOTO_DIR` and `BFF_FILES_DIR` pointing at `/var/lib/rewards`. Check that the migration backup folder follows the database path.
 - Serve `/docs` and `/openapi.json` only when not in production, or only to the owner.
-- Cap the upload size at the proxy (Caddy `request_body max_size`) to match the BFF's own limit.
-- Add `deploy/` to the repo: `rewards-bff.service`, `rewards-dashboard.service`, `Caddyfile`, `deploy.sh`, `backup.{service,timer}`, `home-pull-backup.sh`.
+- Cap the upload size at the proxy (nginx `client_max_body_size`) to match the BFF's own limit. nginx's 1 MB default would reject bill and photo uploads.
+- Add `deploy/` to the repo: `rewards-bff.service`, `rewards-dashboard.service`, `nginx/rewards-api.conf`, `nginx/rewards-dash.conf`, `deploy.sh`, `backup.{service,timer}`, `home-pull-backup.sh`.
 
 ### P3. Prepare the existing droplet and free hostnames (owner, with Claude guiding)
 
-1. **Health check (A0):** run `free -m`, `df -h`, `docker ps` and `docker stats --no-stream`, and note the Ubuntu version and what listens on ports 80 and 443 (`ss -tlnp`). If something else already uses 80/443 (e.g. nginx), put the new sites in that proxy instead of adding Caddy.
+1. **Health check (A0):** ✅ done; results in §1. Still to do: identify the container on port 3000 (`docker ps`), list the existing nginx sites (`ls /etc/nginx/sites-enabled`) so the new ones don't clash, and run `ufw status`.
 2. **DuckDNS:** sign in with GitHub or Google (no card), create the two names from D1, and point both at the droplet's public IP. The IP doesn't change, so no update client is needed.
 3. **Base setup**, if it isn't already done:
    - a non-root `rewards` user;
    - `ufw` allowing 22, 80 and 443;
    - `unattended-upgrades` and `fail2ban`;
    - a **2 GB swapfile**.
-   - While you're there, close the publicly open Neo4j ports 7474 and 7687 if they're exposed. Their password is committed in `backend/docker-compose.yml`.
-4. Install `uv` and Caddy. Create `/opt/rewards` (git checkout) and `/var/lib/rewards` (data, owned by `rewards`, mode 700).
+   - Close port 3000 to the outside if nginx already serves that app.
+4. Install `uv` and `certbot` (`apt install certbot python3-certbot-nginx`). nginx is already there. Create `/opt/rewards` (git checkout) and `/var/lib/rewards` (data, owned by `rewards`, mode 700).
 
 ### P4. Deploy the BFF and its backups
 
 1. Put `/etc/rewards/bff.env` (mode 600) on the droplet with the P1/P2 settings and `BFF_CORS_ORIGINS='["https://mansilly.vercel.app","https://<mfe-project>.vercel.app"]'`. Both origins call the BFF: embedded Rewards calls from the host page's origin, and the standalone app calls from its own.
 2. Run `uv sync --frozen` in `services/bff`, then enable `rewards-bff.service` (`uvicorn app.main:app --host 127.0.0.1 --port 8000 --proxy-headers`). Startup runs the Alembic migrations.
-3. Caddy: `<name>-api.duckdns.org { reverse_proxy 127.0.0.1:8000 }`. Check that `curl https://<name>-api.duckdns.org/health` returns `{"status":"ok"}`.
+3. nginx: add `/etc/nginx/sites-available/rewards-api` (from `deploy/nginx/rewards-api.conf`) with `server_name <name>-api.duckdns.org`, `proxy_pass http://127.0.0.1:8000`, the forwarded headers and `client_max_body_size`. Enable it, run `nginx -t && systemctl reload nginx`, then `certbot --nginx -d <name>-api.duckdns.org` for HTTPS. Check that `curl https://<name>-api.duckdns.org/health` returns `{"status":"ok"}`.
 4. **Backups on the droplet** (systemd timers):
    - hourly `python -m app.backup snapshot`;
    - nightly `python -m app.backup export`;
@@ -130,7 +141,7 @@ Replaces `require_demo_token` (`services/bff/app/deps.py`) with two caller roles
 ### P6. Deploy the Streamlit dashboard
 
 1. Enable `rewards-dashboard.service` (`streamlit run app.py --server.address 127.0.0.1 --server.port 8501 --server.headless true`) with `BFF_URL=http://127.0.0.1:8000` and `BFF_TOKEN=<service token>`.
-2. Caddy: `<name>-dash.duckdns.org { basic_auth { owner <bcrypt-hash> } reverse_proxy 127.0.0.1:8501 }`. Streamlit needs WebSockets, which Caddy proxies by default.
+2. nginx: `deploy/nginx/rewards-dash.conf` with `auth_basic` (password file from `htpasswd`, in the `apache2-utils` package) and `proxy_pass http://127.0.0.1:8501`. Streamlit needs WebSockets, so set `proxy_http_version 1.1` and the `Upgrade`/`Connection` headers. Then run `certbot --nginx -d <name>-dash.duckdns.org`.
 3. Check memory with `free -m` after both services are up. If it's tight, use the D6 fallback: Streamlit Community Cloud (free, sleeps when idle). The BFF stays on the droplet.
 
 ### P7. Move local data to production
@@ -158,7 +169,7 @@ Do this after P4 and before announcing the link. Your laptop stops being the sou
 ### P9. Verify, go live, and know how to roll back
 
 - **Smoke test on production:** run HLRD §10 acceptance items 1–11 twice. As owner, all of them. As a visitor in a private window: no silent tasks or ideas, no details (D3), no edit controls, and 401 on direct write calls.
-- **Security pass:** no token in the MFE bundle (`grep` the built JS), `/docs` hidden, file links expire, and Caddy sets HSTS.
+- **Security pass:** no token in the MFE bundle (`grep` the built JS), `/docs` hidden, file links expire, and nginx sends HSTS on the Rewards sites.
 - **Merge** `feature/rewards-mfe-bff` to `main` only after the remote and the BFF are live. This was the risk logged in HLRD §9.
 - **Rollback:**
 
@@ -176,19 +187,19 @@ Owner: **You** (accounts, secrets, decisions, the home machine), **Claude** (cod
 
 | # | Action | Phase | Owner | Cost | Depends on | Status |
 |---|---|---|---|---|---|---|
-| A0 | Droplet health check (memory, disk, ports, what's running); share the output | P3 | You | ₹0 | — | ⏳ |
-| A1 | Decide D1–D6 | P0 | You | ₹0 | A0 | ⏳ |
+| A0 | Droplet health check (memory, disk, ports, what's running); share the output | P3 | You | ₹0 | — | ✅ (port-3000 container and nginx site list still to check) |
+| A1 | Decide D1–D5 | P0 | You | ₹0 | A0 | ⏳ |
 | A2 | Owner passcode, `get_viewer`, `/auth/session`, rate limit, production config guard | P1 | Claude | ₹0 | D3, D4 | ⏳ |
 | A3 | Visitor filtering for silent items and details, plus privacy tests (NFR-D11) | P1 | Claude | ₹0 | A2 | ⏳ |
 | A4 | MFE Unlock/Lock, hide edit controls, remove the baked token; dashboard service token | P1 | Claude | ₹0 | A2 | ⏳ |
 | A5 | WAL and busy timeout, configurable data paths, hide `/docs` in production | P2 | Claude | ₹0 | — | ⏳ |
-| A6 | `deploy/` folder: systemd units, Caddyfile, backup timers, `deploy.sh`, home pull script | P2 | Claude | ₹0 | A0, A5 | ⏳ |
+| A6 | `deploy/` folder: systemd units, nginx site configs, backup timers, `deploy.sh`, home pull script | P2 | Claude | ₹0 | A0, A5 | ⏳ |
 | A7 | `apps/rewards-mfe/vercel.json` (CORS, cache headers, rebuild filter) | P5 | Claude | ₹0 | — | ✅ |
 | A8 | GitHub Actions: `rewards-ci.yml` and `deploy-bff.yml` | P8 | Claude | ₹0 | A6 | ⏳ |
 | A9 | Create the DuckDNS names and point them at the droplet IP | P3 | You | ₹0 | D1 | ⏳ |
-| A10 | Droplet base setup (user, firewall, swap, close the Neo4j ports); install uv and Caddy | P3 | Both | ₹0 | A0 | ⏳ |
+| A10 | Droplet base setup (**2 GB swap first**, user, firewall, close port 3000 if nginx serves it); install uv and certbot | P3 | Both | ₹0 | A0 | ⏳ |
 | A11 | Generate secrets (passcode hash, signing key, service token, basic-auth hash); write `/etc/rewards/*.env` | P4 | Both | ₹0 | A2, A10 | ⏳ |
-| A12 | Start the BFF and Caddy; HTTPS works on the DuckDNS name; backup timers running | P4 | Both | ₹0 | A6, A9–A11 | ⏳ |
+| A12 | Start the BFF; add the nginx site and certbot certificate; HTTPS works on the DuckDNS name; backup timers running | P4 | Both | ₹0 | A6, A9–A11 | ⏳ |
 | A13 | Home computer: SSH key, nightly rsync pull, **restore drill** | P4 | Both | ₹0 | A12 | ⏳ |
 | A14 | UptimeRobot free check on `/health`; disk alert | P4 | You | ₹0 | A12 | ⏳ |
 | A15 | Create the second Vercel Hobby project (root directory `apps/rewards-mfe`); set `VITE_BFF_URL`; open its URL and check the standalone app | P5 | You | ₹0 | A4, A12 | ⏳ |
