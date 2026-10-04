@@ -207,7 +207,7 @@ Owner: **You** (accounts, secrets, decisions, the home machine), **Claude** (cod
 | A3 | ~~Visitor filtering for silent items and details~~ | P1 | — | — | — | Deferred (open access) |
 | A4 | Open-access mitigations: `noindex`, random token pair, nginx rate limit | P2 | Claude | ₹0 | — | ✅ |
 | A5 | WAL and busy timeout, configurable data paths, hide `/docs` in production, production guard (`BFF_ENV`) | P2 | Claude | ₹0 | — | ✅ |
-| A6 | `deploy/` folder: systemd units, nginx site configs, backup timers, `deploy.sh`, home pull script, step-by-step runbook | P2 | Claude | ₹0 | A0, A5 | 🟡 files ✅, runbook next |
+| A6 | `deploy/` folder: systemd units, nginx site configs, backup timers, `deploy.sh`, home pull script, step-by-step runbook ([deploy/README.md](../../deploy/README.md)) | P2 | Claude | ₹0 | A0, A5 | ✅ |
 | A7 | `apps/rewards-mfe/vercel.json` (CORS, cache headers, rebuild filter) | P5 | Claude | ₹0 | — | ✅ |
 | A8 | GitHub Actions: `rewards-ci.yml` and `deploy-bff.yml` | P8 | Claude | ₹0 | A6 | ⏳ |
 | A9 | ~~Create the DuckDNS names~~ (nip.io needs no setup) | P3 | — | ₹0 | — | ✅ |
