@@ -8,8 +8,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build && npm run build:rewards",
-    "build:rewards": "npm --prefix apps/rewards-mfe ci && npm --prefix apps/rewards-mfe run build -- --base=/rewards-mfe/ --outDir ../../dist/rewards-mfe --emptyOutDir",
+    "build": "vite build",
     "preview": "vite preview"
   },
   "dependencies": {

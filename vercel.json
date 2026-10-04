@@ -8,12 +8,6 @@
       "includeFiles": "backend/api/**"
     }
   },
-  "headers": [
-    {
-      "source": "/rewards-mfe/assets/remoteEntry.js",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
-    }
-  ],
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.js" },
     { "source": "/(.*)", "destination": "/index.html" }

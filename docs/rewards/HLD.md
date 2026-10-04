@@ -31,7 +31,7 @@ The capstone shows four architecture principles working together in one module:
 - G1. A demoable, working loop: area → task → completion → streak → reward unlock → claim → insight.
 - G2. **API-first**: every capability is a BFF endpoint, so an Android app can reuse it later with no backend rewrite.
 - G3. **Mobile-first** UI: touch targets ≥ 44 px, single column, and it works at 375 px wide.
-- G4. **Isolation**: the rewards module is built separately and loaded at runtime; it can fail or change without breaking the host site. It ships in the host's Vercel deployment (one project, zero cost), and can move to its own deployment by changing only `VITE_REWARDS_REMOTE_URL`.
+- G4. **Isolation**: the rewards module can fail, deploy or change without breaking the host site.
 - G5. **Graceful degradation**: every external dependency has a visible fallback.
 
 **Non-goals**
@@ -211,15 +211,15 @@ Core entities: **Category** (tile) 1‑N **Area** 1‑N **Task** 1‑N **Activit
 
 | Tier | Local (today) | Target (post-MVP) |
 |---|---|---|
-| Host shell | `vite` on :5173 | Existing Vercel project; production builds load `/rewards-mfe/assets/remoteEntry.js` |
-| Rewards MFE | `vite build && vite preview` on :5180 | Same Vercel project as the host: the root build puts it in `dist/rewards-mfe/`, so it's same-origin (no CORS) |
+| Host shell | `vite` on :5173 | Existing Vercel project; set `VITE_REWARDS_REMOTE_URL` |
+| Rewards MFE | `vite build && vite preview` on :5180 | Its own Vercel project (static); CORS on `/assets/*` |
 | BFF | `uvicorn` on :8000, SQLite file | Existing DigitalOcean droplet behind Caddy on a free DuckDNS name; SQLite with hourly snapshots pulled nightly to a home machine (zero extra cost; LLRD Q13); Postgres later via JSON export/import |
 | Photo store | `services/bff/data/photos` (private) | Private object storage (S3 / R2) with short-lived signed URLs |
 | Dashboard | `streamlit run` on :8501 | Same droplet as the BFF, behind Caddy basic auth |
 
 Step-by-step plan and action items: [DEPLOY.md](DEPLOY.md).
 
-The host and remote are built independently and deploy together. The contract between them is the remote's name, the exposed module (`./RewardsApp`) and its props.
+The host and remote deploy independently. The contract between them is the remote's name, the exposed module (`./RewardsApp`) and its props.
 
 ## 9. Technology choices (ADR summary)
 
