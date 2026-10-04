@@ -1,0 +1,12 @@
+[Unit]
+Description=Rewards: consistent SQLite snapshot, then prune snapshots older than 3 days
+
+[Service]
+Type=oneshot
+User=rewards
+Group=rewards
+WorkingDirectory=/opt/rewards/services/bff
+EnvironmentFile=/etc/rewards/bff.env
+ExecStart=/opt/rewards/services/bff/.venv/bin/python -m app.backup snapshot
+# Only hourly snapshots are pruned here; pre-upgrade backups are managed by the migrator.
+ExecStartPost=/usr/bin/find /var/lib/rewards/backups -name "rewards-*-manual.db" -mmin +4320 -delete

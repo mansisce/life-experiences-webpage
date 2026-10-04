@@ -1,0 +1,19 @@
+[Unit]
+Description=Rewards insights dashboard (Streamlit)
+After=rewards-bff.service
+Wants=rewards-bff.service
+
+[Service]
+User=rewards
+Group=rewards
+WorkingDirectory=/opt/rewards/apps/rewards-dashboard
+EnvironmentFile=/etc/rewards/dashboard.env
+ExecStart=/opt/rewards/apps/rewards-dashboard/.venv/bin/streamlit run app.py --server.address 127.0.0.1 --server.port 8501 --server.headless true
+Restart=on-failure
+RestartSec=5
+MemoryMax=350M
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

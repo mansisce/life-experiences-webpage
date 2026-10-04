@@ -1,0 +1,9 @@
+[Unit]
+Description=Nightly Rewards JSON export (01:30 IST)
+
+[Timer]
+OnCalendar=*-*-* 20:00:00 UTC
+Persistent=true
+
+[Install]
+WantedBy=timers.target

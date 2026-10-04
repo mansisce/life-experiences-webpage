@@ -23,7 +23,7 @@ Existing DigitalOcean droplet (already paid for)
   nginx, already running (free HTTPS from Let's Encrypt via certbot)
     ├── <name>-api.duckdns.org  ──► uvicorn :8000 (Rewards BFF, 1 worker) ─► /var/lib/rewards/rewards.db (SQLite, WAL)
     └── <name>-dash.duckdns.org ──► streamlit :8501 (open, noindex)           /var/lib/rewards/{photos,files}
-  Hourly DB snapshot + nightly JSON export ─► /var/lib/rewards/backups (kept 14 days)
+  Hourly DB snapshot (kept 3 days) + nightly JSON export (kept 8 weeks) ─► /var/lib/rewards/backups
         ▲
         │ nightly pull over SSH (rsync)
 Home computer ─ keeps the off-site copy of DB snapshots, photos and files
@@ -129,9 +129,8 @@ Replaces `require_demo_token` (`services/bff/app/deps.py`) with two caller roles
 2. Run `uv sync --frozen` in `services/bff`, then enable `rewards-bff.service` (`uvicorn app.main:app --host 127.0.0.1 --port 8000 --proxy-headers`). Startup runs the Alembic migrations.
 3. nginx: add `/etc/nginx/sites-available/rewards-api` (from `deploy/nginx/rewards-api.conf`) with `server_name <name>-api.duckdns.org`, `proxy_pass http://127.0.0.1:8000`, the forwarded headers and `client_max_body_size`. Enable it, run `nginx -t && systemctl reload nginx`, then `certbot --nginx -d <name>-api.duckdns.org` for HTTPS. Check that `curl https://<name>-api.duckdns.org/health` returns `{"status":"ok"}`.
 4. **Backups on the droplet** (systemd timers):
-   - hourly `python -m app.backup snapshot`;
-   - nightly `python -m app.backup export`;
-   - prune anything older than 14 days.
+   - hourly `python -m app.backup snapshot`, kept 3 days (`deploy/systemd/rewards-snapshot.*`);
+   - nightly `python -m app.backup export`, kept 8 weeks (`deploy/systemd/rewards-export.*`).
 5. **Off-site copy on the home computer:**
    - Create a read-only SSH key for a `backup` user on the droplet.
    - Schedule a nightly `rsync -a backup@<droplet>:/var/lib/rewards/{backups,photos,files} ~/rewards-backup/` (cron on Mac/Linux, Task Scheduler + WSL on Windows).
@@ -206,9 +205,9 @@ Owner: **You** (accounts, secrets, decisions, the home machine), **Claude** (cod
 | A1 | Decide D1, D2 and D5 | P0 | You | ₹0 | A0 | ⏳ |
 | A2 | ~~Owner passcode, `get_viewer`, `/auth/session`~~ | P1 | — | — | — | Deferred (open access) |
 | A3 | ~~Visitor filtering for silent items and details~~ | P1 | — | — | — | Deferred (open access) |
-| A4 | Open-access mitigations: `noindex`, random token pair, nginx rate limit | P2 | Claude | ₹0 | — | ⏳ |
-| A5 | WAL and busy timeout, configurable data paths, hide `/docs` in production | P2 | Claude | ₹0 | — | ⏳ |
-| A6 | `deploy/` folder: systemd units, nginx site configs, backup timers, `deploy.sh`, home pull script | P2 | Claude | ₹0 | A0, A5 | ⏳ |
+| A4 | Open-access mitigations: `noindex`, random token pair, nginx rate limit | P2 | Claude | ₹0 | — | ✅ |
+| A5 | WAL and busy timeout, configurable data paths, hide `/docs` in production, production guard (`BFF_ENV`) | P2 | Claude | ₹0 | — | ✅ |
+| A6 | `deploy/` folder: systemd units, nginx site configs, backup timers, `deploy.sh`, home pull script, step-by-step runbook | P2 | Claude | ₹0 | A0, A5 | 🟡 files ✅, runbook next |
 | A7 | `apps/rewards-mfe/vercel.json` (CORS, cache headers, rebuild filter) | P5 | Claude | ₹0 | — | ✅ |
 | A8 | GitHub Actions: `rewards-ci.yml` and `deploy-bff.yml` | P8 | Claude | ₹0 | A6 | ⏳ |
 | A9 | Create the DuckDNS names and point them at the droplet IP | P3 | You | ₹0 | D1 | ⏳ |

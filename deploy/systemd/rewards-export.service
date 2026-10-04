@@ -1,0 +1,11 @@
+[Unit]
+Description=Rewards: nightly JSON export, then prune exports older than 8 weeks
+
+[Service]
+Type=oneshot
+User=rewards
+Group=rewards
+WorkingDirectory=/opt/rewards/services/bff
+EnvironmentFile=/etc/rewards/bff.env
+ExecStart=/opt/rewards/services/bff/.venv/bin/python -m app.backup export
+ExecStartPost=/usr/bin/find /var/lib/rewards/backups -name "rewards-*.json" -mtime +56 -delete

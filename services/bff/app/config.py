@@ -5,8 +5,10 @@ validated and typed by Pydantic when the app starts, so a bad value fails fast.
 """
 
 from pathlib import Path
+from typing import Literal
 from zoneinfo import ZoneInfo
 
+from pydantic import model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 BFF_ROOT = Path(__file__).resolve().parent.parent
@@ -36,6 +38,18 @@ class Settings(BaseSettings):
     ]
     # Streaks are counted in the user's local calendar days/weeks.
     timezone: str = "Asia/Kolkata"
+    # "production" on the droplet: hides the interactive API docs and refuses to start with the
+    # public demo defaults (the token ships in the MFE's JS, so it must at least not be guessable).
+    env: Literal["development", "production"] = "development"
+
+    @model_validator(mode="after")
+    def _no_demo_defaults_in_production(self) -> "Settings":
+        if self.env == "production":
+            if self.demo_token == "demo-token" or len(self.demo_token) < 24:
+                raise ValueError("BFF_DEMO_TOKEN must be a random value of 24+ characters in production")
+            if len(self.signing_key) < 32:
+                raise ValueError("BFF_SIGNING_KEY must be a random value of 32+ characters in production")
+        return self
 
     @property
     def tz(self) -> ZoneInfo:

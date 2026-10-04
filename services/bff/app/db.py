@@ -45,10 +45,15 @@ def make_engine(url: str) -> AsyncEngine:
 
     if url.startswith("sqlite"):
         # SQLite ignores foreign keys (and ON DELETE CASCADE) unless switched on per connection.
+        # WAL lets readers (and backup snapshots) run while a write is in progress; busy_timeout
+        # makes a second writer wait up to 5 s instead of failing with "database is locked".
         @event.listens_for(engine.sync_engine, "connect")
-        def _enable_foreign_keys(dbapi_conn, _record):
+        def _configure_sqlite(dbapi_conn, _record):
             cursor = dbapi_conn.cursor()
             cursor.execute("PRAGMA foreign_keys=ON")
+            cursor.execute("PRAGMA busy_timeout=5000")
+            if ":memory:" not in url:
+                cursor.execute("PRAGMA journal_mode=WAL")
             cursor.close()
 
     return engine

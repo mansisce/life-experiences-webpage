@@ -36,7 +36,16 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         yield
         await engine.dispose()
 
-    app = FastAPI(title="Rewards BFF", version="0.1.0", lifespan=lifespan)
+    # In production there are no interactive docs: the API is reachable from the internet.
+    docs = settings.env != "production"
+    app = FastAPI(
+        title="Rewards BFF",
+        version="0.1.0",
+        lifespan=lifespan,
+        docs_url="/docs" if docs else None,
+        redoc_url="/redoc" if docs else None,
+        openapi_url="/openapi.json" if docs else None,
+    )
     app.state.settings = settings
 
     app.add_middleware(
