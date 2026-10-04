@@ -68,7 +68,7 @@ GitHub Actions (free for this repo) ─ tests on every PR; SSH deploy on merge t
 | Disk | 24 GB, 20 GB free | Plenty for swap, code, data and backups |
 | Ports 80/443 | **nginx** | Use nginx and certbot, not Caddy |
 | Port 3000 | Container `beegle-beegle-1` (the separate Beegle app), published on `0.0.0.0`, so open to the internet | If nginx already proxies it (`grep -r 3000 /etc/nginx/`), change its compose port to `127.0.0.1:3000:3000` and recreate it. **`ufw` can't close it**, because Docker's published ports bypass ufw. Not a Rewards blocker |
-| Firewall | `ufw` **inactive** | Enable it, allowing SSH first (A10) |
+| Firewall | `ufw` inactive | Left off (PO decision, 2026-10-04). Rewards services bind to `127.0.0.1` and are reachable only through nginx |
 | Neo4j (7474/7687) | Not listening | The Weekend Picks Neo4j isn't running here, so the memory concern and the exposed-password risk don't apply on this droplet |
 
 If memory is still tight with swap, move only the dashboard to Streamlit Community Cloud (free, but it sleeps when idle).
@@ -210,7 +210,7 @@ Owner: **You** (accounts, secrets, decisions, the home machine), **Claude** (cod
 | A7 | `apps/rewards-mfe/vercel.json` (CORS, cache and noindex headers) | P5 | Claude | ₹0 | — | ✅ |
 | A8 | GitHub Actions: `rewards-ci.yml` and `deploy-bff.yml` | P8 | Claude | ₹0 | A6 | ⏳ |
 | A9 | ~~Create the DuckDNS names~~ (nip.io needs no setup) | P3 | — | ₹0 | — | ✅ |
-| A10 | Droplet base setup (swap ✅; user; **enable ufw**; close port 3000 if nginx serves Beegle); install uv and certbot | P3 | Both | ₹0 | A0 | ⏳ |
+| A10 | Droplet base setup (swap ✅; user; ufw left off by decision; close port 3000 if nginx serves Beegle); install uv and certbot | P3 | Both | ₹0 | A0 | ⏳ |
 | A11 | Generate secrets (random token, signing key); write `/etc/rewards/*.env` | P4 | Both | ₹0 | A10 | ⏳ |
 | A12 | Start the BFF; add the nginx site and certbot certificate; HTTPS works on the nip.io name; backup timers running | P4 | Both | ₹0 | A6, A9–A11 | ⏳ |
 | A13 | Home computer: SSH key, nightly rsync pull, **restore drill** | P4 | Both | ₹0 | A12 | ⏳ |

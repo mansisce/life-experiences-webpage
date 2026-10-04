@@ -14,7 +14,9 @@ Beegle isn't touched: its nginx site, its container and port 3000 stay as they a
 
 ---
 
-## 1. Firewall (once)
+## 1. Firewall (optional; skipped by decision on 2026-10-04)
+
+Rewards doesn't depend on it: the BFF and the dashboard listen only on `127.0.0.1`, so the internet reaches them only through nginx. If you turn it on later:
 
 ```bash
 ufw allow OpenSSH
