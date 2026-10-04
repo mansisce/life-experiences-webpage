@@ -4,7 +4,7 @@
 |---|---|
 | **Scope** | Take the Rewards MFE, BFF and Streamlit dashboard from local-only to production, then merge `feature/rewards-mfe-bff` to `main` |
 | **Budget** | **₹0 extra per month.** Reuses the DigitalOcean droplet you already pay for; everything else is on free tiers or your own machine |
-| **Version** | 0.2 (zero-cost plan) · 2026-10-04 |
+| **Version** | 0.4 (zero-cost; Rewards as its own app) · 2026-10-04 |
 | **Related** | [HLRD.md](HLRD.md) T4 · [LLRD.md](LLRD.md) Q13, Q17, BR-R23 · [HLD.md](HLD.md) §8 |
 
 ---
@@ -15,8 +15,9 @@
 Browser ──► Host shell (Vercel Hobby, existing)            https://mansilly.vercel.app
               │ loads remoteEntry.js at runtime
               ▼
-            Rewards MFE (Vercel Hobby, 2nd free project)   https://<mfe-project>.vercel.app
-              │ fetch() from the host page's origin
+            Rewards app (Vercel Hobby, 2nd free project)   https://<mfe-project>.vercel.app
+              │   = standalone app at /   +   remoteEntry.js for the host
+              │ fetch() from either origin
               ▼
 Existing DigitalOcean droplet (already paid for)
   Caddy (free HTTPS from Let's Encrypt)
@@ -34,12 +35,17 @@ GitHub Actions (free for this repo) ─ tests on every PR; SSH deploy on merge t
 | BFF host | **Existing droplet**, SQLite | ₹0 extra | Already paid for, always on (your preference), matches LLRD Q13 |
 | Hostnames | **DuckDNS** free subdomains pointing at the droplet IP | ₹0 | No domain to buy. Caddy can get real HTTPS certificates for them. A domain can be added later by changing only env vars and CORS |
 | TLS / proxy | Caddy | ₹0 | Automatic HTTPS |
-| MFE host | Second Vercel Hobby project | ₹0 | Deploys independently of the host (G4) |
+| MFE host | Second Vercel Hobby project, from `apps/rewards-mfe` in this repo | ₹0 | Rewards is its own app, with a standalone URL, so it can grow into a product. The personal site still embeds it on `#/rewards`. It deploys independently of the host (G4) |
 | Dashboard | Same droplet, behind Caddy basic auth | ₹0 | Holds an owner-level credential, so it stays on your own box |
 | Off-site backup | **Your home computer pulls backups nightly** | ₹0 | Replaces paid DO Spaces. If the droplet dies, you lose at most a day. Optional upgrade: Litestream to the Backblaze B2 free tier (10 GB) for near-continuous backup |
 | Server backups | Our own snapshots, not DO's paid Backups add-on | ₹0 | DO Backups would add 20% to the droplet bill |
 | CI/CD | GitHub Actions | ₹0 | Free minutes cover this repo's tests |
 | Go-live bar | Owner passcode and a public read-only view | ₹0 | The MFE currently ships `demo-token` in its JS bundle, so anyone could edit |
+
+**Product path (later, not blocking go-live):**
+- **Vercel Hobby is non-commercial.** If Rewards is ever sold, move the frontend to a host that allows commercial use. Cloudflare Pages and Netlify have free plans that do; the same static build runs on either, so only the URL and CORS change.
+- **Split the code into its own repo** after go-live: `apps/rewards-mfe`, `services/bff`, `apps/rewards-dashboard` and `docs/rewards`.
+- **Multi-user accounts** come only when others sign up.
 
 **Why the home computer isn't the main server:** you asked for always-on. A home server goes down with power cuts, sleep and ISP outages. As the backup target it only needs to be on at some point each day; missed nights catch up on the next run.
 
@@ -93,7 +99,7 @@ Replaces `require_demo_token` (`services/bff/app/deps.py`) with two caller roles
 
 ### P4. Deploy the BFF and its backups
 
-1. Put `/etc/rewards/bff.env` (mode 600) on the droplet with the P1/P2 settings and `BFF_CORS_ORIGINS='["https://mansilly.vercel.app"]'`. The MFE's requests come from the **host page's origin**, so the host origin is the one CORS must allow. Add the MFE's own `*.vercel.app` URL only if it's used standalone.
+1. Put `/etc/rewards/bff.env` (mode 600) on the droplet with the P1/P2 settings and `BFF_CORS_ORIGINS='["https://mansilly.vercel.app","https://<mfe-project>.vercel.app"]'`. Both origins call the BFF: embedded Rewards calls from the host page's origin, and the standalone app calls from its own.
 2. Run `uv sync --frozen` in `services/bff`, then enable `rewards-bff.service` (`uvicorn app.main:app --host 127.0.0.1 --port 8000 --proxy-headers`). Startup runs the Alembic migrations.
 3. Caddy: `<name>-api.duckdns.org { reverse_proxy 127.0.0.1:8000 }`. Check that `curl https://<name>-api.duckdns.org/health` returns `{"status":"ok"}`.
 4. **Backups on the droplet** (systemd timers):
@@ -111,12 +117,13 @@ Replaces `require_demo_token` (`services/bff/app/deps.py`) with two caller roles
 
 ### P5. Deploy the MFE and wire it into the host
 
-1. Add `apps/rewards-mfe/vercel.json`:
-   - `Access-Control-Allow-Origin` for the host origin(s) on `/assets/(.*)`;
-   - `Cache-Control: no-cache` on `/assets/remoteEntry.js`, because its name isn't hashed;
-   - `immutable` caching on the other hashed assets;
-   - no SPA rewrite.
-2. Create a second **Hobby (free)** Vercel project from this repo, named per D2, with root directory `apps/rewards-mfe`, framework Vite, and env `VITE_BFF_URL=https://<name>-api.duckdns.org`. Add an "Ignored Build Step" so it only rebuilds when `apps/rewards-mfe/**` changes; this also saves free build minutes.
+1. ✅ `apps/rewards-mfe/vercel.json` is in the repo:
+   - `Access-Control-Allow-Origin: *` on `/assets/*`. These are public static JS files; the BFF is what enforces CORS for data;
+   - `Cache-Control: no-cache` on `remoteEntry.js`, because its name isn't hashed;
+   - an `ignoreCommand`, so the project only rebuilds when `apps/rewards-mfe/` changes.
+   
+   The standalone app is served at `/` and opens on `#/rewards`. Checked locally: the site's `#/rewards` loads the module from the separate deployment, and the standalone page works on its own.
+2. Create a second **Hobby (free)** Vercel project from this repo, named per D2, with root directory `apps/rewards-mfe`, framework Vite, and env `VITE_BFF_URL=https://<name>-api.duckdns.org`. The rebuild filter comes from `vercel.json`.
 3. In the host's Vercel project, set `VITE_REWARDS_REMOTE_URL=https://<mfe-project>.vercel.app/assets/remoteEntry.js` (Production and Preview). Redeploy, because the value is baked in at build time.
 4. **Known limitation:** Vercel preview URLs of the host aren't in the BFF's CORS list, so in previews Rewards shows its error states. If previews matter, add an `allow_origin_regex` for `https://*-<team>.vercel.app`.
 
@@ -176,7 +183,7 @@ Owner: **You** (accounts, secrets, decisions, the home machine), **Claude** (cod
 | A4 | MFE Unlock/Lock, hide edit controls, remove the baked token; dashboard service token | P1 | Claude | ₹0 | A2 | ⏳ |
 | A5 | WAL and busy timeout, configurable data paths, hide `/docs` in production | P2 | Claude | ₹0 | — | ⏳ |
 | A6 | `deploy/` folder: systemd units, Caddyfile, backup timers, `deploy.sh`, home pull script | P2 | Claude | ₹0 | A0, A5 | ⏳ |
-| A7 | `apps/rewards-mfe/vercel.json` (CORS and cache headers) | P5 | Claude | ₹0 | D2 | ⏳ |
+| A7 | `apps/rewards-mfe/vercel.json` (CORS, cache headers, rebuild filter) | P5 | Claude | ₹0 | — | ✅ |
 | A8 | GitHub Actions: `rewards-ci.yml` and `deploy-bff.yml` | P8 | Claude | ₹0 | A6 | ⏳ |
 | A9 | Create the DuckDNS names and point them at the droplet IP | P3 | You | ₹0 | D1 | ⏳ |
 | A10 | Droplet base setup (user, firewall, swap, close the Neo4j ports); install uv and Caddy | P3 | Both | ₹0 | A0 | ⏳ |
@@ -184,7 +191,7 @@ Owner: **You** (accounts, secrets, decisions, the home machine), **Claude** (cod
 | A12 | Start the BFF and Caddy; HTTPS works on the DuckDNS name; backup timers running | P4 | Both | ₹0 | A6, A9–A11 | ⏳ |
 | A13 | Home computer: SSH key, nightly rsync pull, **restore drill** | P4 | Both | ₹0 | A12 | ⏳ |
 | A14 | UptimeRobot free check on `/health`; disk alert | P4 | You | ₹0 | A12 | ⏳ |
-| A15 | Create the second Vercel Hobby project for the MFE; set `VITE_BFF_URL` | P5 | You | ₹0 | A4, A7, A12 | ⏳ |
+| A15 | Create the second Vercel Hobby project (root directory `apps/rewards-mfe`); set `VITE_BFF_URL`; open its URL and check the standalone app | P5 | You | ₹0 | A4, A12 | ⏳ |
 | A16 | Set `VITE_REWARDS_REMOTE_URL` on the host project and redeploy | P5 | You | ₹0 | A15 | ⏳ |
 | A17 | Start the dashboard behind basic auth (or the Community Cloud fallback) | P6 | Both | ₹0 | A12 | ⏳ |
 | A18 | Export local data, copy photos and files, import on the droplet, verify | P7 | Both | ₹0 | A12, D5 | ⏳ |
@@ -193,5 +200,7 @@ Owner: **You** (accounts, secrets, decisions, the home machine), **Claude** (cod
 | A21 | Merge `feature/rewards-mfe-bff` to `main`; mark T4 ✅ in the HLRD | P9 | You | ₹0 | A20 | ⏳ |
 
 **Critical path:** A0 → A1 → A2–A4 → A9–A12 → A15–A16 → A18 → A20 → A21. Claude's repo work (A2–A8) can run while you do A0 and A9–A10.
+
+**After go-live:** split the Rewards code into its own repo (not blocking deployment).
 
 **Optional later spend, none of it needed:** a custom domain (about ₹800–1,200 a year, swapped in through env vars and CORS only), and DO Backups (+20% of the droplet bill).
