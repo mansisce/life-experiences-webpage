@@ -3,7 +3,8 @@
 | | |
 |---|---|
 | **Scope** | Take the Rewards MFE, BFF and Streamlit dashboard from local-only to production, then merge `feature/rewards-mfe-bff` to `main` |
-| **Version** | 0.1 (plan) · 2026-10-04 |
+| **Budget** | **₹0 extra per month.** Reuses the DigitalOcean droplet you already pay for; everything else is on free tiers or your own machine |
+| **Version** | 0.2 (zero-cost plan) · 2026-10-04 |
 | **Related** | [HLRD.md](HLRD.md) T4 · [LLRD.md](LLRD.md) Q13, Q17, BR-R23 · [HLD.md](HLD.md) §8 |
 
 ---
@@ -11,46 +12,49 @@
 ## 1. Target topology
 
 ```
-Browser ──► Host shell (Vercel, existing project)         https://<host>  (mansilly.vercel.app, or <domain>)
+Browser ──► Host shell (Vercel Hobby, existing)            https://mansilly.vercel.app
               │ loads remoteEntry.js at runtime
               ▼
-            Rewards MFE (Vercel, new static project)      https://rewards.<domain>
+            Rewards MFE (Vercel Hobby, 2nd free project)   https://<mfe-project>.vercel.app
               │ fetch() from the host page's origin
               ▼
-DigitalOcean droplet (1 GB RAM, 25 GB disk, Ubuntu 24.04)
-  Caddy (HTTPS, Let's Encrypt)
-    ├── api.<domain>  ──► uvicorn :8000 (Rewards BFF, 1 worker)   ─► /var/lib/rewards/rewards.db (SQLite, WAL)
-    └── dash.<domain> ──► streamlit :8501 (basic auth in Caddy)        /var/lib/rewards/{photos,files}
-  Litestream ──► DO Spaces bucket (continuous DB replication)
-  rclone (nightly) ──► DO Spaces bucket (photos + files)
-GitHub Actions: tests on every PR; on merge to main, SSH deploy of the BFF and dashboard
+Existing DigitalOcean droplet (already paid for)
+  Caddy (free HTTPS from Let's Encrypt)
+    ├── <name>-api.duckdns.org  ──► uvicorn :8000 (Rewards BFF, 1 worker) ─► /var/lib/rewards/rewards.db (SQLite, WAL)
+    └── <name>-dash.duckdns.org ──► streamlit :8501 (basic auth in Caddy)     /var/lib/rewards/{photos,files}
+  Hourly DB snapshot + nightly JSON export ─► /var/lib/rewards/backups (kept 14 days)
+        ▲
+        │ nightly pull over SSH (rsync)
+Home computer ─ keeps the off-site copy of DB snapshots, photos and files
+GitHub Actions (free for this repo) ─ tests on every PR; SSH deploy on merge to main
 ```
 
-| Decision | Choice | Why |
-|---|---|---|
-| BFF host | DigitalOcean droplet, SQLite + Litestream | PO decision Q13. Cheap, a single file, and the JSON export keeps a later Postgres move open |
-| Process model | One uvicorn worker under systemd | SQLite has one writer; one user needs no more |
-| TLS / proxy | Caddy | Automatic HTTPS, so there are no certificates to manage |
-| MFE host | Separate Vercel project | Deploys independently of the host (G4) |
-| Dashboard host | Same droplet, behind Caddy basic auth | It needs an owner-level BFF credential and shows private data, so Streamlit Community Cloud is a poor fit |
-| Go-live bar | Owner passcode and a public read-only view | The MFE currently ships `demo-token` in its JS bundle, so anyone could edit |
+| Decision | Choice | Cost | Why |
+|---|---|---|---|
+| BFF host | **Existing droplet**, SQLite | ₹0 extra | Already paid for, always on (your preference), matches LLRD Q13 |
+| Hostnames | **DuckDNS** free subdomains pointing at the droplet IP | ₹0 | No domain to buy. Caddy can get real HTTPS certificates for them. A domain can be added later by changing only env vars and CORS |
+| TLS / proxy | Caddy | ₹0 | Automatic HTTPS |
+| MFE host | Second Vercel Hobby project | ₹0 | Deploys independently of the host (G4) |
+| Dashboard | Same droplet, behind Caddy basic auth | ₹0 | Holds an owner-level credential, so it stays on your own box |
+| Off-site backup | **Your home computer pulls backups nightly** | ₹0 | Replaces paid DO Spaces. If the droplet dies, you lose at most a day. Optional upgrade: Litestream to the Backblaze B2 free tier (10 GB) for near-continuous backup |
+| Server backups | Our own snapshots, not DO's paid Backups add-on | ₹0 | DO Backups would add 20% to the droplet bill |
+| CI/CD | GitHub Actions | ₹0 | Free minutes cover this repo's tests |
+| Go-live bar | Owner passcode and a public read-only view | ₹0 | The MFE currently ships `demo-token` in its JS bundle, so anyone could edit |
 
-**Cost:** droplet about $6/mo, Spaces about $5/mo, domain about $10–15/yr, Vercel Hobby free.
+**Why the home computer isn't the main server:** you asked for always-on. A home server goes down with power cuts, sleep and ISP outages. As the backup target it only needs to be on at some point each day; missed nights catch up on the next run.
 
----
+**Memory watch:** the droplet has 1 GB RAM. If it also runs the Weekend Picks Neo4j + Express stack (`backend/docker-compose.yml`), Neo4j alone can use 500 MB or more. Check with `free -m` / `docker stats` first (A0). If memory is tight: add a 2 GB swapfile (free), cap the Neo4j heap, or move only the dashboard to Streamlit Community Cloud (free, but it sleeps when idle).
 
 ## 2. Open decisions (needed before the phases they block)
 
 | # | Decision | Recommendation | Blocks |
 |---|---|---|---|
-| D1 | Which domain name? | Buy one (e.g. via Cloudflare or Namecheap) and use `api.`, `rewards.` and `dash.` subdomains | P3, P5 |
-| D2 | Move the host itself to `<domain>`? | Yes. Keep `mansilly.vercel.app` as an alias and allow both in CORS | P5 |
+| D1 | DuckDNS names | e.g. `mansi-rewards-api` and `mansi-rewards-dash` (DuckDNS gives 5 free names per account) | P3 |
+| D2 | Name for the MFE's Vercel project | e.g. `mansilly-rewards`, which gives `mansilly-rewards.vercel.app` | P5 |
 | D3 | Contacts and bills in the public view (HLRD §9 risk, Q17)? | **Hide notes, contacts and files from visitors**; keep tiles, tasks and rewards public | P1 |
 | D4 | Public reads on at launch? | Yes, via `BFF_PUBLIC_READS=true`. It can be switched off without a deploy | P1 |
-| D5 | Confirm no Neo4j data migration (HLRD §4.4) | Confirm: nothing to carry over | P8 |
-| D6 | Droplet region | `BLR1` (Bangalore), close to the Asia/Kolkata users | P3 |
-
----
+| D5 | Confirm no Neo4j data migration (HLRD §4.4) | Confirm: nothing to carry over | P7 |
+| D6 | Keep the Weekend Picks stack on the same droplet? | Yes if A0 shows enough memory with swap. Otherwise cap the Neo4j heap | P3 |
 
 ## 3. Phases
 
@@ -69,28 +73,41 @@ Replaces `require_demo_token` (`services/bff/app/deps.py`) with two caller roles
 
 ### P2. Production hardening of the BFF (small, before first deploy)
 
-- Turn on `PRAGMA journal_mode=WAL` and `busy_timeout` in `app/db.py`. Litestream needs WAL.
+- Turn on `PRAGMA journal_mode=WAL` and `busy_timeout` in `app/db.py`. This gives safer snapshots while the BFF is serving, and the optional Litestream needs it.
 - Make data paths configurable through env: `BFF_DATABASE_URL`, `BFF_PHOTO_DIR` and `BFF_FILES_DIR` pointing at `/var/lib/rewards`. Check that the migration backup folder follows the database path.
 - Serve `/docs` and `/openapi.json` only when not in production, or only to the owner.
 - Cap the upload size at the proxy (Caddy `request_body max_size`) to match the BFF's own limit.
-- Add `deploy/` to the repo: `rewards-bff.service`, `rewards-dashboard.service`, `litestream.yml`, `Caddyfile`, `deploy.sh`, `rclone-backup.{service,timer}`.
+- Add `deploy/` to the repo: `rewards-bff.service`, `rewards-dashboard.service`, `Caddyfile`, `deploy.sh`, `backup.{service,timer}`, `home-pull-backup.sh`.
 
-### P3. Domain and droplet (owner, with Claude guiding)
+### P3. Prepare the existing droplet and free hostnames (owner, with Claude guiding)
 
-1. Buy the domain (D1). Create DNS records: `api` and `dash` as **A** records pointing at the droplet IP; `rewards` (and optionally the apex or `www`) as **CNAME** to Vercel.
-2. Create the droplet: Ubuntu 24.04, 1 GB, region per D6, SSH key only, monitoring on.
-3. Base setup: a non-root `rewards` user, `ufw` allowing only 22, 80 and 443, `unattended-upgrades`, a **2 GB swapfile** (1 GB RAM runs uvicorn and Streamlit), `fail2ban`.
-4. Install `uv`, Caddy, Litestream and rclone. Create `/opt/rewards` (git checkout) and `/var/lib/rewards` (data, owned by `rewards`, mode 700).
-5. Create a DO Spaces bucket and a key pair limited to it.
+1. **Health check (A0):** run `free -m`, `df -h`, `docker ps` and `docker stats --no-stream`, and note the Ubuntu version and what listens on ports 80 and 443 (`ss -tlnp`). If something else already uses 80/443 (e.g. nginx), put the new sites in that proxy instead of adding Caddy.
+2. **DuckDNS:** sign in with GitHub or Google (no card), create the two names from D1, and point both at the droplet's public IP. The IP doesn't change, so no update client is needed.
+3. **Base setup**, if it isn't already done:
+   - a non-root `rewards` user;
+   - `ufw` allowing 22, 80 and 443;
+   - `unattended-upgrades` and `fail2ban`;
+   - a **2 GB swapfile**.
+   - While you're there, close the publicly open Neo4j ports 7474 and 7687 if they're exposed. Their password is committed in `backend/docker-compose.yml`.
+4. Install `uv` and Caddy. Create `/opt/rewards` (git checkout) and `/var/lib/rewards` (data, owned by `rewards`, mode 700).
 
 ### P4. Deploy the BFF and its backups
 
-1. Put `/etc/rewards/bff.env` (mode 600) on the droplet with the P1/P2 settings and `BFF_CORS_ORIGINS='["https://<host>","https://mansilly.vercel.app"]'`. The MFE's requests come from the **host page's origin**, so the host origins are the ones CORS must allow. Add `https://rewards.<domain>` only if the MFE is used standalone.
+1. Put `/etc/rewards/bff.env` (mode 600) on the droplet with the P1/P2 settings and `BFF_CORS_ORIGINS='["https://mansilly.vercel.app"]'`. The MFE's requests come from the **host page's origin**, so the host origin is the one CORS must allow. Add the MFE's own `*.vercel.app` URL only if it's used standalone.
 2. Run `uv sync --frozen` in `services/bff`, then enable `rewards-bff.service` (`uvicorn app.main:app --host 127.0.0.1 --port 8000 --proxy-headers`). Startup runs the Alembic migrations.
-3. Caddy: `api.<domain> { reverse_proxy 127.0.0.1:8000 }`. Check that `curl https://api.<domain>/health` returns `{"status":"ok"}`.
-4. Start Litestream, replicating `rewards.db` to Spaces. **Do a restore drill:** `litestream restore` into a temp path and open it.
-5. Add an rclone timer that syncs `photos/` and `files/` to Spaces nightly, plus a weekly `python -m app.backup export` JSON kept for 8 weeks.
-6. Uptime check on `/health` (DO Monitoring or UptimeRobot) with email alerts. Alert when the disk passes 80%, including the 2 GB files soft limit (NFR-D9).
+3. Caddy: `<name>-api.duckdns.org { reverse_proxy 127.0.0.1:8000 }`. Check that `curl https://<name>-api.duckdns.org/health` returns `{"status":"ok"}`.
+4. **Backups on the droplet** (systemd timers):
+   - hourly `python -m app.backup snapshot`;
+   - nightly `python -m app.backup export`;
+   - prune anything older than 14 days.
+5. **Off-site copy on the home computer:**
+   - Create a read-only SSH key for a `backup` user on the droplet.
+   - Schedule a nightly `rsync -a backup@<droplet>:/var/lib/rewards/{backups,photos,files} ~/rewards-backup/` (cron on Mac/Linux, Task Scheduler + WSL on Windows).
+   - **Restore drill:** open the latest snapshot locally with the BFF (`BFF_DATABASE_URL` pointing at the copy) and see your data.
+6. **Free monitoring:**
+   - UptimeRobot's free plan checks `/health` every 5 minutes and emails you when it fails.
+   - A daily cron emails, or logs, a warning when the disk passes 80%, including the 2 GB files soft limit (NFR-D9).
+7. *Optional, still free:* Litestream to a Backblaze B2 bucket (10 GB free) for near-continuous DB backup. This needs WAL (P2).
 
 ### P5. Deploy the MFE and wire it into the host
 
@@ -99,15 +116,15 @@ Replaces `require_demo_token` (`services/bff/app/deps.py`) with two caller roles
    - `Cache-Control: no-cache` on `/assets/remoteEntry.js`, because its name isn't hashed;
    - `immutable` caching on the other hashed assets;
    - no SPA rewrite.
-2. Create a new Vercel project from this repo with root directory `apps/rewards-mfe`, framework Vite, and env `VITE_BFF_URL=https://api.<domain>`. Add an "Ignored Build Step" so it only rebuilds when `apps/rewards-mfe/**` changes. Attach `rewards.<domain>`.
-3. In the host's Vercel project, set `VITE_REWARDS_REMOTE_URL=https://rewards.<domain>/assets/remoteEntry.js` (Production and Preview), and attach `<domain>` if D2 says so. Redeploy, because the value is baked in at build time.
+2. Create a second **Hobby (free)** Vercel project from this repo, named per D2, with root directory `apps/rewards-mfe`, framework Vite, and env `VITE_BFF_URL=https://<name>-api.duckdns.org`. Add an "Ignored Build Step" so it only rebuilds when `apps/rewards-mfe/**` changes; this also saves free build minutes.
+3. In the host's Vercel project, set `VITE_REWARDS_REMOTE_URL=https://<mfe-project>.vercel.app/assets/remoteEntry.js` (Production and Preview). Redeploy, because the value is baked in at build time.
 4. **Known limitation:** Vercel preview URLs of the host aren't in the BFF's CORS list, so in previews Rewards shows its error states. If previews matter, add an `allow_origin_regex` for `https://*-<team>.vercel.app`.
 
 ### P6. Deploy the Streamlit dashboard
 
 1. Enable `rewards-dashboard.service` (`streamlit run app.py --server.address 127.0.0.1 --server.port 8501 --server.headless true`) with `BFF_URL=http://127.0.0.1:8000` and `BFF_TOKEN=<service token>`.
-2. Caddy: `dash.<domain> { basic_auth { owner <bcrypt-hash> } reverse_proxy 127.0.0.1:8501 }`. Streamlit needs WebSockets, which Caddy proxies by default.
-3. Check memory with `free -m` after both services are up. With swap there should be headroom.
+2. Caddy: `<name>-dash.duckdns.org { basic_auth { owner <bcrypt-hash> } reverse_proxy 127.0.0.1:8501 }`. Streamlit needs WebSockets, which Caddy proxies by default.
+3. Check memory with `free -m` after both services are up. If it's tight, use the D6 fallback: Streamlit Community Cloud (free, sleeps when idle). The BFF stays on the droplet.
 
 ### P7. Move local data to production
 
@@ -116,7 +133,7 @@ Do this after P4 and before announcing the link. Your laptop stops being the sou
 1. Stop the local BFF, then run `uv run python -m app.backup export prod-move.json`. The export covers **the database only**.
 2. `scp` the JSON and the `data/photos/` and `data/files/` folders to the droplet, under `/var/lib/rewards/`, owned by `rewards`.
 3. On the droplet: stop the BFF, run `uv run python -m app.backup import prod-move.json --replace`, then start the BFF.
-4. Check that row counts match. Open a few tiles, an uploaded bill and a reward cover photo through the live site. Confirm Litestream has a fresh snapshot.
+4. Check that row counts match. Open a few tiles, an uploaded bill and a reward cover photo through the live site. Run the first home backup pull by hand.
 
 ### P8. CI/CD (GitHub Actions)
 
@@ -129,7 +146,7 @@ Do this after P4 and before announcing the link. Your laptop stops being the sou
   - SSH as a deploy user with a dedicated key. Secrets: `DROPLET_HOST`, `DROPLET_SSH_KEY`, `DROPLET_KNOWN_HOSTS`.
   - Run `deploy/deploy.sh <sha>`: fetch, check out the commit, `uv sync --frozen`, restart the services, poll `/health` for 30 s, and if it fails, check out the previous commit and restart.
 - **Frontends:** Vercel's Git integration already deploys the host and the MFE on push. CI only gates them.
-- **Migration rule:** a rollback can't undo a schema migration. Keep migrations additive. To revert one, restore the automatic pre-upgrade backup in `backups/` or use Litestream.
+- **Migration rule:** a rollback can't undo a schema migration. Keep migrations additive. To revert one, restore the automatic pre-upgrade backup in `backups/`.
 
 ### P9. Verify, go live, and know how to roll back
 
@@ -142,35 +159,39 @@ Do this after P4 and before announcing the link. Your laptop stops being the sou
   |---|---|
   | Host | Vercel "Instant Rollback", or clear `VITE_REWARDS_REMOTE_URL`; the host then shows its fallback card |
   | MFE | Promote the previous Vercel deployment |
-  | BFF | `deploy.sh <previous-sha>`. For the data, `litestream restore -timestamp …` |
+  | BFF | `deploy.sh <previous-sha>`. For the data, copy the last good hourly snapshot back into place |
 
 ---
 
 ## 4. Action items
 
-Owner: **You** (accounts, money, secrets, decisions), **Claude** (code, config and docs in this repo), **Both** (you run it, Claude guides).
+Owner: **You** (accounts, secrets, decisions, the home machine), **Claude** (code, config and docs in this repo), **Both** (you run it, Claude guides).
 
-| # | Action | Phase | Owner | Depends on | Status |
-|---|---|---|---|---|---|
-| A1 | Decide D1–D6 | P0 | You | — | ⏳ |
-| A2 | Owner passcode, `get_viewer`, `/auth/session`, rate limit, production config guard | P1 | Claude | D3, D4 | ⏳ |
-| A3 | Visitor filtering for silent items and details, plus privacy tests (NFR-D11) | P1 | Claude | A2 | ⏳ |
-| A4 | MFE Unlock/Lock, hide edit controls, remove the baked token; dashboard service token | P1 | Claude | A2 | ⏳ |
-| A5 | WAL and busy timeout, configurable data paths, hide `/docs` in production | P2 | Claude | — | ⏳ |
-| A6 | `deploy/` folder: systemd units, Caddyfile, `litestream.yml`, rclone timer, `deploy.sh` | P2 | Claude | A5 | ⏳ |
-| A7 | `apps/rewards-mfe/vercel.json` (CORS and cache headers) | P5 | Claude | D1 | ⏳ |
-| A8 | GitHub Actions: `rewards-ci.yml` and `deploy-bff.yml` | P8 | Claude | A6 | ⏳ |
-| A9 | Buy the domain; create DNS records | P3 | You | D1 | ⏳ |
-| A10 | Create and harden the droplet; install uv, Caddy, Litestream, rclone | P3 | Both | A9 | ⏳ |
-| A11 | Create the DO Spaces bucket and a scoped key | P3 | You | — | ⏳ |
-| A12 | Generate secrets (passcode hash, signing key, service token, basic-auth hash); write `/etc/rewards/*.env` | P4 | Both | A2, A10 | ⏳ |
-| A13 | Start the BFF, Caddy and Litestream; **restore drill**; uptime and disk alerts | P4 | Both | A6, A10–A12 | ⏳ |
-| A14 | Create the Vercel MFE project and its domain; set `VITE_BFF_URL` | P5 | You | A4, A7, A13 | ⏳ |
-| A15 | Set `VITE_REWARDS_REMOTE_URL` on the host project and redeploy | P5 | You | A14 | ⏳ |
-| A16 | Start the dashboard behind basic auth | P6 | Both | A13 | ⏳ |
-| A17 | Export local data, copy photos and files, import on the droplet, verify | P7 | Both | A13, D5 | ⏳ |
-| A18 | Add GitHub secrets and the `production` environment; test one deploy and one forced rollback | P8 | Both | A8, A13 | ⏳ |
-| A19 | Production smoke test as owner and as visitor; security pass | P9 | Both | A15–A17 | ⏳ |
-| A20 | Merge `feature/rewards-mfe-bff` to `main`; mark T4 ✅ in the HLRD | P9 | You | A19 | ⏳ |
+| # | Action | Phase | Owner | Cost | Depends on | Status |
+|---|---|---|---|---|---|---|
+| A0 | Droplet health check (memory, disk, ports, what's running); share the output | P3 | You | ₹0 | — | ⏳ |
+| A1 | Decide D1–D6 | P0 | You | ₹0 | A0 | ⏳ |
+| A2 | Owner passcode, `get_viewer`, `/auth/session`, rate limit, production config guard | P1 | Claude | ₹0 | D3, D4 | ⏳ |
+| A3 | Visitor filtering for silent items and details, plus privacy tests (NFR-D11) | P1 | Claude | ₹0 | A2 | ⏳ |
+| A4 | MFE Unlock/Lock, hide edit controls, remove the baked token; dashboard service token | P1 | Claude | ₹0 | A2 | ⏳ |
+| A5 | WAL and busy timeout, configurable data paths, hide `/docs` in production | P2 | Claude | ₹0 | — | ⏳ |
+| A6 | `deploy/` folder: systemd units, Caddyfile, backup timers, `deploy.sh`, home pull script | P2 | Claude | ₹0 | A0, A5 | ⏳ |
+| A7 | `apps/rewards-mfe/vercel.json` (CORS and cache headers) | P5 | Claude | ₹0 | D2 | ⏳ |
+| A8 | GitHub Actions: `rewards-ci.yml` and `deploy-bff.yml` | P8 | Claude | ₹0 | A6 | ⏳ |
+| A9 | Create the DuckDNS names and point them at the droplet IP | P3 | You | ₹0 | D1 | ⏳ |
+| A10 | Droplet base setup (user, firewall, swap, close the Neo4j ports); install uv and Caddy | P3 | Both | ₹0 | A0 | ⏳ |
+| A11 | Generate secrets (passcode hash, signing key, service token, basic-auth hash); write `/etc/rewards/*.env` | P4 | Both | ₹0 | A2, A10 | ⏳ |
+| A12 | Start the BFF and Caddy; HTTPS works on the DuckDNS name; backup timers running | P4 | Both | ₹0 | A6, A9–A11 | ⏳ |
+| A13 | Home computer: SSH key, nightly rsync pull, **restore drill** | P4 | Both | ₹0 | A12 | ⏳ |
+| A14 | UptimeRobot free check on `/health`; disk alert | P4 | You | ₹0 | A12 | ⏳ |
+| A15 | Create the second Vercel Hobby project for the MFE; set `VITE_BFF_URL` | P5 | You | ₹0 | A4, A7, A12 | ⏳ |
+| A16 | Set `VITE_REWARDS_REMOTE_URL` on the host project and redeploy | P5 | You | ₹0 | A15 | ⏳ |
+| A17 | Start the dashboard behind basic auth (or the Community Cloud fallback) | P6 | Both | ₹0 | A12 | ⏳ |
+| A18 | Export local data, copy photos and files, import on the droplet, verify | P7 | Both | ₹0 | A12, D5 | ⏳ |
+| A19 | Add GitHub secrets and the `production` environment; test one deploy and one forced rollback | P8 | Both | ₹0 | A8, A12 | ⏳ |
+| A20 | Production smoke test as owner and as visitor; security pass | P9 | Both | ₹0 | A16–A18 | ⏳ |
+| A21 | Merge `feature/rewards-mfe-bff` to `main`; mark T4 ✅ in the HLRD | P9 | You | ₹0 | A20 | ⏳ |
 
-**Critical path:** A1 → A2–A4 → A10–A13 → A14–A15 → A17 → A19 → A20. Claude's repo work (A2–A8) can run while you do the accounts and the droplet (A9–A11).
+**Critical path:** A0 → A1 → A2–A4 → A9–A12 → A15–A16 → A18 → A20 → A21. Claude's repo work (A2–A8) can run while you do A0 and A9–A10.
+
+**Optional later spend, none of it needed:** a custom domain (about ₹800–1,200 a year, swapped in through env vars and CORS only), and DO Backups (+20% of the droplet bill).
